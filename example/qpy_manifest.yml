@@ -1,0 +1,6 @@
+short_name: example
+version: 0.1.0
+api_version: 0.1
+entrypoint: main
+author: Maximilian Haye <m.haye@tu-berlin.de>
+requirements: ../requirements.txt

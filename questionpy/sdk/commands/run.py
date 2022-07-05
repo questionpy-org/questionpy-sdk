@@ -6,24 +6,24 @@ from zipfile import ZipFile
 import click
 
 from questionpy.sdk.manifest import Manifest
-from questionpy.sdk.registry import registry
+from questionpy.sdk.qtype import QuestionType
+from questionpy.sdk.runtime import QPyRuntime
 
 run: click.Command
 
 
 @click.command()
 @click.argument("package", type=click.Path(exists=True, dir_okay=False, path_type=Path))
-def run(package: Path):
+@click.option("-p", "--pretty", is_flag=True, show_default=True, default=False, help="Output indented JSON.")
+def run(package: Path, pretty: bool):
     with ZipFile(package) as package_file:
-        manifest = Manifest.parse_raw(package_file.read("qpy_manifest.json"))
+        manifest = Manifest.parse_raw(package_file.read("qpy_manifest.yml"))
 
-    print(registry)
-
-    old_path = sys.path
-    sys.path = [str(package), str(package / "dependencies")]
+    sys.path.insert(0, str(package))
     try:
         import_module(manifest.entrypoint)
     finally:
-        sys.path = old_path
+        sys.path.remove(str(package))
 
-    print(registry)
+    runtime = QPyRuntime(manifest, QuestionType.__subclasses__()[0], pretty=pretty)
+    runtime.run()
