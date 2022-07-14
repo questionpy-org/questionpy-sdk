@@ -16,7 +16,7 @@ class QPyPackageServer(Iterator[Message]):
         self.write_stream = write_stream
         self.pretty = pretty
 
-    def __iter__(self):
+    def __iter__(self) -> Iterator[Message]:
         return self
 
     def __next__(self) -> Message:
@@ -25,7 +25,8 @@ class QPyPackageServer(Iterator[Message]):
             line = self._read_next_line()
 
             try:
-                message = pydantic.parse_raw_as(Message, line)
+                # Mypy wrongly infers the type of Message to object for some reason, leading to a false positive here.
+                message = pydantic.parse_raw_as(Message, line)  # type: ignore[arg-type]
             except (JSONDecodeError, ValidationError) as e:
                 log.error("Received invalid message, ignoring", exc_info=e)
                 continue

@@ -1,6 +1,6 @@
 import logging
 from abc import ABC, abstractmethod
-from typing import Any, Dict
+from typing import Any, Dict, Optional, Type
 
 from questionpy.sdk.manifest import Manifest
 from questionpy.sdk.model.form import Form
@@ -14,10 +14,13 @@ class MissingOptionError(Exception):
 
 
 class QuestionType(ABC):
-    manifest: Manifest
+    implementation: Optional[Type["QuestionType"]] = None
 
     def __init__(self, manifest: Manifest):
         self.manifest = manifest
+
+    def __init_subclass__(cls, **kwargs: Any) -> None:
+        QuestionType.implementation = cls
 
     @abstractmethod
     def render_edit_form(self, form: Form) -> None: ...

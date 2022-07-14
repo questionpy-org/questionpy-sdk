@@ -38,3 +38,4 @@ max-line-length = 120
 plugins = "pydantic.mypy"
 disallow_untyped_defs = true
 strict_optional = true
+show_error_codes = true

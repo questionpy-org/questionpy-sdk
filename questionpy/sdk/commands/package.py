@@ -11,13 +11,11 @@ from questionpy.sdk.manifest import Manifest
 
 log = logging.getLogger(__name__)
 
-package: click.Command
-
 
 @click.command()
 @click.argument("source", type=click.Path(exists=True, file_okay=False, path_type=Path))
 @click.option("--manifest", "-m", "manifest_path", type=click.Path(exists=True, dir_okay=False, path_type=Path))
-def package(source: Path, manifest_path: Optional[Path]):
+def package(source: Path, manifest_path: Optional[Path]) -> None:
     out_path = source.with_suffix(".qpy")
 
     if not manifest_path:
@@ -40,7 +38,7 @@ def package(source: Path, manifest_path: Optional[Path]):
         out_file.writestr("qpy_manifest.yml", manifest.yaml())
 
 
-def install_dependencies(target: ZipFile, manifest_path: Path, manifest: Manifest):
+def install_dependencies(target: ZipFile, manifest_path: Path, manifest: Manifest) -> None:
     if isinstance(manifest.requirements, str):
         # treat as a relative reference to a requirements.txt and read those
         pip_args = ["-r", str(manifest_path.parent / manifest.requirements)]

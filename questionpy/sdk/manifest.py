@@ -1,7 +1,6 @@
 from typing import Dict, List, Optional, Set, Union
 
-from pydantic import BaseModel
-from pydantic_yaml import YamlModelMixin, YamlStrEnum
+from pydantic_yaml import YamlModel, YamlStrEnum
 
 
 class PackageType(YamlStrEnum):
@@ -9,7 +8,7 @@ class PackageType(YamlStrEnum):
     LIBRARY = "LIBRARY"
 
 
-class Manifest(YamlModelMixin, BaseModel):
+class Manifest(YamlModel):
     short_name: str
     version: str
     api_version: str

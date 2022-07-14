@@ -6,7 +6,7 @@ from questionpy.sdk.logging import init_logging
 
 
 @click.group()
-def cli():
+def cli() -> None:
     init_logging()
 
 
