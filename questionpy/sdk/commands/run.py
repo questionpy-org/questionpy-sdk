@@ -8,7 +8,7 @@ import click
 
 from questionpy.sdk.manifest import Manifest
 from questionpy.sdk.qtype import QuestionType
-from questionpy.sdk.runtime import QPyRuntime
+from questionpy.sdk.runtime import run_qtype
 
 log = logging.getLogger(__name__)
 
@@ -28,7 +28,6 @@ def run(package: Path, pretty: bool) -> None:
 
     if QuestionType.implementation is None:
         log.fatal("The package '%s' does not contain an implementation of QuestionType", package)
-        exit(1)
+        sys.exit(1)
 
-    runtime = QPyRuntime(manifest, QuestionType.implementation, pretty=pretty)
-    runtime.run()
+    run_qtype(manifest, QuestionType.implementation, pretty=pretty)

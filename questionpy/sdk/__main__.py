@@ -1,4 +1,4 @@
-import click as click
+import click
 
 from questionpy.sdk.commands.package import package
 from questionpy.sdk.commands.run import run

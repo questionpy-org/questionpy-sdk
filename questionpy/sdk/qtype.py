@@ -10,6 +10,7 @@ log = logging.getLogger(__name__)
 
 class MissingOptionError(Exception):
     def __init__(self, name: str):
+        super().__init__(f"Question option '{name}' was required but not provided")
         self.name = name
 
 
@@ -23,7 +24,8 @@ class QuestionType(ABC):
         QuestionType.implementation = cls
 
     @abstractmethod
-    def render_edit_form(self, form: Form) -> None: ...
+    def render_edit_form(self, form: Form) -> None:
+        pass
 
     def validate_options(self, options: Dict[str, Any]) -> Dict[str, Any]:
         return options

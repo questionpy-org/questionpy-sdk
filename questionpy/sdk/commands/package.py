@@ -5,7 +5,7 @@ from tempfile import TemporaryDirectory
 from typing import Optional
 from zipfile import ZipFile
 
-import click as click
+import click
 
 from questionpy.sdk.manifest import Manifest
 
@@ -31,10 +31,10 @@ def package(source: Path, manifest_path: Optional[Path]) -> None:
 
         for source_file in source.glob("**/*.py"):
             path_in_pkg = source_file.relative_to(source)
-            log.info(f"{path_in_pkg}: {source_file}")
+            log.info("%s: %s", path_in_pkg, source_file)
             out_file.write(source_file, path_in_pkg)
 
-        log.info(f"qpy_manifest.yml: {manifest}")
+        log.info("qpy_manifest.yml: %s", manifest)
         out_file.writestr("qpy_manifest.yml", manifest.yaml())
 
 
@@ -54,5 +54,5 @@ def install_dependencies(target: ZipFile, manifest_path: Path, manifest: Manifes
 
         for file in Path(tempdir).glob("**/*"):
             path_in_pkg = file.relative_to(tempdir)
-            log.info(f"{path_in_pkg}: {file}")
+            log.info("%s: %s", path_in_pkg, file)
             target.write(file, path_in_pkg)

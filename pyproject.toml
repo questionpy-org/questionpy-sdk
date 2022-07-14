@@ -19,6 +19,10 @@ load-plugins = "pylint_pytest"
 fail-on = ["E", "F"]
 fail-under = 8
 
+[tool.pylint.BASIC]
+# Allow these well-known names despite usual naming conventions
+good-names = ["i", "j", "k", "e", "ex", "_"]
+
 [tool.pylint.REPORTS]
 output-format = "colorized"
 
