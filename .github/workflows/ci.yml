@@ -1,0 +1,13 @@
+name: "CI"
+
+on:
+  push:
+  pull_request:
+    # We don't run on PR synchronize, because that would duplicate the push-Build
+    types:
+      - opened
+
+jobs:
+  ci:
+    # https://github.com/questionpy-org/.github
+    uses: questionpy-org/.github/.github/workflows/python-ci.yml@feature/3/reusable-ci
