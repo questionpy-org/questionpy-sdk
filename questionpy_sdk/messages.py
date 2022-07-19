@@ -21,20 +21,20 @@ class RenderEditForm(BaseModel):
         form: Form
 
 
-class ValidateOptionsMessage(BaseModel):
-    kind: Literal["validate_options"] = "validate_options"
-    options: Dict[str, Any]
+class CreateQuestionMessage(BaseModel):
+    kind: Literal["create_question"] = "create_question"
+    form_data: Dict[str, Any]
 
     class Response(BaseModel):
         kind: Literal["question_state"] = "question_state"
-        state: Dict[str, Any]
+        state: BaseModel
 
 
 Message = Annotated[
     Union[
         PingMessage, PongMessage,
         RenderEditForm, RenderEditForm.Response,
-        ValidateOptionsMessage, ValidateOptionsMessage.Response
+        CreateQuestionMessage, CreateQuestionMessage.Response
     ],
     Field(discriminator="kind")
 ]

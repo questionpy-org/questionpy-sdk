@@ -1,14 +1,8 @@
 from abc import ABC, abstractmethod
-from typing import Any, Dict, Optional, Type
+from typing import Any, Optional, Type
 
 from questionpy._manifest import Manifest
 from questionpy.form import Form
-
-
-class MissingOptionError(Exception):
-    def __init__(self, name: str):
-        super().__init__(f"Question option '{name}' was required but not provided")
-        self.name = name
 
 
 class QuestionType(ABC):
@@ -21,8 +15,8 @@ class QuestionType(ABC):
         QuestionType.implementation = cls
 
     @abstractmethod
-    def render_edit_form(self, form: Form) -> None:
+    def render_edit_form(self) -> Form:
         pass
 
-    def validate_options(self, options: Dict[str, Any]) -> Dict[str, Any]:
+    def validate_options(self, options: Any) -> Any:
         return options

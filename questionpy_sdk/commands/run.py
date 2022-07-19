@@ -8,6 +8,7 @@ import click
 
 from questionpy import Manifest, QuestionType
 from questionpy_sdk.runtime import run_qtype
+from questionpy_sdk.server import QPyPackageServer
 
 log = logging.getLogger(__name__)
 
@@ -29,4 +30,5 @@ def run(package: Path, pretty: bool) -> None:
         log.fatal("The package '%s' does not contain an implementation of QuestionType", package)
         sys.exit(1)
 
-    run_qtype(manifest, QuestionType.implementation, pretty=pretty)
+    server = QPyPackageServer(sys.stdin, sys.stdout, pretty=pretty)
+    run_qtype(manifest, QuestionType.implementation, server)
