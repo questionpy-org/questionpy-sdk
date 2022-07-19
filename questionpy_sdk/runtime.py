@@ -2,11 +2,10 @@ import logging
 import sys
 from typing import Type
 
-from questionpy.sdk.manifest import Manifest
-from questionpy.sdk.model.form import Form
-from questionpy.sdk.model.messages import PingMessage, PongMessage, RenderEditForm, ValidateOptionsMessage
-from questionpy.sdk.qtype import QuestionType
-from questionpy.sdk.server import QPyPackageServer
+from questionpy import Manifest, QuestionType
+from questionpy.form import Form
+from questionpy_sdk.messages import PingMessage, PongMessage, RenderEditForm, ValidateOptionsMessage
+from questionpy_sdk.server import QPyPackageServer
 
 log = logging.getLogger(__name__)
 

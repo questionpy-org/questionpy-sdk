@@ -1,7 +1,7 @@
-from questionpy.sdk.model.form import ButtonElement, CheckboxElement, CheckboxGroupElement, Form, FormSection, \
-    HiddenElement, \
-    RadioGroupElement, SelectElement, TextElement, TextInputElement
-from questionpy.sdk.qtype import QuestionType
+from questionpy import QuestionType
+
+from questionpy.form import ButtonElement, CheckboxElement, CheckboxGroupElement, Form, FormSection, \
+    HiddenElement, RadioGroupElement, SelectElement, TextElement, TextInputElement
 
 
 class ExampleQuestionType(QuestionType):

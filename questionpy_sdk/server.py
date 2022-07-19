@@ -5,7 +5,7 @@ from typing import Iterator, TextIO
 import pydantic
 from pydantic.error_wrappers import ValidationError
 
-from questionpy.sdk.model.messages import Message
+from questionpy_sdk.messages import Message
 
 log = logging.getLogger(__name__)
 

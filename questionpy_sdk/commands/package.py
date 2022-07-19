@@ -7,7 +7,7 @@ from zipfile import ZipFile
 
 import click
 
-from questionpy.sdk.manifest import Manifest
+from questionpy import Manifest
 
 log = logging.getLogger(__name__)
 

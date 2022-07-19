@@ -2,7 +2,7 @@ from typing import Annotated, Any, Dict, Literal, Union
 
 from pydantic import BaseModel, Field
 
-from questionpy.sdk.model.form import Form
+from questionpy.form import Form
 
 
 class PingMessage(BaseModel):

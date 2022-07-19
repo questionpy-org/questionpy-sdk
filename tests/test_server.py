@@ -2,8 +2,8 @@ from io import StringIO
 
 import pytest
 
-from questionpy.sdk.model.messages import PingMessage
-from questionpy.sdk.server import QPyPackageServer
+from questionpy_sdk.messages import PingMessage
+from questionpy_sdk.server import QPyPackageServer
 
 
 def create_server(in_text: str) -> QPyPackageServer:

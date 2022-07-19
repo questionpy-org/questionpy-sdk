@@ -1,4 +1,4 @@
-# questionpy-sdk
+# QuestionPy SDK
 
 The toolset for developing and running `QuestionPy` packages.
 
@@ -11,7 +11,7 @@ $ pip3 install -r requirements.txt
 ## :package: Creating a QuestionPy Package
 
 At minimum, a QuestionPy package requires a manifest. The manifest is a YAML-formatted file called `qpy_manifest.yml` at
-the root of your package. See the [Manifest](questionpy/sdk/manifest.py) class for all supported properties.
+the root of your package. See the [Manifest](questionpy/_manifest.py) class for all supported properties.
 
 ```yaml
 # file example/qpy_manifest.yml
@@ -32,7 +32,7 @@ Once you have written your manifest, use the `package` command to create your pa
 the directory in which your manifest resides.
 
 ```shell
-$ python -m questionpy.sdk package example
+$ python -m questionpy_sdk package example
 ```
 
 If your package passes validation, you will have a new file called `example.qpy`. This is your question package,
@@ -62,14 +62,14 @@ requirements: requirements.txt
 The SDK also executes question packages and provides their runtime.
 
 ```shell
-$ python -m questionpy.sdk run example.qpy
+$ python -m questionpy_sdk run example.qpy
 ```
 
 You can then communicate with the question package using JSON objects on stdin and stdout, although it is often more
 comfortable to pipe in messages on the command line.
 
 ```shell
-$ echo '{"kind": "ping"}' | python -m questionpy.sdk run example.qpy
+$ echo '{"kind": "ping"}' | python -m questionpy_sdk run example.qpy
 {"kind": "pong"}
 ```
 

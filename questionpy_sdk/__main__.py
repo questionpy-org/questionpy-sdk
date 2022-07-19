@@ -1,8 +1,8 @@
 import click
 
-from questionpy.sdk.commands.package import package
-from questionpy.sdk.commands.run import run
-from questionpy.sdk.logging import init_logging
+from questionpy_sdk.commands.package import package
+from questionpy_sdk.commands.run import run
+from questionpy_sdk.logging import init_logging
 
 
 @click.group()

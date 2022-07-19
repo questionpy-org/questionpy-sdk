@@ -6,9 +6,8 @@ from zipfile import ZipFile
 
 import click
 
-from questionpy.sdk.manifest import Manifest
-from questionpy.sdk.qtype import QuestionType
-from questionpy.sdk.runtime import run_qtype
+from questionpy import Manifest, QuestionType
+from questionpy_sdk.runtime import run_qtype
 
 log = logging.getLogger(__name__)
 

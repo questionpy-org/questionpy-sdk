@@ -1,11 +1,8 @@
-import logging
 from abc import ABC, abstractmethod
 from typing import Any, Dict, Optional, Type
 
-from questionpy.sdk.manifest import Manifest
-from questionpy.sdk.model.form import Form
-
-log = logging.getLogger(__name__)
+from questionpy._manifest import Manifest
+from questionpy.form import Form
 
 
 class MissingOptionError(Exception):
