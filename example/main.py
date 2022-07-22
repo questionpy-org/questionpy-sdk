@@ -9,9 +9,9 @@ class ExampleQuestionType(QuestionType):
     def render_edit_form(self) -> Form:
         return Form(
             general=[
-                TextElement(label="A static text element", name="", text="And this is its content."),
+                TextElement(label="A static text element", text="And this is its content."),
                 TextInputElement(label="A text input", name="text_input"),
-                ButtonElement(label="A button", name="button"),
+                ButtonElement(label="A button"),
                 CheckboxElement(label="A single checkbox", name="single_checkbox"),
                 CheckboxGroupElement(checkboxes=[
                     CheckboxElement(label="A checkbox inside a group", name="grouped_checkbox")

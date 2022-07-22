@@ -3,11 +3,11 @@ import subprocess
 from pathlib import Path
 from tempfile import TemporaryDirectory
 from typing import Optional
-from zipfile import ZipFile
 
 import click
 
 from questionpy import Manifest
+from questionpy_sdk.package import QPyPackage
 
 log = logging.getLogger(__name__)
 
@@ -26,19 +26,13 @@ def package(source: Path, manifest_path: Optional[Path]) -> None:
 
     manifest = Manifest.parse_file(manifest_path)
 
-    with ZipFile(out_path.open("wb"), "w") as out_file:
+    with QPyPackage(out_path, "w") as out_file:
         install_dependencies(out_file, manifest_path, manifest)
-
-        for source_file in source.glob("**/*.py"):
-            path_in_pkg = source_file.relative_to(source)
-            log.info("%s: %s", path_in_pkg, source_file)
-            out_file.write(source_file, path_in_pkg)
-
-        log.info("qpy_manifest.yml: %s", manifest)
-        out_file.writestr("qpy_manifest.yml", manifest.yaml())
+        out_file.write_glob("python", source, "**/*.py")
+        out_file.write_manifest(manifest)
 
 
-def install_dependencies(target: ZipFile, manifest_path: Path, manifest: Manifest) -> None:
+def install_dependencies(target: QPyPackage, manifest_path: Path, manifest: Manifest) -> None:
     if isinstance(manifest.requirements, str):
         # treat as a relative reference to a requirements.txt and read those
         pip_args = ["-r", str(manifest_path.parent / manifest.requirements)]
@@ -51,8 +45,4 @@ def install_dependencies(target: ZipFile, manifest_path: Path, manifest: Manifes
 
     with TemporaryDirectory(prefix=f"qpy_{manifest.short_name}") as tempdir:
         subprocess.run(["pip", "install", "--target", tempdir, *pip_args], check=True)
-
-        for file in Path(tempdir).glob("**/*"):
-            path_in_pkg = file.relative_to(tempdir)
-            log.info("%s: %s", path_in_pkg, file)
-            target.write(file, path_in_pkg)
+        target.write_glob("dependencies/site-packages", Path(tempdir), "**/*")
