@@ -1,7 +1,6 @@
 from typing import Annotated, Any, Dict, Literal, Union
 
 from pydantic import BaseModel, Field
-
 from questionpy.form import Form
 
 
