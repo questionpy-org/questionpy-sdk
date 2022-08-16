@@ -5,7 +5,7 @@ The toolset for developing and running `QuestionPy` packages.
 ## Setup
 
 ```shell
-$ pip3 install -r requirements.txt
+$ poetry install
 ```
 
 ## :package: Creating a QuestionPy Package
