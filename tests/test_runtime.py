@@ -1,33 +1,10 @@
-from io import StringIO
-from typing import List
-
 import pytest
-from pydantic import ValidationError
 
-from questionpy import Manifest, QuestionType
-from questionpy.form import Form, TextInputElement, RadioGroupElement, SelectElement
-from questionpy_sdk.messages import Message, CreateQuestionMessage, RenderEditForm, PingMessage, PongMessage
+from questionpy import QuestionType
+from questionpy.form import Form, TextInputElement
+from questionpy_sdk.messages import RenderEditForm, PingMessage, PongMessage
 from questionpy_sdk.runtime import run_qtype
-from questionpy_sdk.server import QPyPackageServer
-
-
-class MockServer(QPyPackageServer):
-    def __init__(self, queue: List[Message]):
-        super().__init__(StringIO(), StringIO())
-        self.queue: List[Message] = queue
-        self.sent: List[Message] = []
-
-    def __next__(self) -> Message:
-        try:
-            return self.queue.pop()
-        except IndexError as e:
-            raise StopIteration from e
-
-    def send(self, message: Message) -> None:
-        self.sent.append(message)
-
-
-A_MANIFEST = Manifest(short_name="test", version="0.1.0", api_version="0.1", author="Alice Sample <alice@example.org>")
+from tests.mocks import MockServer, A_MANIFEST
 
 
 class NoopQType(QuestionType):
@@ -58,98 +35,6 @@ def test_render_edit_form() -> None:
     run_qtype(A_MANIFEST, QType, server)
 
     assert server.sent == [RenderEditForm.Response(form=form)]
-
-
-def test_valid_options() -> None:
-    options = {
-        "required": "123",
-        "radio_group": "selected_value"
-    }
-
-    server = MockServer([CreateQuestionMessage(form_data=options)])
-
-    class QType(QuestionType):
-        def render_edit_form(self) -> Form:
-            return Form(general=[
-                TextInputElement(name="required", label="", required=True),
-                TextInputElement(name="optional", label=""),
-                RadioGroupElement(
-                    name="radio_group",
-                    label="",
-                    options=[RadioGroupElement.Option(label="", value="selected_value")]
-                )
-            ])
-
-    run_qtype(A_MANIFEST, QType, server)
-
-    assert len(server.sent) == 1
-    assert isinstance(server.sent[0], CreateQuestionMessage.Response)
-    assert server.sent[0].state.dict() == {
-        "required": "123",
-        "optional": None,
-        "radio_group": "selected_value"
-    }
-
-
-def test_missing_option() -> None:
-    options = {
-        "optional": "123"
-    }
-
-    class QType(QuestionType):
-        def render_edit_form(self) -> Form:
-            return Form(general=[
-                TextInputElement(name="required", label="", required=True),
-                TextInputElement(name="optional", label="")
-            ])
-
-    server = MockServer([CreateQuestionMessage(form_data=options)])
-
-    with pytest.raises(ValidationError):
-        run_qtype(A_MANIFEST, QType, server)
-
-    assert not server.sent
-
-
-def test_select_wrong_value() -> None:
-    options = {
-        "select": "anothervalue"
-    }
-
-    class QType(QuestionType):
-        def render_edit_form(self) -> Form:
-            return Form(general=[
-                SelectElement(name="select", label="", options=[SelectElement.Option(label="", value="value1"),
-                                                                SelectElement.Option(label="", value="value2")])
-            ])
-
-    server = MockServer([CreateQuestionMessage(form_data=options)])
-
-    with pytest.raises(ValidationError):
-        run_qtype(A_MANIFEST, QType, server)
-
-    assert not server.sent
-
-
-def test_select_multiple_wrong_value() -> None:
-    options = {
-        "select": {"value1", "anothervalue"}
-    }
-
-    class QType(QuestionType):
-        def render_edit_form(self) -> Form:
-            return Form(general=[
-                SelectElement(name="select", label="", multiple=True,
-                              options=[SelectElement.Option(label="", value="value1"),
-                                       SelectElement.Option(label="", value="value2")])
-            ])
-
-    server = MockServer([CreateQuestionMessage(form_data=options)])
-
-    with pytest.raises(ValidationError):
-        run_qtype(A_MANIFEST, QType, server)
-
-    assert not server.sent
 
 
 def test_unsupported_message_type(caplog: pytest.LogCaptureFixture) -> None:

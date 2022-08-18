@@ -23,12 +23,20 @@ fail-under = 8
 [tool.pylint.BASIC]
 # Allow these well-known names despite usual naming conventions
 good-names = ["i", "j", "k", "e", "ex", "_"]
+# Allow any name for test methods
+function-rgx = "^test_.+|[a-z0-9_]+$"
+
+[tool.pylint.CLASSES]
+valid-metaclass-classmethod-first-arg = "mcs"
 
 [tool.pylint.REPORTS]
 output-format = "colorized"
 
 [tool.pylint."MESSAGES CONTROL"]
-disable = ["missing-module-docstring", "missing-class-docstring", "missing-function-docstring"]
+disable = [
+    "missing-module-docstring", "missing-class-docstring", "missing-function-docstring",
+    "unused-wildcard-import"
+]
 enable = ""
 
 [tool.pylint.FORMAT]
@@ -37,6 +45,10 @@ expected-line-ending-format = "LF"
 indent-after-paren = 4
 indent-string = "    "
 max-line-length = 120
+
+[tool.pylint.IMPORTS]
+
+allow-wildcard-with-all = true
 
 
 [tool.mypy]
