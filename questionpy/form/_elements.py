@@ -15,7 +15,7 @@ class _Named(BaseModel):
     name: str
 
 
-class StaticTextElement(_Labelled):
+class StaticTextElement(_Labelled, _Named):
     kind: Literal["static_text"] = "static_text"
     text: str
 

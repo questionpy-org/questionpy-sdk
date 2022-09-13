@@ -2,7 +2,7 @@ from typing import cast, TypeVar, Any, overload, Literal, Optional, Set, Union, 
 
 from questionpy.form._elements import TextInputElement, StaticTextElement, CheckboxElement, RadioGroupElement, \
     SelectElement, HiddenElement, GroupElement
-from questionpy.form._model import FormModel, _FieldInfo, _SectionInfo, OptionEnum, _OptionInfo
+from questionpy.form._model import FormModel, _FieldInfo, _SectionInfo, OptionEnum, _OptionInfo, _StaticElementInfo
 
 __all__ = ["text_input", "static_text", "checkbox", "radio_group", "select", "option", "hidden", "section", "group"]
 
@@ -30,7 +30,10 @@ def text_input(label: str, required: bool = False) -> Any:
 
 
 def static_text(label: str, text: str) -> StaticTextElement:
-    return StaticTextElement(label=label, text=text)
+    return cast(
+        StaticTextElement,
+        _StaticElementInfo(lambda name: StaticTextElement(name=name, label=label, text=text))
+    )
 
 
 @overload

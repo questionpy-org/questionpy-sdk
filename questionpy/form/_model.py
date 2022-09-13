@@ -6,7 +6,7 @@ from pydantic import BaseModel, Field
 from pydantic.fields import ModelField
 from pydantic.main import ModelMetaclass
 
-from questionpy.form._elements import Form, FormElement, FormSection, is_form_element
+from questionpy.form._elements import Form, FormElement, FormSection
 
 
 @dataclass
@@ -52,6 +52,11 @@ class _FieldInfo:
     """The type of the field."""
     default: object = ...
     """The default value of the field, with `...` meaning no default."""
+
+
+@dataclass
+class _StaticElementInfo:
+    build: Callable[[str], FormElement]
 
 
 @dataclass
@@ -120,10 +125,10 @@ class _FormModelMeta(ModelMetaclass):
             elif isinstance(value, _SectionInfo):
                 expected_type = value.model
                 new_namespace[key] = Field(form_section=value)
-            elif is_form_element(value):
-                # a raw form element, probably a static one. Add it to the model as a constant
-                expected_type = type(value)
-                new_namespace[key] = Field(default=value, const=True, form_element=value)
+            elif isinstance(value, _StaticElementInfo):
+                element = value.build(key)
+                expected_type = type(element)
+                new_namespace[key] = Field(default=element, const=True, form_element=element)
             else:
                 # not one of our special types, use as is
                 new_namespace[key] = value

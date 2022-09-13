@@ -72,7 +72,7 @@ SELECT_OPTIONS = [
 @pytest.mark.parametrize("initializer,expected_elements", [
     (text_input("Label", required=True), [TextInputElement(name="field", label="Label", required=True)]),
     (static_text("Label", "Lorem ipsum dolor sit amet."),
-     [StaticTextElement(label="Label", text="Lorem ipsum dolor sit amet.")]),
+     [StaticTextElement(name="field", label="Label", text="Lorem ipsum dolor sit amet.")]),
     (checkbox("Left Label", "Right Label", required=True),
      [CheckboxElement(name="field", left_label="Left Label", right_label="Right Label", required=True)]),
     (radio_group("Label", [RadioGroupElement.Option(label="Label", value="opt1", selected=True)], required=True),
