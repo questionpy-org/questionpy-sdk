@@ -5,9 +5,10 @@ from tempfile import TemporaryDirectory
 from typing import Optional
 
 import click
+import yaml
+from questionpy_common.manifest import Manifest
 
-from questionpy import Manifest
-from questionpy_sdk.package import QPyPackage
+from questionpy_sdk.package import PackageBuilder
 
 log = logging.getLogger(__name__)
 
@@ -24,15 +25,18 @@ def package(source: Path, manifest_path: Optional[Path]) -> None:
     if not manifest_path.is_file():
         raise FileNotFoundError(manifest_path)
 
-    manifest = Manifest.parse_file(manifest_path)
+    with manifest_path.open() as manifest_f:
+        manifest = Manifest.parse_obj(yaml.safe_load(manifest_f))
 
-    with QPyPackage(out_path, "w") as out_file:
+    with PackageBuilder(out_path) as out_file:
         install_dependencies(out_file, manifest_path, manifest)
         out_file.write_glob("python", source, "**/*.py")
         out_file.write_manifest(manifest)
 
 
-def install_dependencies(target: QPyPackage, manifest_path: Path, manifest: Manifest) -> None:
+def install_dependencies(target: PackageBuilder, manifest_path: Path, manifest: Manifest) -> None:
+    target.write_glob("dependencies/site-packages/questionpy", Path('./questionpy/'), "**/*.py")
+
     if isinstance(manifest.requirements, str):
         # treat as a relative reference to a requirements.txt and read those
         pip_args = ["-r", str(manifest_path.parent / manifest.requirements)]

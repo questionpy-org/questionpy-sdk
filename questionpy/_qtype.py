@@ -1,18 +1,16 @@
 from abc import ABC
 from typing import Any, Optional, Type, Generic, TypeVar, ClassVar, get_args, get_origin, cast
 
-from questionpy._manifest import Manifest
-from questionpy.form import Form, FormModel
+from questionpy_common.qtype import BaseQuestionType, OptionsFormDefinition
+
+from questionpy.form import FormModel
 
 F = TypeVar("F", bound=FormModel)
 
 
-class QuestionType(ABC, Generic[F]):
+class QuestionType(BaseQuestionType, ABC, Generic[F]):
     form_model: ClassVar[Type[FormModel]]
     implementation: ClassVar[Optional[Type["QuestionType"]]] = None
-
-    def __init__(self, manifest: Manifest):
-        self.manifest = manifest
 
     def __init_subclass__(cls, *args: Any, **kwargs: Any) -> None:
         # __orig_bases__ is only present when at least one base is a parametrized generic
@@ -40,8 +38,8 @@ class QuestionType(ABC, Generic[F]):
 
         super().__init_subclass__(**kwargs)
 
-    def render_edit_form(self) -> Form:
-        return self.form_model.form()
+    def get_options_form_definition(self) -> OptionsFormDefinition:
+        return cast(OptionsFormDefinition, self.form_model.form())
 
     def validate_options(self, options: Any) -> F:
         return cast(F, self.form_model.parse_obj(options))
