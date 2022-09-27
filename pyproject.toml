@@ -82,7 +82,7 @@ max-line-length = 120
 [tool.pylint.IMPORTS]
 allow-wildcard-with-all = true
 
-[tool.pylint.TYPECHECKER]
+[tool.pylint.TYPECHECK]
 ignored-classes = ["_SectionInfo", "_FieldInfo", "_StaticElementInfo"]
 
 [tool.mypy]

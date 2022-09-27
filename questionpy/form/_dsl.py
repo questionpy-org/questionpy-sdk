@@ -1,156 +1,214 @@
-from typing import cast, TypeVar, Any, overload, Literal, Optional, Set, Union, List, Type
+from typing import cast, TypeVar, Any, overload, Literal, Optional, Set, Union, Type, Callable
 
+from typing_extensions import TypeAlias
+
+from questionpy.form._conditions import Condition, ConditionWithValue, IsChecked, IsNotChecked, Equals, DoesNotEqual, In
 from questionpy.form._elements import TextInputElement, StaticTextElement, CheckboxElement, RadioGroupElement, \
     SelectElement, HiddenElement, GroupElement
 from questionpy.form._model import FormModel, _FieldInfo, _SectionInfo, OptionEnum, _OptionInfo, _StaticElementInfo
 
-__all__ = ["text_input", "static_text", "checkbox", "radio_group", "select", "option", "hidden", "section", "group"]
+__all__ = ["text_input", "static_text", "checkbox", "radio_group", "select", "option", "hidden", "section", "group",
+           "is_checked", "is_not_checked", "equals", "does_not_equal", "is_in"]
 
 _S = TypeVar("_S", bound=str)
 _F = TypeVar("_F", bound=FormModel)
 _E = TypeVar("_E", bound=OptionEnum)
 
+_OneOrMoreConditions: TypeAlias = Union[Condition, list[Condition]]
+_ZeroOrMoreConditions: TypeAlias = Optional[_OneOrMoreConditions]
+
+
+def _listify(value: _ZeroOrMoreConditions) -> list[Condition]:
+    if value is None:
+        return []
+    if isinstance(value, Condition):
+        return [value]
+    return value
+
 
 @overload
-def text_input(label: str, required: Literal[False] = False) -> Optional[str]:
+def text_input(label: str, required: Literal[False] = False, *,
+               disabled_if: _ZeroOrMoreConditions = None, hide_if: _ZeroOrMoreConditions = None) -> Optional[str]:
     pass
 
 
 @overload
-def text_input(label: str, required: Literal[True]) -> str:
+def text_input(label: str, required: Literal[True], *,
+               disabled_if: None = None, hide_if: None = None) -> str:
     pass
 
 
-def text_input(label: str, required: bool = False) -> Any:
+@overload
+def text_input(label: str, required: bool = False, *,
+               disabled_if: _OneOrMoreConditions, hide_if: _ZeroOrMoreConditions = None) -> Optional[str]:
+    pass
+
+
+@overload
+def text_input(label: str, required: bool = False, *,
+               disabled_if: _ZeroOrMoreConditions = None, hide_if: _OneOrMoreConditions) -> Optional[str]:
+    pass
+
+
+def text_input(label: str, required: bool = False, *,
+               disabled_if: _ZeroOrMoreConditions = None, hide_if: _ZeroOrMoreConditions = None) -> Any:
     return _FieldInfo(
-        lambda name: TextInputElement(name=name, label=label, required=required),
-        str if required else Optional[str],
-        ... if required else None
+        lambda name: TextInputElement(name=name, label=label, required=required,
+                                      disabled_if=_listify(disabled_if), hide_if=_listify(hide_if)),
+        Optional[str] if not required or disabled_if or hide_if else str,
+        None if not required or disabled_if or hide_if else ...,
     )
 
 
-def static_text(label: str, text: str) -> StaticTextElement:
+def static_text(label: str, text: str, *,
+                disabled_if: _ZeroOrMoreConditions = None, hide_if: _ZeroOrMoreConditions = None) -> StaticTextElement:
     return cast(
         StaticTextElement,
-        _StaticElementInfo(lambda name: StaticTextElement(name=name, label=label, text=text))
+        _StaticElementInfo(lambda name: StaticTextElement(name=name, label=label, text=text,
+                                                          disabled_if=_listify(disabled_if), hide_if=_listify(hide_if)))
     )
 
 
 @overload
 def checkbox(left_label: Optional[str] = None, right_label: Optional[str] = None, *,
-             required: Literal[True], selected: bool = False) -> Literal[True]:
+             required: Literal[True], selected: bool = False,
+             disabled_if: None = None, hide_if: None = None) -> Literal[True]:
     pass
 
 
 @overload
 def checkbox(left_label: Optional[str] = None, right_label: Optional[str] = None, *,
-             required: Literal[False] = False, selected: bool = False) -> bool:
+             required: Literal[False] = False, selected: bool = False,
+             disabled_if: _ZeroOrMoreConditions = None, hide_if: _ZeroOrMoreConditions = None) -> bool:
+    pass
+
+
+@overload
+def checkbox(left_label: Optional[str] = None, right_label: Optional[str] = None, *,
+             required: bool = False, selected: bool = False,
+             disabled_if: _OneOrMoreConditions, hide_if: _ZeroOrMoreConditions = None) -> bool:
+    pass
+
+
+@overload
+def checkbox(left_label: Optional[str] = None, right_label: Optional[str] = None, *,
+             required: bool = False, selected: bool = False,
+             disabled_if: _ZeroOrMoreConditions = None, hide_if: _OneOrMoreConditions) -> bool:
     pass
 
 
 def checkbox(left_label: Optional[str] = None, right_label: Optional[str] = None, *,
-             required: bool = False, selected: bool = False) -> Any:
+             required: bool = False, selected: bool = False,
+             disabled_if: _ZeroOrMoreConditions = None, hide_if: _ZeroOrMoreConditions = None) -> Any:
     return _FieldInfo(
         lambda name: CheckboxElement(name=name, left_label=left_label, right_label=right_label, required=required,
-                                     selected=selected),
-        Literal[True] if required else bool,
-        ... if required else False
+                                     selected=selected, disabled_if=_listify(disabled_if), hide_if=_listify(hide_if)),
+        bool if not required or disabled_if or hide_if else Literal[True],
+        False if not required or disabled_if or hide_if else ...
     )
 
 
 @overload
-def radio_group(label: str, options: List[RadioGroupElement.Option], /,
-                required: Literal[True]) -> str:
+def radio_group(label: str, enum: Type[_E], *, required: Literal[False] = False,
+                disabled_if: _ZeroOrMoreConditions = None, hide_if: _ZeroOrMoreConditions = None) -> Optional[_E]:
     pass
 
 
 @overload
-def radio_group(label: str, options: List[RadioGroupElement.Option], /,
-                required: Literal[False] = False) -> Optional[str]:
+def radio_group(label: str, enum: Type[_E], *, required: Literal[True],
+                disabled_if: _OneOrMoreConditions, hide_if: _ZeroOrMoreConditions = None) -> Optional[_E]:
     pass
 
 
 @overload
-def radio_group(label: str, enum: Type[_E], /, required: Literal[False] = False) -> Optional[_E]:
+def radio_group(label: str, enum: Type[_E], *, required: Literal[True],
+                disabled_if: _ZeroOrMoreConditions = None, hide_if: _OneOrMoreConditions) -> Optional[_E]:
     pass
 
 
 @overload
-def radio_group(label: str, enum: Type[_E], /, required: Literal[True]) -> _E:
+def radio_group(label: str, enum: Type[_E], *, required: Literal[True],
+                disabled_if: None = None, hide_if: None = None) -> _E:
     pass
 
 
-def radio_group(label: str, enum_or_options: Union[List[RadioGroupElement.Option], Type[_E]], /,
-                required: bool = False) -> Any:
-    if isinstance(enum_or_options, list):
-        # raw options passed, not an enum
-        options = enum_or_options
-        base_type = Literal[tuple(option.value for option in enum_or_options)]  # type: ignore[misc]
-    else:
-        # enum type passed
-        options = [RadioGroupElement.Option(label=variant.label, value=variant.value, selected=variant.selected)
-                   for variant in enum_or_options]
-        base_type = enum_or_options
+def radio_group(label: str, enum: Type[_E], *, required: bool = False,
+                disabled_if: _ZeroOrMoreConditions = None, hide_if: _ZeroOrMoreConditions = None) -> Any:
+    # enum type passed
+    options = [RadioGroupElement.Option(label=variant.label, value=variant.value, selected=variant.selected)
+               for variant in enum]
+    base_type = enum
 
     return _FieldInfo(
-        lambda name: RadioGroupElement(name=name, label=label, options=options, required=required),
-        base_type if required else Optional[base_type],
-        ... if required else None
+        lambda name: RadioGroupElement(name=name, label=label, options=options, required=required,
+                                       disabled_if=_listify(disabled_if), hide_if=_listify(hide_if)),
+        Optional[base_type] if not required or disabled_if or hide_if else base_type,
+        None if not required or disabled_if or hide_if else ...
     )
 
 
 @overload
-def select(label: str, options: List[SelectElement.Option], /, *,
-           required: Literal[False] = False, multiple: Literal[False] = False) -> Optional[str]:
+def select(label: str, enum: Type[_E], *,
+           required: Literal[False] = False, multiple: Literal[False] = False,
+           disabled_if: _ZeroOrMoreConditions = None, hide_if: _ZeroOrMoreConditions = None) -> Optional[_E]:
     pass
 
 
 @overload
-def select(label: str, options: List[SelectElement.Option], /, *,
-           required: Literal[True], multiple: Literal[False] = False) -> str:
+def select(label: str, enum: Type[_E], *,
+           required: Literal[True], multiple: Literal[False] = False,
+           disabled_if: _OneOrMoreConditions, hide_if: _ZeroOrMoreConditions = None) -> Optional[_E]:
     pass
 
 
 @overload
-def select(label: str, options: List[SelectElement.Option], /, *,
-           required: bool = False, multiple: Literal[True]) -> Set[str]:
+def select(label: str, enum: Type[_E], *,
+           required: Literal[True], multiple: Literal[False] = False,
+           disabled_if: _ZeroOrMoreConditions = None, hide_if: _OneOrMoreConditions) -> Optional[_E]:
     pass
 
 
 @overload
-def select(label: str, options: Type[_E], /, *,
-           required: Literal[False] = False, multiple: Literal[False] = False) -> Optional[_E]:
+def select(label: str, enum: Type[_E], *,
+           required: Literal[True], multiple: Literal[False] = False,
+           disabled_if: None = None, hide_if: None = None) -> _E:
     pass
 
 
 @overload
-def select(label: str, options: Type[_E], /, *,
-           required: Literal[True], multiple: Literal[False] = False) -> _E:
+def select(label: str, enum: Type[_E], *,
+           required: bool = False, multiple: Literal[True],
+           disabled_if: _ZeroOrMoreConditions = None, hide_if: _ZeroOrMoreConditions = None) -> Set[_E]:
     pass
 
 
-@overload
-def select(label: str, options: Type[_E], /, *,
-           required: bool = False, multiple: Literal[True]) -> Set[_E]:
-    pass
+def select(label: str, enum: Type[_E], *,
+           required: bool = False, multiple: bool = False,
+           disabled_if: _ZeroOrMoreConditions = None, hide_if: _ZeroOrMoreConditions = None) -> Any:
+    # enum type passed
+    options = [SelectElement.Option(label=variant.label, value=variant.value, selected=variant.selected)
+               for variant in enum]
 
-
-def select(label: str, enum_or_options: Union[List[SelectElement.Option], Type[_E]], /, *,
-           required: bool = False, multiple: bool = False) -> Any:
-    if isinstance(enum_or_options, list):
-        # raw options passed, not an enum
-        options = enum_or_options
-        base_type = Literal[tuple(option.value for option in enum_or_options)]  # type: ignore[misc]
+    expected_type: Type
+    default: object
+    if multiple:
+        expected_type = Set[enum]  # type: ignore[valid-type]
+        if not required or disabled_if or hide_if:
+            default = set()
+        else:
+            default = ...
+    elif not required or disabled_if or hide_if:
+        expected_type = Optional[enum]  # type: ignore[valid-type, assignment]
+        default = None
     else:
-        # enum type passed
-        options = [SelectElement.Option(label=variant.label, value=variant.value, selected=variant.selected)
-                   for variant in enum_or_options]
-        base_type = enum_or_options
+        expected_type = enum  # type: ignore[valid-type]
+        default = ...
 
     return _FieldInfo(
-        lambda name: SelectElement(name=name, label=label, multiple=multiple, required=required, options=options),
-        Set[base_type] if multiple else base_type if required else Optional[base_type],  # type: ignore[valid-type]
-        ... if required else set() if multiple else None
+        lambda name: SelectElement(name=name, label=label, multiple=multiple, required=required, options=options,
+                                   disabled_if=_listify(disabled_if), hide_if=_listify(hide_if)),
+        expected_type,
+        default
     )
 
 
@@ -158,10 +216,30 @@ def option(label: str, selected: bool = False) -> _OptionInfo:
     return _OptionInfo(label, selected)
 
 
-def hidden(value: _S) -> _S:
+@overload
+def hidden(value: _S, *,
+           disabled_if: None = None, hide_if: None = None) -> _S:
+    pass
+
+
+@overload
+def hidden(value: _S, *,
+           disabled_if: _OneOrMoreConditions, hide_if: _ZeroOrMoreConditions = None) -> Optional[_S]:
+    pass
+
+
+@overload
+def hidden(value: _S, *,
+           disabled_if: _ZeroOrMoreConditions = None, hide_if: _OneOrMoreConditions) -> Optional[_S]:
+    pass
+
+
+def hidden(value: _S, *, disabled_if: _ZeroOrMoreConditions = None, hide_if: _ZeroOrMoreConditions = None) -> Any:
     return cast(_S, _FieldInfo(
-        lambda name: HiddenElement(name=name, value=value),
-        Literal[value]
+        lambda name: HiddenElement(name=name, value=value,
+                                   disabled_if=_listify(disabled_if), hide_if=_listify(hide_if)),
+        Optional[Literal[value]] if disabled_if or hide_if else Literal[value],
+        None if disabled_if or hide_if else ...
     ))
 
 
@@ -170,9 +248,30 @@ def section(header: str, model: Type[_F]) -> _F:
     return cast(_F, _SectionInfo(header, model))
 
 
-def group(label: str, model: Type[_F]) -> _F:
+def group(label: str, model: Type[_F], *,
+          disabled_if: _ZeroOrMoreConditions = None, hide_if: _ZeroOrMoreConditions = None) -> _F:
     # we pretend to return an instance of the model so the type of the section field can be inferred
     return cast(_F, _FieldInfo(
-        lambda name: GroupElement(name=name, label=label, elements=list(model.form_elements())),
+        lambda name: GroupElement(name=name, label=label, elements=list(model.form_elements()),
+                                  disabled_if=_listify(disabled_if), hide_if=_listify(hide_if)),
         model
     ))
+
+
+_C = TypeVar("_C", bound=Condition)
+_CV = TypeVar("_CV", bound=ConditionWithValue)
+
+
+def _condition_factory(model: Type[_C]) -> Callable[[str], _C]:
+    return lambda name: model(name=name)
+
+
+def _condition_with_value_factory(model: Type[_CV]) -> Callable[[str, Any], _CV]:
+    return lambda name, value: model(name=name, value=value)
+
+
+is_checked = _condition_factory(IsChecked)
+is_not_checked = _condition_factory(IsNotChecked)
+equals = _condition_with_value_factory(Equals)
+does_not_equal = _condition_with_value_factory(DoesNotEqual)
+is_in = _condition_with_value_factory(In)

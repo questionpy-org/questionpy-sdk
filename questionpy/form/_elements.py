@@ -3,8 +3,11 @@ from typing import Annotated, List, Literal, Union, Optional, get_args
 from pydantic import BaseModel, Field
 from typing_extensions import TypeGuard
 
-__all__ = ["StaticTextElement", "TextInputElement", "CheckboxElement", "CheckboxGroupElement", "RadioGroupElement",
-           "SelectElement", "HiddenElement", "GroupElement", "FormElement", "FormSection", "Form", "is_form_element"]
+from questionpy.form._conditions import Condition
+
+__all__ = ["CanHaveConditions", "StaticTextElement", "TextInputElement", "CheckboxElement", "CheckboxGroupElement",
+           "RadioGroupElement", "SelectElement", "HiddenElement", "GroupElement", "FormElement", "FormSection", "Form",
+           "is_form_element"]
 
 
 class _Labelled(BaseModel):
@@ -15,19 +18,24 @@ class _Named(BaseModel):
     name: str
 
 
-class StaticTextElement(_Labelled, _Named):
+class CanHaveConditions(BaseModel):
+    disabled_if: list[Condition] = []
+    hide_if: list[Condition] = []
+
+
+class StaticTextElement(_Labelled, _Named, CanHaveConditions):
     kind: Literal["static_text"] = "static_text"
     text: str
 
 
-class TextInputElement(_Labelled, _Named):
+class TextInputElement(_Labelled, _Named, CanHaveConditions):
     kind: Literal["input"] = "input"
     required: bool = False
     default: Optional[str] = None
     placeholder: Optional[str] = None
 
 
-class CheckboxElement(_Named):
+class CheckboxElement(_Named, CanHaveConditions):
     kind: Literal["checkbox"] = "checkbox"
     left_label: Optional[str] = None
     right_label: Optional[str] = None
@@ -40,7 +48,7 @@ class CheckboxGroupElement(BaseModel):
     checkboxes: List[CheckboxElement]
 
 
-class RadioGroupElement(_Labelled, _Named):
+class RadioGroupElement(_Labelled, _Named, CanHaveConditions):
     class Option(BaseModel):
         label: str
         value: str
@@ -51,7 +59,7 @@ class RadioGroupElement(_Labelled, _Named):
     required: bool = False
 
 
-class SelectElement(_Labelled, _Named):
+class SelectElement(_Labelled, _Named, CanHaveConditions):
     class Option(BaseModel):
         label: str
         value: str
@@ -63,12 +71,12 @@ class SelectElement(_Labelled, _Named):
     required: bool = False
 
 
-class HiddenElement(_Named):
+class HiddenElement(_Named, CanHaveConditions):
     kind: Literal["hidden"] = "hidden"
     value: str
 
 
-class GroupElement(_Labelled, _Named):
+class GroupElement(_Labelled, _Named, CanHaveConditions):
     kind: Literal["group"] = "group"
     elements: List["FormElement"]
 

@@ -11,8 +11,7 @@ log = logging.getLogger(__name__)
 
 @click.command()
 @click.argument("package", type=click.Path(exists=True, dir_okay=False, path_type=Path))
-@click.option("-p", "--pretty", is_flag=True, show_default=True, default=False, help="Output indented JSON.")
-def run(package: Path, pretty: bool) -> None:
+def run(package: Path) -> None:
     asyncio.run(run_worker(package))
 
 

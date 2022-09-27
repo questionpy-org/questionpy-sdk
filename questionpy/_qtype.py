@@ -1,14 +1,14 @@
 from abc import ABC
 from typing import Any, Optional, Type, Generic, TypeVar, ClassVar, get_args, get_origin, cast
 
-from questionpy_common.qtype import BaseQuestionType, OptionsFormDefinition
+from questionpy_common.qtype import OptionsFormDefinition
 
 from questionpy.form import FormModel
 
 F = TypeVar("F", bound=FormModel)
 
 
-class QuestionType(BaseQuestionType, ABC, Generic[F]):
+class QuestionType(ABC, Generic[F]):
     form_model: ClassVar[Type[FormModel]]
     implementation: ClassVar[Optional[Type["QuestionType"]]] = None
 

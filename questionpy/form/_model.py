@@ -1,12 +1,14 @@
 from dataclasses import dataclass
 from enum import Enum
+from itertools import chain
 from typing import Callable, Tuple, Type, Iterable, Any, get_origin, get_args, Literal, TYPE_CHECKING, Dict
 
 from pydantic import BaseModel, Field
 from pydantic.fields import ModelField
 from pydantic.main import ModelMetaclass
 
-from questionpy.form._elements import Form, FormElement, FormSection
+from questionpy.form._elements import Form, FormElement, FormSection, CheckboxGroupElement, GroupElement, \
+    CanHaveConditions
 
 
 @dataclass
@@ -65,12 +67,16 @@ class _SectionInfo:
     model: Type["FormModel"]
 
 
-@dataclass
-class _SelectInfo:
-    label: str
-    enum: Type[OptionEnum]
-    required: bool = False
-    multiple: bool = False
+def _flatten_elements(elements: Iterable[FormElement], sections: Iterable[FormSection] = ()) -> Iterable[FormElement]:
+    for element in elements:
+        yield element
+        if isinstance(element, CheckboxGroupElement):
+            yield from _flatten_elements(element.checkboxes)
+        elif isinstance(element, GroupElement):
+            yield from _flatten_elements(element.elements)
+
+    for section in sections:
+        yield from _flatten_elements(section.elements)
 
 
 def _is_valid_annotation(annotation: object, expected: object) -> bool:
@@ -146,6 +152,24 @@ class _FormModelMeta(ModelMetaclass):
 
         new_namespace["__annotations__"] = annotations
         return super().__new__(mcs, name, bases, new_namespace, **kwargs)
+
+    def __init__(cls, name: str, bases: Tuple[type, ...], namespace: dict, **kwargs: object):
+        super().__init__(name, bases, namespace, **kwargs)
+        cls._validate_conditions()
+
+    def _validate_conditions(cls) -> None:
+        elements = list(_flatten_elements(cls.form_elements(), cls.form_sections()))
+        # mypy doesn't narrow the type after hasattr, hence the false positive
+        names = {element.name for element in elements if hasattr(element, "name")}  # type: ignore[union-attr]
+
+        for element in elements:
+            if not isinstance(element, CanHaveConditions):
+                continue
+
+            for condition in chain(element.disabled_if, element.hide_if):
+                if condition.name not in names:
+                    raise ValueError(f"Element '{element}' has a condition of kind '{condition.kind}' which references "
+                                     f"nonexistent element '{condition.name}'")
 
     def form_elements(cls) -> Iterable[FormElement]:
         for field in cls.__fields__.values():
