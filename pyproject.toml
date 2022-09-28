@@ -15,6 +15,8 @@ python = "^3.9"
 aiohttp = "^3.8.1"
 pydantic = "^1.9.1"
 PyYAML = "^6.0"
+questionpy-common = {git = "https://github.com/questionpy-org/questionpy-common.git", rev = "4da783878bb6b289eb02032e5f87e1778dd207b3"}
+questionpy-server = {git = "https://github.com/questionpy-org/questionpy-server.git", rev = "33747712bbb606cf7e4c872b51b7add6b32bb63a"}
 
 [tool.poetry.dev-dependencies]
 pylint = "^2.14.5"
@@ -42,11 +44,9 @@ source = ["questionpy", "questionpy_sdk"]
 [tool.pylint]
 
 [tool.pylint.MAIN]
-
 extension-pkg-allow-list = "pydantic"
 # pylint_pytest removes some false positives when checking tests
 load-plugins = "pylint_pytest"
-
 fail-on = ["E", "F"]
 fail-under = 8
 
@@ -59,6 +59,10 @@ function-rgx = "^test_.+|[a-z0-9_]+$"
 [tool.pylint.CLASSES]
 valid-metaclass-classmethod-first-arg = "mcs"
 
+[tool.pylint.DESIGN]
+max-attributes = 15
+max-branches = 15
+
 [tool.pylint.REPORTS]
 output-format = "colorized"
 
@@ -70,17 +74,13 @@ disable = [
 enable = ""
 
 [tool.pylint.FORMAT]
-
 expected-line-ending-format = "LF"
 indent-after-paren = 4
 indent-string = "    "
 max-line-length = 120
-class-const-naming-style = "snake_case"
 
 [tool.pylint.IMPORTS]
-
 allow-wildcard-with-all = true
-
 
 [tool.mypy]
 plugins = "pydantic.mypy"
