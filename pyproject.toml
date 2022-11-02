@@ -7,7 +7,7 @@ name = "questionpy-sdk"
 description = "Library and toolset for the development of QuestionPy packages"
 authors = ["innoCampus <info@isis.tu-berlin.de>"]
 homepage = "https://questionpy.org"
-version = "0.1.0"
+version = "0.2.0"
 
 [tool.poetry.dependencies]
 click = "^8.1.3"
@@ -15,8 +15,8 @@ python = "^3.9"
 aiohttp = "^3.8.1"
 pydantic = "^1.9.1"
 PyYAML = "^6.0"
-questionpy-common = {git = "https://github.com/questionpy-org/questionpy-common.git", rev = "4da783878bb6b289eb02032e5f87e1778dd207b3"}
-questionpy-server = {git = "https://github.com/questionpy-org/questionpy-server.git", rev = "33747712bbb606cf7e4c872b51b7add6b32bb63a"}
+questionpy-common = {git = "https://github.com/questionpy-org/questionpy-common.git", rev = "4b1abe1"}
+questionpy-server = {git = "https://github.com/questionpy-org/questionpy-server.git", rev = "dae93e9"}
 
 [tool.poetry.dev-dependencies]
 pylint = "^2.14.5"

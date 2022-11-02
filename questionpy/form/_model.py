@@ -6,9 +6,8 @@ from typing import Callable, Tuple, Type, Iterable, Any, get_origin, get_args, L
 from pydantic import BaseModel, Field
 from pydantic.fields import ModelField
 from pydantic.main import ModelMetaclass
-
-from questionpy.form._elements import Form, FormElement, FormSection, CheckboxGroupElement, GroupElement, \
-    CanHaveConditions
+from questionpy_common.elements import FormElement, FormSection, CheckboxGroupElement, GroupElement, \
+    CanHaveConditions, OptionsFormDefinition
 
 
 @dataclass
@@ -166,7 +165,7 @@ class _FormModelMeta(ModelMetaclass):
             if not isinstance(element, CanHaveConditions):
                 continue
 
-            for condition in chain(element.disabled_if, element.hide_if):
+            for condition in chain(element.disable_if, element.hide_if):
                 if condition.name not in names:
                     raise ValueError(f"Element '{element}' has a condition of kind '{condition.kind}' which references "
                                      f"nonexistent element '{condition.name}'")
@@ -182,8 +181,8 @@ class _FormModelMeta(ModelMetaclass):
                 info: _SectionInfo = field.field_info.extra["form_section"]
                 yield FormSection(header=info.header, elements=list(info.model.form_elements()))
 
-    def form(cls) -> Form:
-        return Form(
+    def form(cls) -> OptionsFormDefinition:
+        return OptionsFormDefinition(
             general=list(cls.form_elements()),
             sections=list(cls.form_sections())
         )

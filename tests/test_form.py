@@ -22,13 +22,13 @@ class NestedFormModel(FormModel):
 
 
 def test_SimpleFormModel_should_render_correct_form() -> None:
-    assert SimpleFormModel.form() == Form(
+    assert SimpleFormModel.form() == OptionsFormDefinition(
         general=[TextInputElement(name="input", label="My Text Input", required=True)]
     )
 
 
 def test_NestedFormModel_should_render_correct_form() -> None:
-    assert NestedFormModel.form() == Form(
+    assert NestedFormModel.form() == OptionsFormDefinition(
         general=[
             TextInputElement(name="general_field", label="General Text Input", required=False),
             GroupElement(
@@ -66,10 +66,10 @@ def test_should_raise_ValidationError_when_required_option_is_missing() -> None:
      [CheckboxElement(name="field", left_label="Left Label", right_label="Right Label", required=True)]),
     (radio_group("Label", MyOptionEnum, required=True),
      [RadioGroupElement(name="field", label="Label",
-                        options=[RadioGroupElement.Option(label="Label 1", value="OPT_1")],
+                        options=[Option(label="Label 1", value="OPT_1")],
                         required=True)]),
     (select("Label", MyOptionEnum, required=True, multiple=True),
-     [SelectElement(name="field", label="Label", options=[SelectElement.Option(label="Label 1", value="OPT_1")],
+     [SelectElement(name="field", label="Label", options=[Option(label="Label 1", value="OPT_1")],
                     required=True, multiple=True)]),
     (hidden("value"), [HiddenElement(name="field", value="value")]),
 ])
@@ -97,19 +97,19 @@ def test_should_render_correct_form(initializer: object, expected_elements: List
     # radio_group
     (Optional[MyOptionEnum], radio_group("", MyOptionEnum), ..., None),
     (MyOptionEnum, radio_group("", MyOptionEnum, required=True), "OPT_1", MyOptionEnum.OPT_1),
-    (Optional[MyOptionEnum], radio_group("", MyOptionEnum, required=True, disabled_if=is_checked("field")), "OPT_1",
+    (Optional[MyOptionEnum], radio_group("", MyOptionEnum, required=True, disable_if=is_checked("field")), "OPT_1",
      MyOptionEnum.OPT_1),
     # select
     (MyOptionEnum, select("", MyOptionEnum, required=True, multiple=False), "OPT_1", MyOptionEnum.OPT_1),
     (Optional[MyOptionEnum], select("", MyOptionEnum, required=False, multiple=False), ..., None),
-    (Optional[MyOptionEnum], select("", MyOptionEnum, required=True, multiple=False, disabled_if=is_checked("field")),
+    (Optional[MyOptionEnum], select("", MyOptionEnum, required=True, multiple=False, disable_if=is_checked("field")),
      ..., None),
     (Set[MyOptionEnum], select("", MyOptionEnum, required=False, multiple=True), ["OPT_1"], {MyOptionEnum.OPT_1}),
     (Set[MyOptionEnum], select("", MyOptionEnum, required=False, multiple=True), ..., set()),
     # hidden
     (str, hidden("value"), "value", "value"),
     (Literal["value"], hidden("value"), "value", "value"),
-    (Optional[Literal["value"]], hidden("value", disabled_if=is_checked("field")), ..., None),
+    (Optional[Literal["value"]], hidden("value", disable_if=is_checked("field")), ..., None),
     # group
     (SimpleFormModel, group("", SimpleFormModel), {"input": "abc"}, SimpleFormModel(input="abc")),
     # section
@@ -166,7 +166,7 @@ def test_should_raise_ValidationError_when_input_is_invalid(annotation: object, 
     # text_input
     (str, text_input("", required=False)),
     (Optional[str], text_input("", required=True)),
-    (str, text_input("", required=True, disabled_if=is_checked("field"))),  # Required, but conditional
+    (str, text_input("", required=True, disable_if=is_checked("field"))),  # Required, but conditional
     # checkbox
     (str, checkbox("", "")),
     # radio_group
@@ -197,4 +197,4 @@ def test_should_raise_ValueError_when_condition_target_does_not_exist() -> None:
                                          "references nonexistent element 'has_name'"):
         class TheModel(FormModel):
             # pylint: disable=unused-variable
-            field: Optional[str] = text_input("Your Name", disabled_if=is_not_checked("has_name"), required=True)
+            field: Optional[str] = text_input("Your Name", disable_if=is_not_checked("has_name"), required=True)
