@@ -15,19 +15,19 @@ python = "^3.9"
 aiohttp = "^3.8.1"
 pydantic = "^1.9.1"
 PyYAML = "^6.0"
-questionpy-common = {git = "https://github.com/questionpy-org/questionpy-common.git", rev = "a217e38"}
-questionpy-server = {git = "https://github.com/questionpy-org/questionpy-server.git", rev = "f6db4fa"}
+questionpy-common = { git = "https://github.com/questionpy-org/questionpy-common.git", rev = "a217e38" }
+questionpy-server = { git = "https://github.com/questionpy-org/questionpy-server.git", rev = "f6db4fa" }
 
 [tool.poetry.dev-dependencies]
 pylint = "^2.14.5"
 pytest = "^7.1.2"
 pytest-aiohttp = "^1.0.4"
 pytest-md = "^0.2.0"
-pytest-cov = "^3.0.0"
 pylint-pytest = "^1.1.2"
 mypy = "^0.971"
 flake8 = "^5.0.4"
 types-PyYAML = "^6.0.11"
+coverage = { extras = ["toml"], version = "^6.5.0" }
 
 [tool.poetry.scripts]
 questionpy-sdk = 'questionpy_sdk.__main__:cli'
@@ -35,9 +35,10 @@ questionpy-sdk = 'questionpy_sdk.__main__:cli'
 [tool.pytest.ini_options]
 # https://github.com/pytest-dev/pytest-asyncio#auto-mode
 asyncio_mode = "auto"
-addopts = "--cov --cov-config=pyproject.toml --cov-branch --cov-report term:skip-covered"
 
 
+# This section is read automatically by Coverage.py when its working directory is .
+# https://coverage.readthedocs.io/en/6.5.0/config.html#configuration-reference
 [tool.coverage.run]
 branch = true
 source = ["questionpy", "questionpy_sdk"]

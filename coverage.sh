@@ -7,7 +7,8 @@ printf -- 'running pylint \n'
 pylint questionpy questionpy_sdk tests
 
 printf -- 'running pytest \n'
-pytest tests
+coverage run -m pytest tests
+coverage report
 
 printf -- 'running mypy \n'
 mypy questionpy questionpy_sdk tests
