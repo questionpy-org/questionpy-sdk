@@ -1,14 +1,13 @@
-from abc import ABC
 from typing import Any, Optional, Type, Generic, TypeVar, ClassVar, get_args, get_origin, cast
 
-from questionpy_common.qtype import OptionsFormDefinition
+from questionpy_common.qtype import OptionsFormDefinition, BaseQuestionType, BaseQuestion
 
 from questionpy.form import FormModel
 
 F = TypeVar("F", bound=FormModel)
 
 
-class QuestionType(ABC, Generic[F]):
+class QuestionType(BaseQuestionType, Generic[F]):
     form_model: ClassVar[Type[FormModel]]
     implementation: ClassVar[Optional[Type["QuestionType"]]] = None
 
@@ -43,3 +42,9 @@ class QuestionType(ABC, Generic[F]):
 
     def validate_options(self, options: Any) -> F:
         return cast(F, self.form_model.parse_obj(options))
+
+    def create_question_from_options(self, form_data: dict) -> BaseQuestion:
+        raise NotImplementedError()
+
+    def create_question_from_state(self, question_state: str) -> BaseQuestion:
+        raise NotImplementedError()
