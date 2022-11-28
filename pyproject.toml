@@ -8,6 +8,10 @@ description = "Library and toolset for the development of QuestionPy packages"
 authors = ["innoCampus <info@isis.tu-berlin.de>"]
 homepage = "https://questionpy.org"
 version = "0.2.0"
+packages = [
+    { include = "questionpy" },
+    { include = "questionpy_sdk" }
+]
 
 [tool.poetry.dependencies]
 click = "^8.1.3"
