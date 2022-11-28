@@ -16,8 +16,10 @@ log = logging.getLogger(__name__)
 @click.command()
 @click.argument("source", type=click.Path(exists=True, file_okay=False, path_type=Path))
 @click.option("--manifest", "-m", "manifest_path", type=click.Path(exists=True, dir_okay=False, path_type=Path))
-def package(source: Path, manifest_path: Optional[Path]) -> None:
-    out_path = source.with_suffix(".qpy")
+@click.option("--out", "-o", "out_path", type=click.Path(exists=False, dir_okay=False, path_type=Path))
+def package(source: Path, manifest_path: Optional[Path], out_path: Optional[Path]) -> None:
+    if not out_path:
+        out_path = source.with_suffix(".qpy")
 
     if not manifest_path:
         manifest_path = source / "qpy_manifest.yml"
