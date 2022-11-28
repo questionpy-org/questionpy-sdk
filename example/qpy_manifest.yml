@@ -1,5 +1,9 @@
 short_name: example
 version: 0.1.0
 api_version: 0.1
-entrypoint: main
 author: Maximilian Haye <m.haye@tu-berlin.de>
+name:
+  de: Beispiel
+  en: Example
+entrypoint: main
+languages: [de, en]
