@@ -3,7 +3,6 @@ import logging
 from pathlib import Path
 
 import click
-
 from questionpy_server import WorkerPool
 
 log = logging.getLogger(__name__)
