@@ -1,0 +1,102 @@
+{%- macro get_element_number(depth, index, outer_index) -%}
+    {#
+    Number the Questions. Used in the recursive for loop. Number scheme:
+     - 1, 2, 3 etc. for standard elements
+     - 1.1, 1.2, 2.1, etc. for elements in a group element
+    #}
+    {% if depth == 1 %}
+        {{ index }}
+    {% elif depth == 2 %}
+        {{ outer_index ~ "." ~ index }}
+    {% else %}
+        not implemented
+    {% endif %}
+{%- endmacro -%}
+
+
+{% macro create_option(kind, label, id, name, selected) %}
+    {% if kind == "radio_group" %}
+        {% set type = "radio" %}
+    {% else %}
+        {% set type = "checkbox" %}
+    {% endif %}
+    <div class="answer-option">
+        <label class="answer-label">
+            <input class="answer-{{ kind }}"
+                    type="{{ type }}"
+                    id="{{ id }}"
+                    name="{{ name }}"
+                    {{ is_checked(selected) }}>
+            {{ label }}
+        </label>
+    </div>
+{% endmacro %}
+
+
+{% macro create_section(header, elements) %}
+    <div class="container elements {{ header }}">
+        <h3> {{ header }} </h3>
+        {%- set idxs = [0] -%}
+        {% for element_options in elements recursive %}
+            {% if element_options.kind == "group" %}
+                {%- do idxs.append(loop.index) -%}
+                <div class="group" id="{{ element_options.name }}"
+                    {{ get_hide_if(element_options.hide_if) }}
+                    {{ get_disable_if(element_options.disable_if) }}>
+                        <h3 class="group-heading">{{ element_options.label }}</h3>
+                    {{ loop(element_options.elements) }}
+                </div>
+                {%- do idxs.pop() %}
+            {% else %}
+                {%  include "elements/" ~ element_options.kind ~ ".html" %}
+            {% endif %}
+        {% endfor %}
+    </div>
+{% endmacro %}
+
+
+{# ============================================================
+                    Utilty - Value Checking
+   ============================================================ #}
+
+{% macro get_hide_if(value) %}
+    {% if value %}
+        hide_if="{{ value }}"
+    {% endif %}
+{% endmacro %}
+
+{% macro get_disable_if(value) %}
+    {% if value %}
+        disable_if="{{ value }}"
+    {% endif %}
+{% endmacro %}
+
+{% macro get_placeholder(value) %}
+    {#
+    Check if the placeholder attribute is set and return the value
+    - Mostly used for <input> elements
+    #}
+    {% if value is defined and value != None %}
+        value="{{ value }}"
+    {% endif %}
+{% endmacro %}
+
+{% macro is_checked(value) %}
+    {#
+    Check if the selected attribute is set and return the value
+    - used in checkbox elements
+    #}
+    {% if value is defined and value %}
+        checked
+    {% endif %}
+{% endmacro %}
+
+{% macro is_required(value) %}
+    {#
+    Check if the required attribute is set and return the value
+    - Mostly used for <input> elements
+    #}
+    {% if value is defined and value %}
+        required
+    {% endif %}
+{% endmacro %}

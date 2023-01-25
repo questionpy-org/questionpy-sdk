@@ -1,0 +1,18 @@
+{% import "macros.jinja2" as macros %}
+{% extends "elements/element.html" %}
+
+{% block info %}
+    {{ super() }}
+{% endblock %}
+
+{% block content %}
+    {% for option in element_options.options %}
+        {{ macros.create_option(
+                element_options.kind,
+                option.label,
+                element_options.name ~ "-" ~ option.value,
+                element_options.name,
+                option.selected
+        ) }}
+    {% endfor %}
+{% endblock %}

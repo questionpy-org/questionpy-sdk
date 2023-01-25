@@ -1,0 +1,15 @@
+{% import "macros.jinja2" as macros %}
+{% block element %}
+<div class="element {{ element_options.kind }}"
+        {{ macros.get_hide_if(element_options.hide_if) }}
+        {{ macros.get_disable_if(element_options.disable_if) }}>
+    <div class="info">
+        {% block info %}
+            <p class="element-label">{{ element_options.label }}</p>
+        {% endblock %}
+    </div>
+    <div class="content">
+        {% block content %}{% endblock %}
+    </div>
+</div>
+{% endblock %}

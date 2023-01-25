@@ -1,0 +1,12 @@
+{% import "macros.jinja2" as macros %}
+{% extends "elements/element.html" %}
+{% block info %}
+    {{ super() }}
+{% endblock %}
+{% block content %}
+    <span class="input-span">
+        <input class="input-text"
+            {{ macros.get_placeholder(element_options.placeholder) }}
+            {{ macros.is_required(element_options.required) }}>
+    </span>
+{% endblock %}

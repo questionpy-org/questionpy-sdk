@@ -1,0 +1,25 @@
+{% import "macros.jinja2" as macros %}
+{% extends "elements/element.html" %}
+
+{% block info %}
+    {{ super() }}
+{% endblock %}
+
+{% block content %}
+    {% for checkbox_element in element_options.checkboxes %}
+        <div class="answer-option">
+            <label class="answer-label">
+                {% if checkbox_element.left_label %}
+                    {{ checkbox_element.left_label }}
+                {% endif %}
+                <input class="answer-checkbox" type="checkbox" id="{{ checkbox_element.name }}"
+                        {{ macros.is_required(checkbox_element.required) }}
+                        {{ macros.is_checked(checkbox_element.selected) }}>
+                {% if checkbox_element.right_label %}
+                    {{ checkbox_element.right_label }}
+                {% endif %}
+                {{ label }}
+            </label>
+        </div>
+    {% endfor %}
+{% endblock %}

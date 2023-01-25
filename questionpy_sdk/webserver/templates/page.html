@@ -1,0 +1,28 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    {% block head %}
+    <meta charset="UTF-8">
+    <link rel="icon" type="image/png" href="/static/favicon.ico">
+    <link rel="stylesheet" href="static/styles.css">
+    <script type="module" src="static/script.js"></script>
+    <title>{% block title %}{% endblock %} - QPy Webserver</title>
+    {% endblock %}
+</head>
+<body>
+    <div class="page">
+        <header class="header">
+            {% block header %}{% endblock %}
+        </header>
+        <div class="page-content">
+            {% block content %}{% endblock %}
+        </div>
+        <div class="clearfooter"></div>
+        <div class="footer">
+            {% block footer %}
+            Copyright &copy 2023 by <a href="https://www.innocampus.tu-berlin.de/home/">innoCampus</a>
+            {% endblock %}
+        </div>
+    </div>
+</body>
+</html>

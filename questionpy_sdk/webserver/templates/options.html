@@ -1,0 +1,27 @@
+{% extends "page.html" %}
+{% import "macros.jinja2" as macros %}
+
+{% block head %}
+    {{ super() }}
+{% endblock %}
+
+{% block title %}{{ manifest.short_name }}{%  endblock %}
+{% block header %}
+    <h1>Adding a {{ manifest.short_name }} Question</h1>
+{% endblock %}
+
+{% block content %}
+    <div class="container-manifest">
+{#        <h2 class="manifest-shortname">{{ manifest.name }}</h2>#}
+        <p class="manifest-version">Version: {{ manifest.version }}</p>
+        <p class="manifest-apiversion">API Version: {{ manifest.api_version }}</p>
+    </div>
+
+    <form action="/submit">
+        {{ macros.create_section("General", options.general) }}
+        {% for section in options.sections %}
+            {{ macros.create_section(section.header, section.elements) }}
+        {% endfor %}
+        <input type="submit" value="Save changes">
+    </form>
+{% endblock %}
