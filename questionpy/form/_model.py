@@ -133,7 +133,7 @@ class _FormModelMeta(ModelMetaclass):
             elif isinstance(value, _StaticElementInfo):
                 element = value.build(key)
                 expected_type = type(element)
-                new_namespace[key] = Field(default=element, const=True, form_element=element)
+                new_namespace[key] = Field(default=element, const=True, form_element=element, exclude=True)
             else:
                 # not one of our special types, use as is
                 new_namespace[key] = value
@@ -179,7 +179,7 @@ class _FormModelMeta(ModelMetaclass):
         for field in cls.__fields__.values():
             if "form_section" in field.field_info.extra:
                 info: _SectionInfo = field.field_info.extra["form_section"]
-                yield FormSection(header=info.header, elements=list(info.model.form_elements()))
+                yield FormSection(name=field.name, header=info.header, elements=list(info.model.form_elements()))
 
     def form(cls) -> OptionsFormDefinition:
         return OptionsFormDefinition(
