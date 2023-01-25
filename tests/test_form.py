@@ -38,6 +38,7 @@ def test_NestedFormModel_should_render_correct_form() -> None:
             )
         ],
         sections=[FormSection(
+            name="sect",
             header="My Header",
             elements=[TextInputElement(name="input", label="My Text Input", required=True)]
         )]

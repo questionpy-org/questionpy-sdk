@@ -19,8 +19,8 @@ python = "^3.9"
 aiohttp = "^3.8.1"
 pydantic = "^1.9.1"
 PyYAML = "^6.0"
-questionpy-common = { git = "https://github.com/questionpy-org/questionpy-common.git", rev = "cbf62cccefcb66364f330b4d055ababf7dd00aab" }
-questionpy-server = { git = "https://github.com/questionpy-org/questionpy-server.git", rev = "0afe99d6719e41a329e793ca7f0bdce7063c216b" }
+questionpy-common = { git = "https://github.com/questionpy-org/questionpy-common.git", branch = "feature/named-sections" }
+questionpy-server = { git = "https://github.com/questionpy-org/questionpy-server.git", branch = "feature/create-question-from-options" }
 
 [tool.poetry.dev-dependencies]
 pylint = "^2.14.5"

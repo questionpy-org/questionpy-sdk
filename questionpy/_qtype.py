@@ -1,10 +1,15 @@
 from typing import Any, Optional, Type, Generic, TypeVar, ClassVar, get_args, get_origin, cast
 
+from pydantic import BaseModel
 from questionpy_common.qtype import OptionsFormDefinition, BaseQuestionType, BaseQuestion
 
 from questionpy.form import FormModel
 
 F = TypeVar("F", bound=FormModel)
+
+
+class Question(BaseQuestion, BaseModel):
+    question_state: str
 
 
 class QuestionType(BaseQuestionType, Generic[F]):
@@ -40,11 +45,12 @@ class QuestionType(BaseQuestionType, Generic[F]):
     def get_options_form_definition(self) -> OptionsFormDefinition:
         return cast(OptionsFormDefinition, self.form_model.form())
 
-    def validate_options(self, options: Any) -> F:
-        return cast(F, self.form_model.parse_obj(options))
+    def validate_options(self, form_data: Any) -> F:
+        return cast(F, self.form_model.parse_obj(form_data))
 
     def create_question_from_options(self, form_data: dict) -> BaseQuestion:
-        raise NotImplementedError()
+        form = self.validate_options(form_data)
+        return Question(question_state=form.json())
 
     def create_question_from_state(self, question_state: str) -> BaseQuestion:
         raise NotImplementedError()
