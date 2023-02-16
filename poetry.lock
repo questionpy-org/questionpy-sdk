@@ -1105,8 +1105,8 @@ watchdog = "^2.2.0"
 [package.source]
 type = "git"
 url = "https://github.com/questionpy-org/questionpy-server.git"
-reference = "213f963"
-resolved_reference = "213f96370df158e7dc25a245d9d4608ac9c0f964"
+reference = "641a074"
+resolved_reference = "641a0747542cf8803fb7ebb748b363dcf70447de"
 
 [[package]]
 name = "six"
@@ -1441,4 +1441,4 @@ multidict = ">=4.0"
 [metadata]
 lock-version = "2.0"
 python-versions = "^3.9"
-content-hash = "35e5d48deb94b3467b8fe3667a926528b586f42059039c5771e816447791d499"
+content-hash = "adc4ae6cdf6ac1a2bce94af272f29c667ff7fdc53897fe59ba21ce335eaafc23"
