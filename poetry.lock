@@ -1083,8 +1083,8 @@ pydantic-factories = "^1.6.2"
 [package.source]
 type = "git"
 url = "https://github.com/questionpy-org/questionpy-common.git"
-reference = "f8fd6b6"
-resolved_reference = "f8fd6b62fd5f83690ce0bcda3050f98cc3621fe2"
+reference = "f22a0bc"
+resolved_reference = "f22a0bc8efddbd9f4b094e8f94f084585923b7bc"
 
 [[package]]
 name = "questionpy-server"
@@ -1099,14 +1099,14 @@ develop = false
 [package.dependencies]
 aiohttp = "^3.8.1"
 pydantic = "^1.9.1"
-questionpy-common = {git = "https://github.com/questionpy-org/questionpy-common.git", rev = "f8fd6b6"}
+questionpy-common = {git = "https://github.com/questionpy-org/questionpy-common.git", rev = "f22a0bc"}
 watchdog = "^2.2.0"
 
 [package.source]
 type = "git"
 url = "https://github.com/questionpy-org/questionpy-server.git"
-reference = "641a074"
-resolved_reference = "641a0747542cf8803fb7ebb748b363dcf70447de"
+reference = "ceaafe5"
+resolved_reference = "ceaafe5f9a043c7cde48a79bf9207cfe18a70361"
 
 [[package]]
 name = "six"
@@ -1441,4 +1441,4 @@ multidict = ">=4.0"
 [metadata]
 lock-version = "2.0"
 python-versions = "^3.9"
-content-hash = "adc4ae6cdf6ac1a2bce94af272f29c667ff7fdc53897fe59ba21ce335eaafc23"
+content-hash = "c02c88da588c356d426944b913b720f80c86284be44bb77b6ae34b6ada4f732c"

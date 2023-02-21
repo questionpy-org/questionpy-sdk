@@ -25,11 +25,12 @@ def validate_out_path(context: click.Context, _parameter: click.Parameter, value
 @click.command()
 @click.argument("source", type=click.Path(exists=True, file_okay=False, path_type=Path))
 @click.option("--manifest", "-m", "manifest_path", type=click.Path(exists=True, dir_okay=False, path_type=Path))
-@click.option("--out", "-o", "out_path", callback=validate_out_path,
-              type=click.Path(exists=False, dir_okay=False, path_type=Path))
+@click.option("--out", "-o", "out_path", callback=validate_out_path, type=click.Path(path_type=Path))
 def package(source: Path, manifest_path: Optional[Path], out_path: Optional[Path]) -> None:
     if not out_path:
         out_path = source.with_suffix(".qpy")
+    if out_path.exists():
+        raise click.ClickException(f"The path '{out_path}' already exists.")
 
     if not manifest_path:
         manifest_path = source / "qpy_manifest.yml"
@@ -40,11 +41,11 @@ def package(source: Path, manifest_path: Optional[Path], out_path: Optional[Path
     with manifest_path.open() as manifest_f:
         manifest = Manifest.parse_obj(yaml.safe_load(manifest_f))
 
-    with PackageBuilder(out_path, manifest) as out_file:
+    with PackageBuilder(out_path) as out_file:
         _copy_package(out_file, questionpy)
         _install_dependencies(out_file, manifest_path, manifest)
-        out_file.write_glob(source, "**/python/*.py")
-        out_file.write_manifest()
+        out_file.write_glob(source, "python/**/*")
+        out_file.write_manifest(manifest)
 
 
 def _install_dependencies(target: PackageBuilder, manifest_path: Path, manifest: Manifest) -> None:
