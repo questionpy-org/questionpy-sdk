@@ -51,7 +51,7 @@ def create(short_name: str, namespace: str, out_path: Optional[Path]) -> None:
     # Rename namespaced python folder.
     python_folder = out_path / "python"
     namespace_folder = (python_folder / "local").rename(python_folder / namespace)
-    (namespace_folder / "example").rename(namespace_folder / out_path)
+    (namespace_folder / "example").rename(namespace_folder / short_name)
 
     # Remove __init__.py from package as we only need it here to do `import example`.
     (out_path / "__init__.py").unlink()
