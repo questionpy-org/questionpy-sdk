@@ -1,6 +1,6 @@
 import logging
 from pathlib import Path
-from shutil import copytree
+from shutil import copytree, ignore_patterns
 from importlib.resources import files, as_file
 from typing import Optional
 
@@ -46,7 +46,7 @@ def create(short_name: str, namespace: str, out_path: Optional[Path]) -> None:
     template = files(example)
 
     with as_file(template) as template_path:
-        copytree(template_path, out_path)
+        copytree(template_path, out_path, ignore=ignore_patterns("__pycache__"))
 
     # Rename namespaced python folder.
     python_folder = out_path / "python"
