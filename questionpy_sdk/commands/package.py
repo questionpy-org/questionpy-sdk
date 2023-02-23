@@ -30,7 +30,9 @@ def package(source: Path, manifest_path: Optional[Path], out_path: Optional[Path
     if not out_path:
         out_path = source.with_suffix(".qpy")
     if out_path.exists():
-        raise click.ClickException(f"The path '{out_path}' already exists.")
+        if not click.confirm(f"The path '{out_path}' already exists. Do you want to override it?"):
+            return
+        out_path.unlink()
 
     if not manifest_path:
         manifest_path = source / "qpy_manifest.yml"

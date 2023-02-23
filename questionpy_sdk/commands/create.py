@@ -1,7 +1,6 @@
 import logging
 from importlib.resources import files, as_file
 from pathlib import Path
-from shutil import rmtree
 from typing import Optional
 from zipfile import ZipFile
 
@@ -44,9 +43,7 @@ def create(short_name: str, namespace: str, out_path: Optional[Path]) -> None:
     if not out_path:
         out_path = Path(short_name)
     if out_path.exists():
-        if not click.confirm(f"The path '{out_path}' already exists. Do you want to override it?"):
-            return
-        rmtree(out_path)
+        raise click.ClickException(f"The path '{out_path}' already exists.")
 
     template = files(resources) / "example.zip"
     with as_file(template) as template_path:
