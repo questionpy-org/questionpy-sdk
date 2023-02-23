@@ -1,13 +1,17 @@
 import logging
+from importlib.resources import files, as_file
 from pathlib import Path
-from shutil import copytree, ignore_patterns, rmtree
+from shutil import rmtree
 from typing import Optional
-
-from questionpy_common.manifest import ensure_is_valid_name, DEFAULT_NAMESPACE
+from zipfile import ZipFile
 
 import click
 import yaml
-import example
+
+from questionpy_common.manifest import ensure_is_valid_name, DEFAULT_NAMESPACE
+
+from questionpy_sdk import resources
+
 
 log = logging.getLogger(__name__)
 
@@ -44,20 +48,16 @@ def create(short_name: str, namespace: str, out_path: Optional[Path]) -> None:
             return
         rmtree(out_path)
 
-    template = files(example)
-
+    template = files(resources) / "example.zip"
     with as_file(template) as template_path:
-        copytree(template_path, out_path, ignore=ignore_patterns("__pycache__"))
+        ZipFile(template_path).extractall(out_path)
 
     # Rename namespaced python folder.
     python_folder = out_path / "python"
     namespace_folder = (python_folder / "local").rename(python_folder / namespace)
     (namespace_folder / "example").rename(namespace_folder / short_name)
 
-    # Remove __init__.py from package as we only need it here to do `import example`.
-    (out_path / "__init__.py").unlink()
-
-    manifest_path = out_path.joinpath("qpy_manifest.yml")
+    manifest_path = out_path / "qpy_manifest.yml"
 
     with manifest_path.open("r") as manifest_f:
         manifest = yaml.safe_load(manifest_f)
