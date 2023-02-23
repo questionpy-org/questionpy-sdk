@@ -1,7 +1,6 @@
 import logging
 from pathlib import Path
-from shutil import copytree, ignore_patterns
-from importlib.resources import files, as_file
+from shutil import copytree, ignore_patterns, rmtree
 from typing import Optional
 
 from questionpy_common.manifest import ensure_is_valid_name, DEFAULT_NAMESPACE
@@ -41,7 +40,9 @@ def create(short_name: str, namespace: str, out_path: Optional[Path]) -> None:
     if not out_path:
         out_path = Path(short_name)
     if out_path.exists():
-        raise click.ClickException(f"The path '{out_path}' already exists.")
+        if not click.confirm(f"The path '{out_path}' already exists. Do you want to override it?"):
+            return
+        rmtree(out_path)
 
     template = files(example)
 
