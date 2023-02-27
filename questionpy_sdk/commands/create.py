@@ -1,5 +1,4 @@
 import logging
-from importlib.resources import files, as_file
 from pathlib import Path
 from typing import Optional
 from zipfile import ZipFile
@@ -9,8 +8,7 @@ import yaml
 
 from questionpy_common.manifest import ensure_is_valid_name, DEFAULT_NAMESPACE
 
-from questionpy_sdk import resources
-
+from questionpy_sdk.resources import EXAMPLE_PACKAGE
 
 log = logging.getLogger(__name__)
 
@@ -45,9 +43,8 @@ def create(short_name: str, namespace: str, out_path: Optional[Path]) -> None:
     if out_path.exists():
         raise click.ClickException(f"The path '{out_path}' already exists.")
 
-    template = files(resources) / "example.zip"
-    with as_file(template) as template_path:
-        ZipFile(template_path).extractall(out_path)
+    with ZipFile(EXAMPLE_PACKAGE) as zip_file:
+        zip_file.extractall(out_path)
 
     # Rename namespaced python folder.
     python_folder = out_path / "python"
