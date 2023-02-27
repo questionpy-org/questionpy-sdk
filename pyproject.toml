@@ -12,6 +12,7 @@ packages = [
     { include = "questionpy" },
     { include = "questionpy_sdk" }
 ]
+include = ["questionpy_sdk/resources/example.zip"]
 
 [tool.poetry.build]
 generate-setup-file = false
