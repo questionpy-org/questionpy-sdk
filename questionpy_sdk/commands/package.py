@@ -39,7 +39,7 @@ def package(source: Path, manifest_path: Optional[Path], out_path: Optional[Path
     if not out_path:
         out_path = Path(f"{manifest.namespace}-{manifest.short_name}-{manifest.version}.qpy")
     if out_path.exists():
-        if not click.confirm(f"The path '{out_path}' already exists. Do you want to override it?"):
+        if not click.confirm(f"The path '{out_path}' already exists. Do you want to overwrite it?"):
             click.echo("Aborting.")
             return
         out_path.unlink()
