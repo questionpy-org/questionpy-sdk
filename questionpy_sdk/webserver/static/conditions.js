@@ -8,12 +8,20 @@ export class Types {
         disable_if: 'disable_if'
     }
 
+    /**
+     * Format the condition type to a CSS selector.
+     * @example "[data-disable_if]" for condition_type "disable_if"
+     * @return {string}
+     */
     to_selector() {
-        return "[".concat(this.value, "]");
+        return "[data-".concat(this.value, "]");
     }
 }
 
-
+/**
+ * Conditions are used to decide wether to hide or disable an element or a group of elements
+ * depending on the state of other form elements.
+ */
 export class Condition {
     constructor(kind, name) {
         if (this.constructor === Condition) {
@@ -21,7 +29,7 @@ export class Condition {
         }
         this.kind = kind;
         this.name = name;
-        this.targets = this.set_targets();
+        this.target = document.getElementById(this.name);
     }
 
     /**
@@ -52,11 +60,10 @@ export class Condition {
         }
     }
 
-    set_targets() {
-        return Array.from(document.querySelectorAll("#".concat(this.name)));
-    }
-
-
+    /**
+     * Check if the condition is true.
+     * @return {boolean}
+     */
     is_true() {
         throw new Error("not implemented");
     };
@@ -68,7 +75,7 @@ export class IsChecked extends Condition {
     }
 
     is_true() {
-        return this.targets.every(target => target.checked);
+        return this.target.checked;
     }
 }
 
@@ -79,7 +86,7 @@ export class IsNotChecked extends Condition {
     }
 
     is_true() {
-        return this.targets.every(target => !target.checked);
+        return this.target.checked === false;
     }
 }
 
@@ -91,7 +98,7 @@ export class Equals extends Condition {
     }
 
     is_true() {
-        return this.targets.every(target => target.value === this.value);
+        return this.target.value === this.value;
     }
 }
 
@@ -103,7 +110,7 @@ export class DoesNotEqual extends Condition {
     }
 
     is_true() {
-        return this.targets.every(target => target.value !== this.value);
+        return this.target.value !== this.value;
     }
 }
 
@@ -115,6 +122,6 @@ export class In extends Condition {
     }
 
     is_true() {
-        return this.targets.every(target => this.value.includes(target.value));
+        return this.value.includes(this.target.value);
     }
 }

@@ -1,0 +1,18 @@
+{% extends "elements/element.html.jinja2" %}
+
+{% block content %}
+    <fieldset id="{{ element_options.name }}">
+        {% for option in element_options.options %}
+            <div class="answer-option">
+                <label class="answer-label">
+                    <input class="answer-{{ element_options.kind }}"
+                            type="radio"
+                            id="{{ element_options.name ~ "-" ~ option.value }}"
+                            name="{{ element_options.name }}"
+                            {{ 'checked' if option.selected }}>
+                    {{ option.label }}
+                </label>
+            </div>
+        {% endfor %}
+    </fieldset>
+{% endblock %}

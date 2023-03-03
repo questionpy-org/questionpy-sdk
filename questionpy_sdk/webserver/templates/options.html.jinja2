@@ -1,9 +1,5 @@
-{% extends "page.html" %}
+{% extends "page.html.jinja2" %}
 {% import "macros.jinja2" as macros %}
-
-{% block head %}
-    {{ super() }}
-{% endblock %}
 
 {% block title %}{{ manifest.short_name }}{%  endblock %}
 {% block header %}
@@ -12,7 +8,6 @@
 
 {% block content %}
     <div class="container-manifest">
-{#        <h2 class="manifest-shortname">{{ manifest.name }}</h2>#}
         <p class="manifest-version">Version: {{ manifest.version }}</p>
         <p class="manifest-apiversion">API Version: {{ manifest.api_version }}</p>
     </div>

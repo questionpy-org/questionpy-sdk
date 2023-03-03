@@ -1,21 +1,19 @@
-{% extends "elements/element.html" %}
+{% extends "elements/element.html.jinja2" %}
 {% block element %}
     <div class="element {{ element_options.kind }}"
-            {{ macros.get_hide_if(element_options.hide_if) }}
-            {{ macros.get_disable_if(element_options.disable_if) }}
-            style="display: none">
+        {{ {'data-hide_if': element_options.hide_if|json_dumps}|xmlattr if element_options.hide_if}}
+        {{ {'data-disable_if': element_options.disable_if|json_dumps}|xmlattr if element_options.disable_if}}
+        style="display: none">
         <div class="info">
             {% block info %}
-                <p class="element-label">{{ element_options.label }}</p>
             {% endblock %}
         </div>
         <div class="content">
             {% for option in element_options.options %}
                 <div class="answer-option" id="{{ option.value }}">
                     <span class="answer" id="{{ option.value }}">
-                        <input class="answer-checkbox" type="checkbox" id="{{ option.value }}">
+                        <input class="answer-checkbox" type="checkbox" value="{{ option.value }}">
                     </span>
-                    <label class="answer-label" id="{{ option.value }}">{{ option.label }}</label>
                 </div>
             {% endfor %}
         </div>

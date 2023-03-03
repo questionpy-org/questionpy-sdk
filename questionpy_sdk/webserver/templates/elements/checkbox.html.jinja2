@@ -1,0 +1,19 @@
+{% extends "elements/element.html.jinja2" %}
+
+{% block info %}
+    {% if element_options.left_label %}
+        {{ element_options.left_label }}
+    {% endif %}
+{% endblock %}
+
+{% block content %}
+    <label class="answer-label">
+        <input class="answer-checkbox" type="checkbox" id="{{ element_options.name }}"
+                {{ 'required' if element_options.required }}
+                {{ 'checked' if element_options.selected }}>
+        {% if element_options.right_label %}
+            {{ element_options.right_label }}
+        {% endif %}
+        {{ label }}
+    </label>
+{% endblock %}
