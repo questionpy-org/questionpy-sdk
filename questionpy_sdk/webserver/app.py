@@ -15,11 +15,11 @@ class WebServer:
     def __init__(self, package: Path):
         self.web_app = web.Application()
         webserver_path = Path(__file__).parent
-        routes.static('/static', webserver_path.joinpath('static'))
+        routes.static('/static', webserver_path / 'static')
         self.web_app.add_routes(routes)
         self.web_app['sdk_webserver_app'] = self
 
-        template_folder = webserver_path.joinpath('templates')
+        template_folder = webserver_path / 'templates'
         jinja2_extensions = ['jinja2.ext.do']
         aiohttp_jinja2.setup(self.web_app,
                              loader=FileSystemLoader(template_folder),
