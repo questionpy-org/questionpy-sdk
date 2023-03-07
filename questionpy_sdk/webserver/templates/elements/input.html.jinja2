@@ -3,7 +3,7 @@
 {% block content %}
     <span class="input-span">
         <input class="input-text"
-            {{ {'placeholder': element_options.placeholder} if element_options.placeholder }}
+            {{ {'placeholder': element_options.placeholder}|xmlattr if element_options.placeholder }}
             {{ 'required' if element_options.required }}
             {{ 'checked' if element_options.selected }}>
     </span>

@@ -8,7 +8,8 @@
 
 {% block content %}
     <label class="answer-label">
-        <input class="answer-checkbox" type="checkbox" id="{{ element_options.name }}"
+        <input class="answer-checkbox" type="checkbox" id="{{ section_name }}_{{ element_options.name }}"
+                name="{{ element_options.name }}"
                 {{ 'required' if element_options.required }}
                 {{ 'checked' if element_options.selected }}>
         {% if element_options.right_label %}

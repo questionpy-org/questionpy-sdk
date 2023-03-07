@@ -25,7 +25,7 @@ function get_elements_with_conditions() {
 /**
  * Parses the condition list from the data attribute of the element into a list of {@link conditions}.
  *
- * @param {Element} element a form element
+ * @param {HTMLElement} element a form element
  * @param {object} element.conditions object containing the list of conditions
  * @param {conditions.Types} condition_type the type of the condition list
  * @param {string} condition_type.value from ['disable_if', 'hide_if']
@@ -36,9 +36,9 @@ function add_conditions_to_element(element, condition_type){
         element.conditions = {};
     }
     element.conditions[condition_type.value] = [];
-    JSON.parse(element.getAttribute("data-"+condition_type.value)).forEach(object => {
+    JSON.parse(element.dataset[condition_type.value]).forEach(object => {
         let condition = conditions.Condition.from_object(object);
-        add_source_element_to_target(condition.target, element, condition_type);
+        condition.targets.forEach(target => add_source_element_to_target(target, element, condition_type));
         element.conditions[condition_type.value].push(condition);
     });
 }
@@ -56,10 +56,10 @@ function add_conditions_to_element(element, condition_type){
  * @param {string} condition_type.value from ['disable_if', 'hide_if']
  */
 function add_source_element_to_target(target, source, condition_type) {
-    if (!target['source_elements']) {
-        target['source_elements'] = []
+    if (!target.source_elements) {
+        target.source_elements = []
     }
-    target['source_elements'].push(source);
+    target.source_elements.push(source);
     switch(condition_type.value) {
         case conditions.Types.values.hide_if:
             target.addEventListener("change", hide_if_listener); break;
@@ -169,7 +169,7 @@ function toggle_condition(element, condition_type_value) {
 function check_all_element_conditions(elements) {
     for (const value in conditions.Types.values) {
         Array.from(elements)
-            .filter(element => !(element['conditions'][value] === undefined || element['conditions'][value].length === 0))
+            .filter(element => !(element.conditions[value] === undefined || element.conditions[value].length === 0))
             .forEach(element => toggle_condition(element, value));
     }
 }

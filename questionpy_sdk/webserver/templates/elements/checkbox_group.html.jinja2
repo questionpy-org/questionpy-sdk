@@ -1,9 +1,10 @@
 {% extends "elements/element.html.jinja2" %}
 
 {% block element %}
+    {# TODO: see https://moodledev.io/docs/apis/subsystems/form/advanced/checkbox-controller #}
     <div class="element {{ element_options.kind }}"
-        {{ {'data-hide_if': element_options.hide_if|json_dumps}|xmlattr if element_options.hide_if}}
-        {{ {'data-disable_if': element_options.disable_if|json_dumps}|xmlattr if element_options.disable_if}}>
+        {{ {'data-hide_if': element_options.hide_if|tojson|forceescape}|xmlattr if element_options.hide_if}}
+        {{ {'data-disable_if': element_options.disable_if|tojson|forceescape}|xmlattr if element_options.disable_if}}>
         {% for checkbox_element in element_options.checkboxes %}
 
             <div class="info">
@@ -26,4 +27,5 @@
 
         {% endfor %}
     </div>
+    {# TODO: alle aus-/abwählen #}
 {% endblock %}

@@ -1,5 +1,4 @@
 from pathlib import Path
-import json
 from jinja2 import FileSystemLoader
 from aiohttp import web
 import aiohttp_jinja2
@@ -23,8 +22,7 @@ class WebServer:
         jinja2_extensions = ['jinja2.ext.do']
         aiohttp_jinja2.setup(self.web_app,
                              loader=FileSystemLoader(template_folder),
-                             extensions=jinja2_extensions,
-                             filters={'json_dumps': json.dumps})
+                             extensions=jinja2_extensions)
         self.worker_pool = WorkerPool(1, 500 * MiB)
         self.package = package
 

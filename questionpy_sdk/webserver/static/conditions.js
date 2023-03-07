@@ -29,7 +29,7 @@ export class Condition {
         }
         this.kind = kind;
         this.name = name;
-        this.target = document.getElementById(this.name);
+        this.targets = Array.from(document.getElementsByName(this.name));
     }
 
     /**
@@ -75,7 +75,7 @@ export class IsChecked extends Condition {
     }
 
     is_true() {
-        return this.target.checked;
+        return this.targets.every(target => target.checked);
     }
 }
 
@@ -86,7 +86,7 @@ export class IsNotChecked extends Condition {
     }
 
     is_true() {
-        return this.target.checked === false;
+        return this.targets.every(target => !target.checked);
     }
 }
 
@@ -98,7 +98,7 @@ export class Equals extends Condition {
     }
 
     is_true() {
-        return this.target.value === this.value;
+        return this.targets.every(target => target.value === this.value);
     }
 }
 
@@ -110,7 +110,7 @@ export class DoesNotEqual extends Condition {
     }
 
     is_true() {
-        return this.target.value !== this.value;
+        return this.targets.every(target => target.value !== this.value);
     }
 }
 
@@ -122,6 +122,6 @@ export class In extends Condition {
     }
 
     is_true() {
-        return this.value.includes(this.target.value);
+        return this.targets.every(target => this.value.includes(target.value));
     }
 }
