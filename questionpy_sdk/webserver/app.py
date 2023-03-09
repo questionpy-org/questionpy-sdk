@@ -1,8 +1,8 @@
 from pathlib import Path
-from jinja2 import FileSystemLoader
-from aiohttp import web
-import aiohttp_jinja2
 
+import aiohttp_jinja2
+from aiohttp import web
+from jinja2 import FileSystemLoader
 from questionpy_common.constants import MiB
 from questionpy_server import WorkerPool
 
@@ -37,11 +37,11 @@ async def render_options(_request: web.Request) -> web.Response:
 
     async with webserver.worker_pool.get_worker(webserver.package, 0, None) as worker:
         manifest = await worker.get_manifest()
-        options = await worker.get_options_form_definition()
+        form, _ = await worker.get_options_form(None)
 
     context = {
         'manifest': manifest,
-        'options': options.dict()
+        'options': form.dict()
     }
 
     return aiohttp_jinja2.render_template('options.html.jinja2', _request, context)

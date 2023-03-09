@@ -1,7 +1,8 @@
-from typing import Any, Optional, Type, Generic, TypeVar, ClassVar, get_args, get_origin, cast
+import json
+from typing import Any, Optional, Type, Generic, TypeVar, ClassVar, get_args, get_origin
 
-from pydantic import BaseModel
-from questionpy_common.qtype import OptionsFormDefinition, BaseQuestionType, BaseQuestion
+from pydantic import BaseModel, ValidationError
+from questionpy_common.qtype import OptionsFormDefinition, BaseQuestionType, BaseQuestion, OptionsFormValidationError
 
 from questionpy.form import FormModel
 
@@ -9,7 +10,7 @@ F = TypeVar("F", bound=FormModel)
 
 
 class Question(BaseQuestion, BaseModel):
-    question_state: str
+    question_state: dict[str, object]
 
 
 class QuestionType(BaseQuestionType, Generic[F]):
@@ -42,15 +43,28 @@ class QuestionType(BaseQuestionType, Generic[F]):
 
         super().__init_subclass__(**kwargs)
 
-    def get_options_form_definition(self) -> OptionsFormDefinition:
-        return cast(OptionsFormDefinition, self.form_model.form())
+    def get_options_form(self, question_state: Optional[dict[str, object]]) \
+            -> tuple[OptionsFormDefinition, dict[str, object]]:
+        return (
+            self.form_model.form(),
+            question_state or {}
+        )
 
-    def validate_options(self, form_data: Any) -> F:
-        return cast(F, self.form_model.parse_obj(form_data))
+    def create_question_from_options(self, old_state: Optional[dict[str, object]],
+                                     form_data: dict[str, object]) -> BaseQuestion:
+        try:
+            parsed_form_data = self.form_model.parse_obj(form_data)
+        except ValidationError as e:
+            error_dict = {".".join(map(str, error["loc"])): error["msg"] for error in e.errors()}
+            raise OptionsFormValidationError(error_dict) from e
 
-    def create_question_from_options(self, form_data: dict) -> BaseQuestion:
-        form = self.validate_options(form_data)
-        return Question(question_state=form.json())
+        new_state = old_state.copy() if old_state else {}
+        # In dict(), pydantic doesn't serialize non-BaseModel fields such as out OptionEnum.
+        # So we do json() and loads() again. Looks like this is going to be fixed in pydantic v2:
+        # https://github.com/pydantic/pydantic/issues/951
+        new_state.update(json.loads(parsed_form_data.json()))
 
-    def create_question_from_state(self, question_state: str) -> BaseQuestion:
-        raise NotImplementedError()
+        return Question(question_state=new_state)
+
+    def create_question_from_state(self, question_state: dict[str, object]) -> BaseQuestion:
+        return Question(question_state=question_state)
