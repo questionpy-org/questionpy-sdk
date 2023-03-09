@@ -2,6 +2,7 @@ import logging
 from pathlib import Path
 
 import click
+
 from questionpy_sdk.webserver.app import WebServer
 
 log = logging.getLogger(__name__)
