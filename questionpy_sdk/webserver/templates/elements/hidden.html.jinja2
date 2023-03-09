@@ -1,21 +1,15 @@
 {% extends "elements/element.html.jinja2" %}
+
 {% block element %}
-    <div class="element {{ element_options.kind }}"
-        {{ {'data-hide_if': element_options.hide_if|json_dumps}|xmlattr if element_options.hide_if}}
-        {{ {'data-disable_if': element_options.disable_if|json_dumps}|xmlattr if element_options.disable_if}}
-        style="display: none">
-        <div class="info">
-            {% block info %}
-            {% endblock %}
-        </div>
-        <div class="content">
-            {% for option in element_options.options %}
-                <div class="answer-option" id="{{ option.value }}">
-                    <span class="answer" id="{{ option.value }}">
-                        <input class="answer-checkbox" type="checkbox" value="{{ option.value }}">
-                    </span>
-                </div>
-            {% endfor %}
-        </div>
+<div class="element {{ element_options.kind }}" id="el_{{ section_name }}_{{ element_options.name }}"
+        data-section="{{section_name}}"
+        style="display: none"
+        {{ {'data-hide_if': element_options.hide_if|tojson|forceescape}|xmlattr if element_options.hide_if}}
+        {{ {'data-disable_if': element_options.disable_if|tojson|forceescape}|xmlattr if element_options.disable_if}}>
+    <div class="content">
+        {% block content %}
+            <input class="input-hidden" type="hidden" name="{{ element_options.name }}" value="{{ element_options.value }}">
+        {% endblock %}
     </div>
+</div>
 {% endblock %}
