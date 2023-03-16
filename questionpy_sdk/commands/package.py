@@ -11,6 +11,7 @@ import yaml
 from questionpy_common.manifest import Manifest
 
 import questionpy
+from questionpy_sdk.commands._helper import create_normalized_filename
 from questionpy_sdk.package import PackageBuilder
 
 log = logging.getLogger(__name__)
@@ -37,7 +38,7 @@ def package(source: Path, manifest_path: Optional[Path], out_path: Optional[Path
         manifest = Manifest.parse_obj(yaml.safe_load(manifest_f))
 
     if not out_path:
-        out_path = Path(f"{manifest.namespace}-{manifest.short_name}-{manifest.version}.qpy")
+        out_path = Path(create_normalized_filename(manifest))
     if out_path.exists():
         if not click.confirm(f"The path '{out_path}' already exists. Do you want to overwrite it?"):
             click.echo("Aborting.")
