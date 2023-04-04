@@ -2,13 +2,13 @@ from typing import cast, TypeVar, Any, overload, Literal, Optional, Set, Union, 
 
 from questionpy_common.conditions import Condition, IsChecked, IsNotChecked, Equals, DoesNotEqual, In
 from questionpy_common.elements import TextInputElement, StaticTextElement, CheckboxElement, RadioGroupElement, \
-    SelectElement, HiddenElement, GroupElement, Option
+    SelectElement, HiddenElement, GroupElement, Option, RepetitionElement
 from typing_extensions import TypeAlias
 
 from questionpy.form._model import FormModel, _FieldInfo, _SectionInfo, OptionEnum, _OptionInfo, _StaticElementInfo
 
 __all__ = ["text_input", "static_text", "checkbox", "radio_group", "select", "option", "hidden", "section", "group",
-           "is_checked", "is_not_checked", "equals", "does_not_equal", "is_in"]
+           "repeat", "is_checked", "is_not_checked", "equals", "does_not_equal", "is_in"]
 
 _S = TypeVar("_S", bound=str)
 _F = TypeVar("_F", bound=FormModel)
@@ -242,17 +242,25 @@ def hidden(value: _S, *, disable_if: _ZeroOrMoreConditions = None, hide_if: _Zer
 
 
 def section(header: str, model: Type[_F]) -> _F:
-    # we pretend to return an instance of the model so the type of the section field can be inferred
+    # We pretend to return an instance of the model so the type of the section field can be inferred.
     return cast(_F, _SectionInfo(header, model))
 
 
 def group(label: str, model: Type[_F], *,
           disable_if: _ZeroOrMoreConditions = None, hide_if: _ZeroOrMoreConditions = None) -> _F:
-    # we pretend to return an instance of the model so the type of the section field can be inferred
+    # We pretend to return an instance of the model so the type of the section field can be inferred.
     return cast(_F, _FieldInfo(
         lambda name: GroupElement(name=name, label=label, elements=list(model.form_elements()),
                                   disable_if=_listify(disable_if), hide_if=_listify(hide_if)),
         model
+    ))
+
+
+def repeat(model: Type[_F], *, initial: int = 1, increment: int = 1, button_label: Optional[str] = None) -> list[_F]:
+    return cast(list[_F], _FieldInfo(
+        lambda name: RepetitionElement(name=name, initial_elements=initial, increment=increment,
+                                       button_label=button_label, elements=list(model.form_elements())),
+        list[model]  # type: ignore[valid-type]
     ))
 
 

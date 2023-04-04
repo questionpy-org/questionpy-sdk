@@ -19,7 +19,7 @@ class MyModel(FormModel):
     input = text_input("My second Input", required=True, hide_if=[is_checked("chk")])
     chk = checkbox("Left label", None)
     radio = radio_group("My Radio Group", MyOptions)
-    my_select = select("My select box", MyOptions)
+    my_select = select("My select box", MyOptions, multiple=True)
     my_hidden = hidden("foo")
 
     has_name = checkbox(None, "I have a name.")

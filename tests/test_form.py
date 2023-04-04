@@ -19,6 +19,7 @@ class NestedFormModel(FormModel):
 
     sect = section("My Header", SimpleFormModel)
     grp = group("My Group", SimpleFormModel)
+    rep = repeat(SimpleFormModel, initial=1)
 
 
 def test_SimpleFormModel_should_render_correct_form() -> None:
@@ -32,14 +33,16 @@ def test_NestedFormModel_should_render_correct_form() -> None:
         general=[
             TextInputElement(name="general_field", label="General Text Input", required=False),
             GroupElement(
-                name="grp",
-                label="My Group",
+                name="grp", label="My Group",
+                elements=[TextInputElement(name="input", label="My Text Input", required=True)]
+            ),
+            RepetitionElement(
+                name="rep", initial_elements=1, increment=1,
                 elements=[TextInputElement(name="input", label="My Text Input", required=True)]
             )
         ],
         sections=[FormSection(
-            name="sect",
-            header="My Header",
+            name="sect", header="My Header",
             elements=[TextInputElement(name="input", label="My Text Input", required=True)]
         )]
     )
@@ -47,11 +50,14 @@ def test_NestedFormModel_should_render_correct_form() -> None:
 
 def test_NestedFormModel_should_parse_correctly() -> None:
     parsed = NestedFormModel(general_field="Valid value", sect=SimpleFormModel(input="Valid value"),
-                             grp=SimpleFormModel(input=b"Coercible to valid value"))
+                             grp=SimpleFormModel(input=b"Coercible to valid value"),
+                             rep=[SimpleFormModel(input="abcdefg")])
 
     assert parsed.general_field == "Valid value"
     assert parsed.sect.input == "Valid value"
     assert parsed.grp.input == "Coercible to valid value"
+    assert len(parsed.rep) == 1
+    assert parsed.rep[0].input == "abcdefg"
 
 
 def test_should_raise_ValidationError_when_required_option_is_missing() -> None:
@@ -73,6 +79,9 @@ def test_should_raise_ValidationError_when_required_option_is_missing() -> None:
      [SelectElement(name="field", label="Label", options=[Option(label="Label 1", value="OPT_1")],
                     required=True, multiple=True)]),
     (hidden("value"), [HiddenElement(name="field", value="value")]),
+    (repeat(SimpleFormModel, initial=1),
+     [RepetitionElement(name="field", initial_elements=1, increment=1,
+                        elements=[TextInputElement(name="input", label="My Text Input", required=True)])])
 ])
 def test_should_render_correct_form(initializer: object, expected_elements: List[FormElement]) -> None:
     class TheModel(FormModel):
@@ -113,6 +122,9 @@ def test_should_render_correct_form(initializer: object, expected_elements: List
     (Optional[Literal["value"]], hidden("value", disable_if=is_checked("field")), ..., None),
     # group
     (SimpleFormModel, group("", SimpleFormModel), {"input": "abc"}, SimpleFormModel(input="abc")),
+    # repetition
+    (list[SimpleFormModel], repeat(SimpleFormModel, initial=1), [{"input": "abc"}, {"input": "def"}],
+     [SimpleFormModel(input="abc"), SimpleFormModel(input="def")]),
     # section
     (SimpleFormModel, section("", SimpleFormModel), {"input": "abc"}, SimpleFormModel(input="abc")),
 ])
@@ -149,6 +161,9 @@ def test_should_parse_correctly_when_input_is_valid(annotation: object, initiali
     (str, hidden("value"), ...),
     # group
     (SimpleFormModel, group("", SimpleFormModel), ...),
+    # repetition
+    (list[SimpleFormModel], repeat(SimpleFormModel, initial=1), {"input": "def"}),
+    (list[SimpleFormModel], repeat(SimpleFormModel, initial=1), ...),
     # section
     (SimpleFormModel, section("", SimpleFormModel), {}),
 ])
@@ -183,6 +198,10 @@ def test_should_raise_ValidationError_when_input_is_invalid(annotation: object, 
     (Optional[str], hidden("value")),
     # group
     (dict, group("", SimpleFormModel)),
+    # repetition
+    (SimpleFormModel, repeat(SimpleFormModel, initial=1)),
+    (list, repeat(SimpleFormModel, initial=1)),
+    (list[str], repeat(SimpleFormModel, initial=1)),
     # section
     (dict, section("", SimpleFormModel)),
 ])
