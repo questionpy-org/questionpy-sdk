@@ -45,8 +45,7 @@ class OptionEnum(Enum):
 @dataclass
 class _FieldInfo:
     build: Callable[[str], FormElement]
-    """
-    We want to use the name of the model field as the name of the form element, but that isn't known when the dsl
+    """We want to use the name of the model field as the name of the form element, but that isn't known when the dsl
     functions are called. So they provide a callable instead which takes the name and returns the complete form element.
     """
     type: object
@@ -79,9 +78,7 @@ def _flatten_elements(elements: Iterable[FormElement], sections: Iterable[FormSe
 
 
 def _is_valid_annotation(annotation: object, expected: object) -> bool:
-    """
-    Checks if `annotation` is valid for a form element which produces values of type `expected`.
-    """
+    """Checks if `annotation` is valid for a form element which produces values of type `expected`."""
 
     # TODO: pydantic is able to coerce many input values, such as strings to floats, so better logic may be
     #       needed here

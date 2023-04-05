@@ -32,7 +32,7 @@ class WebServer:
 
 @routes.get('/')
 async def render_options(_request: web.Request) -> web.Response:
-    """  Get the options form definition that allow a question creator to customize a question. """
+    """Get the options form definition that allow a question creator to customize a question."""
     webserver: 'WebServer' = _request.app['sdk_webserver_app']
 
     async with webserver.worker_pool.get_worker(webserver.package, 0, None) as worker:
