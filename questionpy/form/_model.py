@@ -17,6 +17,11 @@ class _OptionInfo:
 
 
 class OptionEnum(Enum):
+    """Enum specifying the possible options for radio groups and drop-downs.
+
+    Specify options using `option`.
+    """
+
     def __init__(self, option: _OptionInfo):
         super().__init__()
         self._value_ = self.name
@@ -168,17 +173,20 @@ class _FormModelMeta(ModelMetaclass):
                                      f"nonexistent element '{condition.name}'")
 
     def form_elements(cls) -> Iterable[FormElement]:
+        """Generator over all elements in this form. Does not include sections or elements nested in sections."""
         for field in cls.__fields__.values():
             if "form_element" in field.field_info.extra:
                 yield field.field_info.extra["form_element"]
 
     def form_sections(cls) -> Iterable[FormSection]:
+        """Generator over all sections in this form."""
         for field in cls.__fields__.values():
             if "form_section" in field.field_info.extra:
                 info: _SectionInfo = field.field_info.extra["form_section"]
                 yield FormSection(name=field.name, header=info.header, elements=list(info.model.form_elements()))
 
     def form(cls) -> OptionsFormDefinition:
+        """Builds the form definition."""
         return OptionsFormDefinition(
             general=list(cls.form_elements()),
             sections=list(cls.form_sections())
@@ -186,4 +194,9 @@ class _FormModelMeta(ModelMetaclass):
 
 
 class FormModel(BaseModel, metaclass=_FormModelMeta):
+    """Declarative form definition.
+
+    Use the DSL functions to define your elements as fields, and have submitted form data automatically validated into a
+    type-safe instance of your model.
+    """
     __slots__ = ()
