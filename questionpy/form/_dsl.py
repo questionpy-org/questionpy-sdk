@@ -1,3 +1,5 @@
+"""DSL-like functions for FormModels."""
+
 from typing import cast, TypeVar, Any, overload, Literal, Optional, Set, Union, Type, Callable
 
 from questionpy_common.conditions import Condition, IsChecked, IsNotChecked, Equals, DoesNotEqual, In
@@ -52,6 +54,17 @@ def text_input(label: str, required: bool = False, *,
 
 def text_input(label: str, required: bool = False, *,
                disable_if: _ZeroOrMoreConditions = None, hide_if: _ZeroOrMoreConditions = None) -> Any:
+    """Adds a text input field.
+
+    Args:
+        label: Text describing the element, shown verbatim.
+        required: Require some non-empty input to be entered before the form can be submitted.
+        disable_if: Disable this element if some condition(s) match.
+        hide_if: Hide this element if some condition(s) match.
+
+    Returns:
+        An internal object containing metadata about the field.
+    """
     return _FieldInfo(
         lambda name: TextInputElement(name=name, label=label, required=required,
                                       disable_if=_listify(disable_if), hide_if=_listify(hide_if)),
@@ -62,6 +75,17 @@ def text_input(label: str, required: bool = False, *,
 
 def static_text(label: str, text: str, *,
                 disable_if: _ZeroOrMoreConditions = None, hide_if: _ZeroOrMoreConditions = None) -> StaticTextElement:
+    """Adds a line with a label and some static text.
+
+    Args:
+        label: Text describing the element, shown verbatim.
+        text: Main text described by the label, shown verbatim.
+        disable_if: Disable this element if some condition(s) match.
+        hide_if: Hide this element if some condition(s) match.
+
+    Returns:
+        The element.
+    """
     return cast(
         StaticTextElement,
         _StaticElementInfo(lambda name: StaticTextElement(name=name, label=label, text=text,
@@ -100,6 +124,19 @@ def checkbox(left_label: Optional[str] = None, right_label: Optional[str] = None
 def checkbox(left_label: Optional[str] = None, right_label: Optional[str] = None, *,
              required: bool = False, selected: bool = False,
              disable_if: _ZeroOrMoreConditions = None, hide_if: _ZeroOrMoreConditions = None) -> Any:
+    """Adds a checkbox.
+
+    Args:
+        left_label: Label shown the same way as labels on other element types.
+        right_label: Additional label shown to the right of the checkbox.
+        required: Require this checkbox to be selected before the form can be submitted.
+        selected: Default state of the checkbox.
+        disable_if: Disable this element if some condition(s) match.
+        hide_if: Hide this element if some condition(s) match.
+
+    Returns:
+        An internal object containing metadata about the field.
+    """
     return _FieldInfo(
         lambda name: CheckboxElement(name=name, left_label=left_label, right_label=right_label, required=required,
                                      selected=selected, disable_if=_listify(disable_if), hide_if=_listify(hide_if)),
@@ -134,14 +171,24 @@ def radio_group(label: str, enum: Type[_E], *, required: Literal[True],
 
 def radio_group(label: str, enum: Type[_E], *, required: bool = False,
                 disable_if: _ZeroOrMoreConditions = None, hide_if: _ZeroOrMoreConditions = None) -> Any:
-    # enum type passed
+    """Adds a group of radio buttons, of which at most one can be selected at a time.
+
+    Args:
+        label: Text describing the element, shown verbatim.
+        enum: An `OptionEnum` subclass containing the available options.
+        required: Require one of the options to be selected before the form can be submitted.
+        disable_if: Disable this element if some condition(s) match.
+        hide_if: Hide this element if some condition(s) match.
+
+    Returns:
+        An internal object containing metadata about the field.
+    """
     options = [Option(label=variant.label, value=variant.value, selected=variant.selected) for variant in enum]
-    base_type = enum
 
     return _FieldInfo(
         lambda name: RadioGroupElement(name=name, label=label, options=options, required=required,
                                        disable_if=_listify(disable_if), hide_if=_listify(hide_if)),
-        Optional[base_type] if not required or disable_if or hide_if else base_type,
+        Optional[enum] if not required or disable_if or hide_if else enum,
         None if not required or disable_if or hide_if else ...
     )
 
@@ -184,7 +231,19 @@ def select(label: str, enum: Type[_E], *,
 def select(label: str, enum: Type[_E], *,
            required: bool = False, multiple: bool = False,
            disable_if: _ZeroOrMoreConditions = None, hide_if: _ZeroOrMoreConditions = None) -> Any:
-    # enum type passed
+    """Adds a drop-down list.
+
+    Args:
+        label: Text describing the element, shown verbatim.
+        enum: An `OptionEnum` subclass containing the available options.
+        required: Require at least one of the options to be selected before the form can be submitted.
+        multiple: Allow the selection of multiple options.
+        disable_if: Disable this element if some condition(s) match.
+        hide_if: Hide this element if some condition(s) match.
+
+    Returns:
+        An internal object containing metadata about the field.
+    """
     options = [Option(label=variant.label, value=variant.value, selected=variant.selected) for variant in enum]
 
     expected_type: Type
@@ -211,6 +270,15 @@ def select(label: str, enum: Type[_E], *,
 
 
 def option(label: str, selected: bool = False) -> _OptionInfo:
+    """Adds a option to an `OptionEnum`.
+
+    Args:
+        label: Text describing the option, shown verbatim.
+        selected: Default state of the option.
+
+    Returns:
+        An internal object containing metadata about the option.
+    """
     return _OptionInfo(label, selected)
 
 
@@ -233,6 +301,16 @@ def hidden(value: _S, *,
 
 
 def hidden(value: _S, *, disable_if: _ZeroOrMoreConditions = None, hide_if: _ZeroOrMoreConditions = None) -> Any:
+    """Adds a hidden element with a fixed value.
+
+    Args:
+        value: Fixed value.
+        disable_if: Disable this element if some condition(s) match.
+        hide_if: Hide this element if some condition(s) match.
+
+    Returns:
+        An internal object containing metadata about the field.
+    """
     return cast(_S, _FieldInfo(
         lambda name: HiddenElement(name=name, value=value,
                                    disable_if=_listify(disable_if), hide_if=_listify(hide_if)),
@@ -242,12 +320,32 @@ def hidden(value: _S, *, disable_if: _ZeroOrMoreConditions = None, hide_if: _Zer
 
 
 def section(header: str, model: Type[_F]) -> _F:
+    """Adds a form section which can be expanded and collapsed.
+
+    Args:
+        header: Header to be shown at the top of the section.
+        model: Sub-FormModel containing the fields of the section.
+
+    Returns:
+        An internal object containing metadata about the section.
+    """
     # We pretend to return an instance of the model so the type of the section field can be inferred.
     return cast(_F, _SectionInfo(header, model))
 
 
 def group(label: str, model: Type[_F], *,
           disable_if: _ZeroOrMoreConditions = None, hide_if: _ZeroOrMoreConditions = None) -> _F:
+    """Groups multiple elements horizontally with a common label.
+
+    Args:
+        label: Label of the group.
+        model: Sub-FormModel containing the fields of the group.
+        disable_if: Disable this group if some condition(s) match.
+        hide_if: Hide this group if some condition(s) match.
+
+    Returns:
+        An internal object containing metadata about the section.
+    """
     # We pretend to return an instance of the model so the type of the section field can be inferred.
     return cast(_F, _FieldInfo(
         lambda name: GroupElement(name=name, label=label, elements=list(model.form_elements()),
@@ -257,6 +355,17 @@ def group(label: str, model: Type[_F], *,
 
 
 def repeat(model: Type[_F], *, initial: int = 1, increment: int = 1, button_label: Optional[str] = None) -> list[_F]:
+    """Repeats a sub-model, allowing the user to add new repetitions with the click of a button.
+
+    Args:
+        model: Sub-FormModel containing the fields to repeat.
+        initial: Number of repetitions to show when the form is first loaded.
+        increment: Number of repetitions to add with each click of the button.
+        button_label: Label for the button which adds more repetitions, or None to use default provided by LMS.
+
+    Returns:
+        An internal object containing metadata about the section.
+    """
     return cast(list[_F], _FieldInfo(
         lambda name: RepetitionElement(name=name, initial_elements=initial, increment=increment,
                                        button_label=button_label, elements=list(model.form_elements())),
@@ -276,7 +385,12 @@ def _condition_with_value_factory(model: Type[_C]) -> Callable[[str, Any], _C]:
 
 
 is_checked = _condition_factory(IsChecked)
+"""Condition on a checkbox being checked."""
 is_not_checked = _condition_factory(IsNotChecked)
+"""Condition on a checkbox being unchecked."""
 equals = _condition_with_value_factory(Equals)
+"""Condition on the value of another field being equal to some static value."""
 does_not_equal = _condition_with_value_factory(DoesNotEqual)
+"""Condition on the value of another field not being equal to some static value."""
 is_in = _condition_with_value_factory(In)
+"""Condition on the value of another field being one of a number of static values."""
