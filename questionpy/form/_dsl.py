@@ -29,36 +29,43 @@ def _listify(value: _ZeroOrMoreConditions) -> list[Condition]:
 
 
 @overload
-def text_input(label: str, required: Literal[False] = False, *,
+def text_input(label: str, *, required: Literal[False] = False,
+               default: Optional[str] = None, placeholder: Optional[str] = None,
                disable_if: _ZeroOrMoreConditions = None, hide_if: _ZeroOrMoreConditions = None) -> Optional[str]:
     pass
 
 
 @overload
-def text_input(label: str, required: Literal[True], *,
+def text_input(label: str, *, required: Literal[True],
+               default: Optional[str] = None, placeholder: Optional[str] = None,
                disable_if: None = None, hide_if: None = None) -> str:
     pass
 
 
 @overload
-def text_input(label: str, required: bool = False, *,
+def text_input(label: str, *, required: bool = False,
+               default: Optional[str] = None, placeholder: Optional[str] = None,
                disable_if: _OneOrMoreConditions, hide_if: _ZeroOrMoreConditions = None) -> Optional[str]:
     pass
 
 
 @overload
-def text_input(label: str, required: bool = False, *,
+def text_input(label: str, *, required: bool = False,
+               default: Optional[str] = None, placeholder: Optional[str] = None,
                disable_if: _ZeroOrMoreConditions = None, hide_if: _OneOrMoreConditions) -> Optional[str]:
     pass
 
 
-def text_input(label: str, required: bool = False, *,
+def text_input(label: str, *, required: bool = False,
+               default: Optional[str] = None, placeholder: Optional[str] = None,
                disable_if: _ZeroOrMoreConditions = None, hide_if: _ZeroOrMoreConditions = None) -> Any:
     """Adds a text input field.
 
     Args:
         label: Text describing the element, shown verbatim.
         required: Require some non-empty input to be entered before the form can be submitted.
+        default: Default value of the input when first loading the form. Part of the submitted form data.
+        placeholder: Placeholder to show when no value has been entered yet. Not part of the submitted form data.
         disable_if: Disable this element if some condition(s) match.
         hide_if: Hide this element if some condition(s) match.
 
@@ -67,6 +74,7 @@ def text_input(label: str, required: bool = False, *,
     """
     return _FieldInfo(
         lambda name: TextInputElement(name=name, label=label, required=required,
+                                      default=default, placeholder=placeholder,
                                       disable_if=_listify(disable_if), hide_if=_listify(hide_if)),
         Optional[str] if not required or disable_if or hide_if else str,
         None if not required or disable_if or hide_if else ...,
