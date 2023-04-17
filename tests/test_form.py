@@ -11,11 +11,11 @@ class MyOptionEnum(OptionEnum):
 
 
 class SimpleFormModel(FormModel):
-    input: str = text_input("My Text Input", True)
+    input: str = text_input("My Text Input", required=True)
 
 
 class NestedFormModel(FormModel):
-    general_field: Optional[str] = text_input("General Text Input", False)
+    general_field: Optional[str] = text_input("General Text Input")
 
     sect = section("My Header", SimpleFormModel)
     grp = group("My Group", SimpleFormModel)
@@ -94,11 +94,11 @@ def test_should_render_correct_form(initializer: object, expected_elements: List
 
 @pytest.mark.parametrize("annotation,initializer,input_value,expected_result", [
     # text_input
-    (str, text_input("", True), "valid", "valid"),
-    (str, text_input("", True), b"coercible", "coercible"),
-    (Optional[str], text_input("", False), "valid", "valid"),
-    (Optional[str], text_input("", False), None, None),
-    (Optional[str], text_input("", False), ..., None),
+    (str, text_input("", required=True), "valid", "valid"),
+    (str, text_input("", required=True), b"coercible", "coercible"),
+    (Optional[str], text_input(""), "valid", "valid"),
+    (Optional[str], text_input(""), None, None),
+    (Optional[str], text_input(""), ..., None),
     # checkbox
     (bool, checkbox("", "", required=True), True, True),
     (bool, checkbox("", "", required=False), True, True),
@@ -144,9 +144,9 @@ def test_should_parse_correctly_when_input_is_valid(annotation: object, initiali
 
 @pytest.mark.parametrize("annotation,initializer,input_value", [
     # text_input
-    (str, text_input("", True), ...),
-    (str, text_input("", True), None),
-    (Optional[str], text_input("", False), {}),
+    (str, text_input("", required=True), ...),
+    (str, text_input("", required=True), None),
+    (Optional[str], text_input(""), {}),
     # checkbox
     (bool, checkbox("", "", required=False), 42),
     # radio_group
