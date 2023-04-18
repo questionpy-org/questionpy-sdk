@@ -13,10 +13,11 @@
     </div>
 
     <form action="/submit">
-        {{ macros.create_section("general", "General", options.general) }}
+        {{ macros.create_section("general", "General", options.general, form_data) }}
         {% for section in options.sections %}
-            {{ macros.create_section(section.name, section.header, section.elements) }}
+            {{ macros.create_section(section.name, section.header, section.elements, form_data) }}
         {% endfor %}
         <input type="submit" value="Save changes">
+        <a hidden="true" id="submit_success_info">Saved!</a>
     </form>
 {% endblock %}

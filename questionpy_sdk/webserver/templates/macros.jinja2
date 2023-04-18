@@ -1,4 +1,4 @@
-{% macro create_section(section_name, header, elements) %}
+{% macro create_section(section_name, header, elements, form_data) %}
     <div class="container elements section">
         <h3> {{ header }} </h3>
         {% for element_options in elements recursive %}

@@ -8,7 +8,7 @@ class NameGroup(FormModel):
 
 
 class MyOptions(OptionEnum):
-    OPT_1 = option("Option 1")
+    OPT_1 = option("Option 1", selected=True)
     OPT_2 = option("Option 2")
 
 
@@ -27,4 +27,4 @@ class MyModel(FormModel):
 
 
 class ExampleQuestionType(QuestionType[MyModel]):
-    pass
+    None

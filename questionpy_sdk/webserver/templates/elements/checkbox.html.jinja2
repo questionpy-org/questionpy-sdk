@@ -11,7 +11,8 @@
         <input class="answer-checkbox" type="checkbox" id="{{ section_name }}_{{ element_options.name }}"
                 name="{{ element_options.name }}"
                 {{ 'required' if element_options.required }}
-                {{ 'checked' if element_options.selected }}>
+                {{ 'checked' if element_options.selected and not form_data
+                    or form_data is defined and form_data[element_options.name]}}>
         {% if element_options.right_label %}
             {{ element_options.right_label }}
         {% endif %}

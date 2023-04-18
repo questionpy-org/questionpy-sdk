@@ -2,9 +2,10 @@
 
 {% block content %}
     <span class="input-span">
-        <input class="input-text"
+        <input class="input-text" name="{{ element_options.name }}"
             {{ {'placeholder': element_options.placeholder}|xmlattr if element_options.placeholder }}
             {{ 'required' if element_options.required }}
-            {{ 'checked' if element_options.selected }}>
+            {{ 'checked' if element_options.selected }}
+            {{ {'value': form_data[element_options.name]}|xmlattr if form_data }}>
     </span>
 {% endblock %}

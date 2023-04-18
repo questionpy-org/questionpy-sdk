@@ -5,11 +5,10 @@
         {% for option in element_options.options %}
             <div class="answer-option">
                 <label class="answer-label">
-                    <input class="answer-{{ element_options.kind }}"
-                            type="radio"
-                            id="{{ element_options.name ~ "-" ~ option.value }}"
-                            name="{{ element_options.name }}"
-                            {{ 'checked' if option.selected }}>
+                    <input type="radio" class="answer-{{ element_options.kind }}" name="{{ element_options.name }}"
+                            id="{{ element_options.name ~ "-" ~ option.value }}" value="{{ option.value }}"
+                            {{ 'checked' if option.selected and not form_data
+                                or form_data is defined and form_data[element_options.name] == option.value}}>
                     {{ option.label }}
                 </label>
             </div>

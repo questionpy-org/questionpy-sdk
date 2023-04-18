@@ -16,3 +16,4 @@ __pycache__
 
 /example.qpy
 /questionpy_sdk/resources/example.zip
+/questionpy_sdk/webserver/form_storage

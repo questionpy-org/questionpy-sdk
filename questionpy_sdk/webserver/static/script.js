@@ -174,9 +174,60 @@ function check_all_element_conditions(elements) {
     }
 }
 
+/**
+ * Event handler for the "submit" event of the form.
+ *
+ * @param event
+ */
+async function handle_submit(event) {
+    // prevent reload on submit
+    event.preventDefault();
+
+    const json_form_data = {};
+    for (const pair of new FormData(event.target)) {
+        json_form_data[pair[0]] = pair[1];
+    }
+    console.log(json_form_data);
+
+    const headers = {'Content-Type': 'application/json'}
+    const response = await post_http_request('http://0.0.0.0:8080/submit', headers, json_form_data);
+    console.log(response)
+    if (response.status == 200){
+        document.getElementById('submit_success_info').hidden = null;
+    } else {
+        alert('An error occured.');
+    }
+}
+
+/**
+ *
+ * @param url
+ * @param headers
+ * @param body
+ * @return {Promise<*>}
+ */
+async function post_http_request(url, headers, body) {
+    if(!url || !headers || !body) {
+        throw new Error("One or more POST request parameters was not passed.");
+    }
+    try {
+        const response = await fetch(url, {
+            method: "POST",
+            headers: headers,
+            body: JSON.stringify(body)
+        });
+        return response;
+    } catch(err) {
+        console.error(`Error at fetch POST: ${err}`);
+        throw err;
+    }
+}
 
 document.addEventListener("DOMContentLoaded", function () {
     const elements = get_elements_with_conditions();
     // check conditions manually. without the change event
     check_all_element_conditions(elements);
+
+    const form = document.querySelector('form');
+    form.addEventListener('submit', handle_submit);
 })

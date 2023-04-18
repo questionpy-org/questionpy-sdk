@@ -6,8 +6,9 @@
             <option value="">--Please choose an option--</option>
         {% endif %}
         {% for option in element_options.options %}
-            <option value="{{ option.value }}" {{ 'selected' if option.selected }}
-            id="{{ element_options.name ~ "-" ~ option.value }}">
+            <option value="{{ option.value }}" id="{{ element_options.name ~ "-" ~ option.value }}"
+                    {{ 'selected' if option.selected and not form_data
+                                or form_data is defined and form_data[element_options.name] == option.value}}>
                 {{ option.label }}
             </option>
         {% endfor %}
