@@ -432,7 +432,7 @@ def group(label: str, model: Type[_F], *,
     """
     # We pretend to return an instance of the model so the type of the section field can be inferred.
     return cast(_F, _FieldInfo(
-        lambda name: GroupElement(name=name, label=label, elements=list(model.form_elements()),
+        lambda name: GroupElement(name=name, label=label, elements=model.qpy_form.general,
                                   disable_if=_listify(disable_if), hide_if=_listify(hide_if)),
         model
     ))
@@ -466,7 +466,7 @@ def repeat(model: Type[_F], *, initial: int = 1, increment: int = 1, button_labe
     """
     return cast(list[_F], _FieldInfo(
         lambda name: RepetitionElement(name=name, initial_elements=initial, increment=increment,
-                                       button_label=button_label, elements=list(model.form_elements())),
+                                       button_label=button_label, elements=model.qpy_form.general),
         list[model]  # type: ignore[valid-type]
     ))
 

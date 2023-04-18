@@ -1,13 +1,11 @@
 from dataclasses import dataclass
 from enum import Enum
-from itertools import chain
 from typing import Callable, Tuple, Type, Iterable, Any, get_origin, get_args, Literal, TYPE_CHECKING, Dict
 
 from pydantic import BaseModel, Field
 from pydantic.fields import ModelField
 from pydantic.main import ModelMetaclass
-from questionpy_common.elements import FormElement, FormSection, CheckboxGroupElement, GroupElement, \
-    CanHaveConditions, OptionsFormDefinition
+from questionpy_common.elements import FormElement, FormSection, OptionsFormDefinition
 
 
 @dataclass
@@ -70,18 +68,6 @@ class _SectionInfo:
     model: Type["FormModel"]
 
 
-def _flatten_elements(elements: Iterable[FormElement], sections: Iterable[FormSection] = ()) -> Iterable[FormElement]:
-    for element in elements:
-        yield element
-        if isinstance(element, CheckboxGroupElement):
-            yield from _flatten_elements(element.checkboxes)
-        elif isinstance(element, GroupElement):
-            yield from _flatten_elements(element.elements)
-
-    for section in sections:
-        yield from _flatten_elements(section.elements)
-
-
 def _is_valid_annotation(annotation: object, expected: object) -> bool:
     """Checks if `annotation` is valid for a form element which produces values of type `expected`."""
 
@@ -121,7 +107,7 @@ class _FormModelMeta(ModelMetaclass):
 
     __slots__ = ()
 
-    def __new__(mcs, name: str, bases: Tuple[type, ...], namespace: dict, **kwargs: object) -> "_FormModelMeta":
+    def __new__(mcs, name: str, bases: tuple[type, ...], namespace: dict, **kwargs: object) -> "_FormModelMeta":
         annotations = namespace.get("__annotations__", {}).copy()
         new_namespace = {}
 
@@ -130,8 +116,9 @@ class _FormModelMeta(ModelMetaclass):
                 expected_type = value.type
                 new_namespace[key] = Field(default=value.default, form_element=value.build(key))
             elif isinstance(value, _SectionInfo):
+                section = FormSection(name=key, header=value.header, elements=value.model.qpy_form.general)
                 expected_type = value.model
-                new_namespace[key] = Field(form_section=value)
+                new_namespace[key] = Field(form_section=section)
             elif isinstance(value, _StaticElementInfo):
                 element = value.build(key)
                 expected_type = type(element)
@@ -154,43 +141,16 @@ class _FormModelMeta(ModelMetaclass):
         new_namespace["__annotations__"] = annotations
         return super().__new__(mcs, name, bases, new_namespace, **kwargs)
 
-    def __init__(cls, name: str, bases: Tuple[type, ...], namespace: dict, **kwargs: object):
-        super().__init__(name, bases, namespace, **kwargs)
-        cls._validate_conditions()
+    def __init__(cls, name: str, bases: Tuple[type, ...], namespace: dict):
+        super().__init__(name, bases, namespace)
 
-    def _validate_conditions(cls) -> None:
-        elements = list(_flatten_elements(cls.form_elements(), cls.form_sections()))
-        # mypy doesn't narrow the type after hasattr, hence the false positive
-        names = {element.name for element in elements if hasattr(element, "name")}  # type: ignore[union-attr]
-
-        for element in elements:
-            if not isinstance(element, CanHaveConditions):
-                continue
-
-            for condition in chain(element.disable_if, element.hide_if):
-                if condition.name not in names:
-                    raise ValueError(f"Element '{element}' has a condition of kind '{condition.kind}' which references "
-                                     f"nonexistent element '{condition.name}'")
-
-    def form_elements(cls) -> Iterable[FormElement]:
-        """Generator over all elements in this form. Does not include sections or elements nested in sections."""
-        for field in cls.__fields__.values():
-            if "form_element" in field.field_info.extra:
-                yield field.field_info.extra["form_element"]
-
-    def form_sections(cls) -> Iterable[FormSection]:
-        """Generator over all sections in this form."""
-        for field in cls.__fields__.values():
-            if "form_section" in field.field_info.extra:
-                info: _SectionInfo = field.field_info.extra["form_section"]
-                yield FormSection(name=field.name, header=info.header, elements=list(info.model.form_elements()))
-
-    def form(cls) -> OptionsFormDefinition:
-        """Builds the form definition."""
-        return OptionsFormDefinition(
-            general=list(cls.form_elements()),
-            sections=list(cls.form_sections())
+        cls.qpy_form = OptionsFormDefinition(
+            general=[field.field_info.extra["form_element"] for field in cls.__fields__.values()
+                     if "form_element" in field.field_info.extra],
+            sections=[field.field_info.extra["form_section"] for field in cls.__fields__.values()
+                      if "form_section" in field.field_info.extra]
         )
+        """The form defined by this declarative model."""
 
 
 class FormModel(BaseModel, metaclass=_FormModelMeta):

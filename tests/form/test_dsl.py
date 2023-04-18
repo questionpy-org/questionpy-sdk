@@ -23,13 +23,13 @@ class NestedFormModel(FormModel):
 
 
 def test_SimpleFormModel_should_render_correct_form() -> None:
-    assert SimpleFormModel.form() == OptionsFormDefinition(
+    assert SimpleFormModel.qpy_form == OptionsFormDefinition(
         general=[TextInputElement(name="input", label="My Text Input", required=True)]
     )
 
 
 def test_NestedFormModel_should_render_correct_form() -> None:
-    assert NestedFormModel.form() == OptionsFormDefinition(
+    assert NestedFormModel.qpy_form == OptionsFormDefinition(
         general=[
             TextInputElement(name="general_field", label="General Text Input", required=False),
             GroupElement(
@@ -88,8 +88,7 @@ def test_should_render_correct_form(initializer: object, expected_elements: List
         # mypy crashes without the type annotation
         field: Any = initializer
 
-    form = TheModel.form()
-    assert form.general == expected_elements
+    assert expected_elements == TheModel.qpy_form.general
 
 
 @pytest.mark.parametrize("annotation,initializer,input_value,expected_result", [
@@ -210,11 +209,3 @@ def test_should_raise_TypeError_when_annotation_is_wrong(annotation: object, ini
         class TheModel(FormModel):
             # pylint: disable=unused-variable
             field: annotation = initializer  # type: ignore[valid-type]
-
-
-def test_should_raise_ValueError_when_condition_target_does_not_exist() -> None:
-    with pytest.raises(ValueError, match="Element .+name='field'.+ has a condition of kind 'is_not_checked' which "
-                                         "references nonexistent element 'has_name'"):
-        class TheModel(FormModel):
-            # pylint: disable=unused-variable
-            field: Optional[str] = text_input("Your Name", disable_if=is_not_checked("has_name"), required=True)

@@ -5,6 +5,7 @@ from pydantic import BaseModel, ValidationError
 from questionpy_common.qtype import OptionsFormDefinition, BaseQuestionType, BaseQuestion, OptionsFormValidationError
 
 from questionpy.form import FormModel
+from questionpy.form.validation import validate_form
 
 F = TypeVar("F", bound=FormModel)
 
@@ -34,6 +35,7 @@ class QuestionType(BaseQuestionType, Generic[F]):
                     if not isinstance(args[0], type) or not issubclass(args[0], FormModel):
                         raise TypeError(f"Type parameter '{args[0]!r}' of QuestionType is not a subclass of FormModel")
                     cls.form_model = args[0]
+                    validate_form(cls.form_model.qpy_form)
                 else:
                     # QuestionType was used without parameters, default to an empty form model
                     cls.form_model = FormModel
@@ -46,7 +48,7 @@ class QuestionType(BaseQuestionType, Generic[F]):
     def get_options_form(self, question_state: Optional[dict[str, object]]) \
             -> tuple[OptionsFormDefinition, dict[str, object]]:
         return (
-            self.form_model.form(),
+            self.form_model.qpy_form,
             question_state or {}
         )
 
