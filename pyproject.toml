@@ -26,8 +26,8 @@ pydantic = "^1.10.5"
 PyYAML = "^6.0"
 jinja2 = "^3.1.2"
 aiohttp-jinja2 = "^1.5"
-questionpy-common = { git = "https://github.com/questionpy-org/questionpy-common.git", rev = "7131c8c1962f1c397f81cf3bed4cc6a851a668e3" }
-questionpy-server = { git = "https://github.com/questionpy-org/questionpy-server.git", rev = "3550de5" }
+questionpy-common = {git = "https://github.com/questionpy-org/questionpy-common.git", rev = "0ee4cc76ee14f7709e497cc5e118fc62f78e10e9"}
+questionpy-server = { git = "https://github.com/questionpy-org/questionpy-server.git", rev = "8aec69b" }
 
 [tool.poetry.group.dev.dependencies]
 pylint = "^2.17.0"
