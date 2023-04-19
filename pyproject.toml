@@ -24,8 +24,6 @@ python = "^3.9"
 aiohttp = "^3.8.1"
 pydantic = "^1.10.5"
 PyYAML = "^6.0"
-questionpy-common = { git = "https://github.com/questionpy-org/questionpy-common.git", rev = "7131c8c1962f1c397f81cf3bed4cc6a851a668e3" }
-questionpy-server = { git = "https://github.com/questionpy-org/questionpy-server.git", rev = "0aa459b769be4859f4b2d1ee715edc96a865c650" }
 jinja2 = "^3.1.2"
 aiohttp-jinja2 = "^1.5"
 questionpy-common = { git = "https://github.com/questionpy-org/questionpy-common.git", rev = "7131c8c1962f1c397f81cf3bed4cc6a851a668e3" }

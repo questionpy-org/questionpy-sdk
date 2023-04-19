@@ -1,24 +1,27 @@
-from asyncio import run
 from bisect import insort
 from datetime import datetime, timezone
 from json import dump
 from pathlib import Path
 from gzip import open as gzip_open
+from zipfile import ZipFile
 
-
-from questionpy_common.constants import MiB
-
-from questionpy_server import WorkerPool
 from questionpy_server.misc import calculate_hash
 from questionpy_server.repository.models import RepoPackageVersions, RepoPackageVersion, RepoMeta
 from questionpy_server.utils.manfiest import ComparableManifest, semver_encoder
 
 
 def get_manifest(path: Path) -> ComparableManifest:
-    async def async_get_manifest() -> ComparableManifest:
-        async with WorkerPool(1, 200 * MiB).get_worker(path, 0, None) as worker:
-            return await worker.get_manifest()
-    return run(async_get_manifest())
+    """Reads the manifest of a package.
+
+    Args:
+        path: path to the package
+
+    Returns:
+        manifest of the package
+    """
+    with ZipFile(path) as zip_file:
+        raw_manifest = zip_file.read("qpy_manifest.json")
+    return ComparableManifest.parse_raw(raw_manifest)
 
 
 def add_package_version(packages: dict[str, RepoPackageVersions], root: Path, path: Path,
