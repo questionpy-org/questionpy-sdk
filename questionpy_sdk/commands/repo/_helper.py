@@ -24,76 +24,79 @@ def get_manifest(path: Path) -> ComparableManifest:
     return ComparableManifest.parse_raw(raw_manifest)
 
 
-def add_package_version(packages: dict[str, RepoPackageVersions], root: Path, path: Path,
-                        manifest: ComparableManifest) -> None:
-    """Populates `package_versions` and handles packages with same identifier and different versions.
+class IndexCreator:
+    """Handles the creation of the repository index and metadata."""
+    def __init__(self, root: Path):
+        self._root = root
+        self._packages: dict[str, RepoPackageVersions] = {}
 
-    Args:
-        packages: dictionary where keys are the identifier of a package
-        root: root directory of the repository
-        path: path to the package inside `root`
-        manifest: manifest of the package at `path`
-    """
-    # Create RepoPackageVersion.
-    full_path = root / path
-    version = RepoPackageVersion(
-        version=str(manifest.version),
-        api_version=manifest.api_version,
-        path=path,
-        size=full_path.stat().st_size,
-        sha256=calculate_hash(full_path)
-    )
+    def add(self, path: Path, manifest: ComparableManifest) -> None:
+        """Adds a package to the repository index.
 
-    # Check if package already exists.
-    if repo_package := packages.get(manifest.identifier):
-        # Package already exists - add version to list.
-        insort(repo_package.list, version)
-        if repo_package.list[-1] == version:
-            # Currently most recent version of package - use its manifest.
-            repo_package.manifest = manifest
-    else:
-        # Package does not exist - create new entry.
-        packages[manifest.identifier] = RepoPackageVersions(manifest=manifest, list=[version])
+        Args:
+            path: path to the package inside `root`
+            manifest: manifest of the package at `path`
+        """
+        # Create RepoPackageVersion.
+        version = RepoPackageVersion(
+            version=str(manifest.version),
+            api_version=manifest.api_version,
+            path=path.relative_to(self._root),
+            size=path.stat().st_size,
+            sha256=calculate_hash(path)
+        )
 
+        # Check if package already exists.
+        if repo_package := self._packages.get(manifest.identifier):
+            # Package already exists - add version to list.
+            insort(repo_package.versions, version)
+            if repo_package.versions[-1] == version:
+                # Currently most recent version of package - use its manifest.
+                repo_package.manifest = manifest
+        else:
+            # Package does not exist - create new entry.
+            self._packages[manifest.identifier] = RepoPackageVersions(manifest=manifest, versions=[version])
 
-def write_packages(root: Path, packages: dict[str, RepoPackageVersions]) -> Path:
-    """Writes the package index into a json-file and compresses it.
+    def _write_index(self) -> Path:
+        """Writes the package index into a json-file and compresses it.
 
-    Args:
-        root: root directory of the repository
-        packages: dictionary where keys are the identifier of a package
+        Returns:
+            path to the package index
+        """
+        packages: list[dict] = []
+        packages_path = self._root / "PACKAGES.json.gz"
 
-    Returns:
-        path to the package index
-    """
-    index: list[dict] = []
-    packages_path = root / "PACKAGES.json.gz"
+        for package in self._packages.values():
+            repo_package_dict = package.dict(exclude={"manifest": {"entrypoint"}})
+            packages.append(repo_package_dict)
+        with gzip_open(packages_path, "wt") as gzip_file:
+            # TODO: Use RepoPackageIndex.json() instead of creating a dict.
+            #       Nested custom encodings will be supported in pydantic v2.0.
+            #       See: https://github.com/pydantic/pydantic/issues/3693#issuecomment-1253951973
+            dump({'packages': packages}, gzip_file, default=semver_encoder)
 
-    for package in packages.values():
-        repo_package_dict = package.dict(exclude={"manifest": {"entrypoint"}})
-        index.append(repo_package_dict)
+        return packages_path
 
-    with gzip_open(packages_path, "wt") as gzip_file:
-        dump(index, gzip_file, default=semver_encoder)
+    def _write_meta(self) -> Path:
+        """Creates and writes metadata of the current repository / package index.
 
-    return packages_path
+        Returns:
+            path to the metadata
+        """
+        index_path = self._root / "PACKAGES.json.gz"
+        meta = RepoMeta(
+            timestamp=datetime.now(timezone.utc),
+            sha256=calculate_hash(index_path),
+            size=index_path.stat().st_size
+        )
+        meta_path = self._root / "META.json"
+        meta_path.write_text(meta.json())
+        return meta_path
 
+    def write(self) -> tuple[Path, Path]:
+        """Writes the package index and metadata into the repository.
 
-def write_meta(root: Path) -> Path:
-    """Creates and writes metadata of the current repository / package index.
-
-    Args:
-        root: root directory of the repository
-
-    Returns:
-        path to the metadata
-    """
-    index_path = root / "PACKAGES.json.gz"
-    meta = RepoMeta(
-        timestamp=datetime.now(timezone.utc),
-        sha256=calculate_hash(index_path),
-        size=index_path.stat().st_size
-    )
-    meta_path = root / "META.json"
-    meta_path.write_text(meta.json())
-    return meta_path
+        Returns:
+            path to the package index and metadata
+        """
+        return self._write_index(), self._write_meta()

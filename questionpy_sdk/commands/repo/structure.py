@@ -3,10 +3,8 @@ from shutil import copy
 
 import click
 
-from questionpy_server.repository.models import RepoPackageVersions
-
 from questionpy_sdk.commands._helper import create_normalized_filename
-from questionpy_sdk.commands.repo._helper import get_manifest, add_package_version, write_packages, write_meta
+from questionpy_sdk.commands.repo._helper import get_manifest, IndexCreator
 
 
 @click.command()
@@ -18,7 +16,7 @@ def structure(root: Path, out_path: Path) -> None:
     Creates a normalized folder structure in OUT_PATH based on every package inside ROOT.
     Each package in ROOT will be copied to `OUT_PATH/namespace/short_name/namespace-short_name-version.qpy`
     """
-    repo_packages: dict[str, RepoPackageVersions] = {}
+    index_creator = IndexCreator(out_path)
 
     # Go through every package inside directory.
     for path in root.rglob("*.qpy"):
@@ -30,8 +28,7 @@ def structure(root: Path, out_path: Path) -> None:
 
         new_path = Path(copy(path, new_directory / create_normalized_filename(manifest)))
 
-        add_package_version(repo_packages, out_path, new_path, manifest)
+        index_creator.add(new_path, manifest)
 
     # Create package index and metadata.
-    write_packages(out_path, repo_packages)
-    write_meta(out_path)
+    index_creator.write()

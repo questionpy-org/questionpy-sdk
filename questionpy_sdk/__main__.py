@@ -19,7 +19,6 @@ def cli(verbose: bool) -> None:
 cli.add_command(create)
 cli.add_command(package)
 cli.add_command(run)
-
 cli.add_command(repo)
 
 if __name__ == '__main__':
