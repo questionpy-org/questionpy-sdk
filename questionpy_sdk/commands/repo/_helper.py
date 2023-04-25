@@ -1,12 +1,11 @@
 from bisect import insort
 from datetime import datetime, timezone
-from json import dump
 from pathlib import Path
 from gzip import open as gzip_open
 from zipfile import ZipFile
 
 from questionpy_server.misc import calculate_hash
-from questionpy_server.repository.models import RepoPackageVersions, RepoPackageVersion, RepoMeta
+from questionpy_server.repository.models import RepoPackageVersions, RepoPackageVersion, RepoMeta, RepoPackageIndex
 from questionpy_server.utils.manfiest import ComparableManifest, semver_encoder
 
 
@@ -41,7 +40,7 @@ class IndexCreator:
         version = RepoPackageVersion(
             version=str(manifest.version),
             api_version=manifest.api_version,
-            path=path.relative_to(self._root),
+            path=str(path.relative_to(self._root)),
             size=path.stat().st_size,
             sha256=calculate_hash(path)
         )
@@ -69,11 +68,10 @@ class IndexCreator:
         for package in self._packages.values():
             repo_package_dict = package.dict(exclude={"manifest": {"entrypoint"}})
             packages.append(repo_package_dict)
+
         with gzip_open(packages_path, "wt") as gzip_file:
-            # TODO: Use RepoPackageIndex.json() instead of creating a dict.
-            #       Nested custom encodings will be supported in pydantic v2.0.
-            #       See: https://github.com/pydantic/pydantic/issues/3693#issuecomment-1253951973
-            dump({'packages': packages}, gzip_file, default=semver_encoder)
+            index = RepoPackageIndex(packages=packages, version=1)
+            gzip_file.write(index.json(encoder=semver_encoder))
 
         return packages_path
 
