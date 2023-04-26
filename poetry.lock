@@ -1302,8 +1302,8 @@ watchdog = "^2.2.1"
 [package.source]
 type = "git"
 url = "https://github.com/questionpy-org/questionpy-server.git"
-reference = "d376c2c"
-resolved_reference = "d376c2c15f0fb8fd8a46cae2d7e3353f9ece45e9"
+reference = "dabb383"
+resolved_reference = "dabb3832d853fe704bdb2b012dc6694e95327b0e"
 
 [[package]]
 name = "semver"
@@ -1643,4 +1643,4 @@ multidict = ">=4.0"
 [metadata]
 lock-version = "2.0"
 python-versions = "^3.9"
-content-hash = "c176be83a0149bf6b014b52da6eb15fd52fb1f7efc31e12ab98abe991163a654"
+content-hash = "a7bc30403393e314c85710ed56c4dd6a85a36dbecde29eb0bff2b5372528b4cd"

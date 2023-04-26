@@ -70,7 +70,7 @@ class IndexCreator:
             packages.append(repo_package_dict)
 
         with gzip_open(packages_path, "wt") as gzip_file:
-            index = RepoPackageIndex(packages=packages, version=1)
+            index = RepoPackageIndex(packages=packages)
             gzip_file.write(index.json(encoder=semver_encoder))
 
         return packages_path
@@ -85,7 +85,8 @@ class IndexCreator:
         meta = RepoMeta(
             timestamp=datetime.now(timezone.utc),
             sha256=calculate_hash(index_path),
-            size=index_path.stat().st_size
+            size=index_path.stat().st_size,
+            version=1
         )
         meta_path = self._root / "META.json"
         meta_path.write_text(meta.json())
