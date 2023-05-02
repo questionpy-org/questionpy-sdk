@@ -45,6 +45,7 @@ tox = "^4.2.6"
 questionpy-sdk = 'questionpy_sdk.__main__:cli'
 
 [tool.pytest.ini_options]
+addopts = "--doctest-modules"
 # https://github.com/pytest-dev/pytest-asyncio#auto-mode
 asyncio_mode = "auto"
 
