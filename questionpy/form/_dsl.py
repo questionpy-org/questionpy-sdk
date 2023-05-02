@@ -278,7 +278,7 @@ def select(label: str, enum: Type[_E], *,
 
 
 def option(label: str, selected: bool = False) -> _OptionInfo:
-    """Adds a option to an `OptionEnum`.
+    """Adds an option to an `OptionEnum`.
 
     Args:
         label: Text describing the option, shown verbatim.
@@ -286,6 +286,13 @@ def option(label: str, selected: bool = False) -> _OptionInfo:
 
     Returns:
         An internal object containing metadata about the option.
+
+    Examples:
+        >>> class ColorEnum(OptionEnum):
+        ...     RED = option("Red")
+        ...     GREEN = option("Green")
+        ...     BLUE = option("Blue")
+        ...     NONE = option("None", selected=True)
     """
     return _OptionInfo(label, selected)
 
@@ -336,6 +343,19 @@ def section(header: str, model: Type[_F]) -> _F:
 
     Returns:
         An internal object containing metadata about the section.
+
+    Examples:
+        The following replicates Moodle's "Combined feedback" section. We define a separate `FormModel` subclass
+        containing three text inputs.
+        >>> class FeedbackSection(FormModel):
+        ...     correct = text_input("For any correct response", required=True)
+        ...     partial = text_input("For any partially correct response")
+        ...     incorrect = text_input("For any incorrect response", required=True)
+
+        In our main options class, we use the `section` function, giving a header to the section and referencing our
+        sub-model.
+        >>> class Options(FormModel):
+        ...     feedback = section("Combined feedback", FeedbackSection)
     """
     # We pretend to return an instance of the model so the type of the section field can be inferred.
     return cast(_F, _SectionInfo(header, model))
@@ -353,6 +373,18 @@ def group(label: str, model: Type[_F], *,
 
     Returns:
         An internal object containing metadata about the section.
+
+    Examples:
+        This example shows a text input field directly followed by a drop-down with possible units. We define a separate
+        `FormModel` subclass which will contain our grouped inputs.
+        >>> class SizeGroup(FormModel):
+        ...     amount = text_input("Amount")
+        ...     unit = select("Unit", OptionEnum)
+
+        In our main options class, we use the `group` function, giving a label to the group and referencing our
+        sub-model.
+        >>> class Options(FormModel):
+        ...     size = group("Size", SizeGroup)
     """
     # We pretend to return an instance of the model so the type of the section field can be inferred.
     return cast(_F, _FieldInfo(
@@ -373,6 +405,18 @@ def repeat(model: Type[_F], *, initial: int = 1, increment: int = 1, button_labe
 
     Returns:
         An internal object containing metadata about the section.
+
+    Examples:
+        The following shows part of a simplified multiple-choice question. A separate sub-model defines the elements
+        which should be repeated.
+        >>> class Choice(FormModel):
+        ...     text = text_input("Choice")
+        ...     correct = checkbox("Correct")
+
+        The sub-model is referenced in the main model using the `repeat` function. In this case, we set it to repeat 3
+        times initially, and add 3 new repetitions whith each click of the button. We also customize the button's label.
+        >>> class Options(FormModel):
+        ...     choices = repeat(Choice, initial=3, increment=3, button_label="Add 3 more choices")
     """
     return cast(list[_F], _FieldInfo(
         lambda name: RepetitionElement(name=name, initial_elements=initial, increment=increment,
