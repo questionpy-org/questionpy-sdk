@@ -1,6 +1,46 @@
-"""DSL-like functions for FormModels."""
+"""This module contains DSL-like functions for defining the contents of :class:`FormModel` s.
 
-from typing import cast, TypeVar, Any, overload, Literal, Optional, Set, Union, Type, Callable
+In order to allow for correct type inference of the resulting fields, most functions are typed to return what will later
+be part of the expected for data.
+In reality, they return internal objects containing field metadata, which is combined in the :class:`FormModel`
+metaclass with the field name.
+This is analogous to Pydantic's own ``Field`` function.
+
+References:
+    Many elements can be hidden or disabled on the client-side based on the state of other inputs. These *conditions*
+    are created using :func:`is_checked`, :func:`is_not_checked`, :func:`equals`, :func:`does_not_equal` and
+    :func:`is_in`, and passed to the conditional element in ``hide_if`` or ``disable_if``. See the documentation of the
+    various function for details and examples.
+
+    A condition always includes a reference to an input element. These references have the following format::
+
+        segment_1[segment_2][segment_3][...
+
+    Where each segment is either:
+
+    - An element name, or
+    - ``..``, which resolves to the parent element
+
+    A reference is always relative to the element which defines it. For example, the condition
+    ``is_checked(..[foo][bar])`` is resolved as follows:
+
+    - Get the parent of the model in which the reference is made. If the reference is made at the top level, it is
+      invalid, since there is no parent for ``..`` to select.
+    - From there, get the element ``foo``. If there is no element named  ``foo`` here, the reference is
+      invalid.
+    - If ``foo`` is not a group or section, the reference is also invalid, since it cannot contain another element.
+    - Within ``foo``, get the element ``bar``.
+    - Ensure that ``bar`` is a valid target for ``is_checked``, i.e. a checkbox. Otherwise, the reference is invalid.
+
+    All conditions in an :class:`OptionsFormDefinition` are validated by :func:`validate_form`, which is notably called
+    by :meth:`QuestionType.__init_subclass__`.
+
+Todo:
+    - Add support for numeric inputs (and maybe others?)
+    - Make labels optional
+"""
+
+from typing import cast, TypeVar, Any, overload, Literal, Optional, Set, Union, Type
 
 from questionpy_common.conditions import Condition, IsChecked, IsNotChecked, Equals, DoesNotEqual, In
 from questionpy_common.elements import TextInputElement, StaticTextElement, CheckboxElement, RadioGroupElement, \
@@ -183,7 +223,7 @@ def radio_group(label: str, enum: Type[_E], *, required: bool = False,
 
     Args:
         label: Text describing the element, shown verbatim.
-        enum: An `OptionEnum` subclass containing the available options.
+        enum: An ``OptionEnum`` subclass containing the available options.
         required: Require one of the options to be selected before the form can be submitted.
         disable_if: Disable this element if some condition(s) match.
         hide_if: Hide this element if some condition(s) match.
@@ -243,7 +283,7 @@ def select(label: str, enum: Type[_E], *,
 
     Args:
         label: Text describing the element, shown verbatim.
-        enum: An `OptionEnum` subclass containing the available options.
+        enum: An ``OptionEnum`` subclass containing the available options.
         required: Require at least one of the options to be selected before the form can be submitted.
         multiple: Allow the selection of multiple options.
         disable_if: Disable this element if some condition(s) match.
@@ -278,7 +318,7 @@ def select(label: str, enum: Type[_E], *,
 
 
 def option(label: str, selected: bool = False) -> _OptionInfo:
-    """Adds an option to an `OptionEnum`.
+    """Adds an option to an ``OptionEnum``.
 
     Args:
         label: Text describing the option, shown verbatim.
@@ -345,15 +385,17 @@ def section(header: str, model: Type[_F]) -> _F:
         An internal object containing metadata about the section.
 
     Examples:
-        The following replicates Moodle's "Combined feedback" section. We define a separate `FormModel` subclass
+        The following replicates Moodle's "Combined feedback" section. We define a separate ``FormModel`` subclass
         containing three text inputs.
+
         >>> class FeedbackSection(FormModel):
         ...     correct = text_input("For any correct response", required=True)
         ...     partial = text_input("For any partially correct response")
         ...     incorrect = text_input("For any incorrect response", required=True)
 
-        In our main options class, we use the `section` function, giving a header to the section and referencing our
+        In our main options class, we use the ``section`` function, giving a header to the section and referencing our
         sub-model.
+
         >>> class Options(FormModel):
         ...     feedback = section("Combined feedback", FeedbackSection)
     """
@@ -376,13 +418,15 @@ def group(label: str, model: Type[_F], *,
 
     Examples:
         This example shows a text input field directly followed by a drop-down with possible units. We define a separate
-        `FormModel` subclass which will contain our grouped inputs.
+        ``FormModel`` subclass which will contain our grouped inputs.
+
         >>> class SizeGroup(FormModel):
         ...     amount = text_input("Amount")
         ...     unit = select("Unit", OptionEnum)
 
-        In our main options class, we use the `group` function, giving a label to the group and referencing our
+        In our main options class, we use the ``group`` function, giving a label to the group and referencing our
         sub-model.
+
         >>> class Options(FormModel):
         ...     size = group("Size", SizeGroup)
     """
@@ -409,12 +453,14 @@ def repeat(model: Type[_F], *, initial: int = 1, increment: int = 1, button_labe
     Examples:
         The following shows part of a simplified multiple-choice question. A separate sub-model defines the elements
         which should be repeated.
+
         >>> class Choice(FormModel):
         ...     text = text_input("Choice")
         ...     correct = checkbox("Correct")
 
-        The sub-model is referenced in the main model using the `repeat` function. In this case, we set it to repeat 3
+        The sub-model is referenced in the main model using the ``repeat`` function. In this case, we set it to repeat 3
         times initially, and add 3 new repetitions whith each click of the button. We also customize the button's label.
+
         >>> class Options(FormModel):
         ...     choices = repeat(Choice, initial=3, increment=3, button_label="Add 3 more choices")
     """
@@ -425,24 +471,99 @@ def repeat(model: Type[_F], *, initial: int = 1, increment: int = 1, button_labe
     ))
 
 
-_C = TypeVar("_C", bound=Condition)
+def is_checked(name: str) -> IsChecked:
+    """Condition on a checkbox being checked.
+
+    Many elements can be hidden or disabled client-side by passing conditions to ``hide_if`` or ``disable_if``. See the
+    module-level documentation for how references work in general.
+
+    Args:
+        name: Reference pointing to a checkbox element. If the reference points to nothing or to something other than a
+            checkbox element, ``validate_form`` will fail.
+
+    Examples:
+        In the following, the ``email`` input will be hidden whenever ``opt_out`` is checked.
+
+        >>> class MyModel(FormModel):
+        ...     opt_out = checkbox("I DO NOT want to receive updates via email.")
+        ...     email = text_input("Email address", hide_if=is_checked("opt_out"))
+    """
+    return IsChecked(name=name)
 
 
-def _condition_factory(model: Type[_C]) -> Callable[[str], _C]:
-    return lambda name: model(name=name)
+def is_not_checked(name: str) -> IsNotChecked:
+    """Condition on a checkbox being unchecked.
+
+    Many elements can be hidden or disabled client-side by passing conditions to ``hide_if`` or ``disable_if``. See the
+    module-level documentation for how references work in general.
+
+    Args:
+        name: Reference pointing to a checkbox element. If the reference points to nothing or to something other than a
+            checkbox element, ``validate_form`` will fail.
+
+    Examples:
+        In the following, the ``email`` input will be shown only when ``opt_in`` is checked.
+
+        >>> class MyModel(FormModel):
+        ...     opt_in = checkbox("I want to receive updates via email.")
+        ...     email = text_input("Email address", hide_if=is_not_checked("opt_in"))
+    """
+    return IsNotChecked(name=name)
 
 
-def _condition_with_value_factory(model: Type[_C]) -> Callable[[str, Any], _C]:
-    return lambda name, value: model(name=name, value=value)
+def equals(name: str, value: Union[str, int, bool]) -> Equals:
+    """Condition on the value of another field being equal to some static value.
+
+    Many elements can be hidden or disabled client-side by passing conditions to ``hide_if`` or ``disable_if``. See the
+    module-level documentation for how references work in general.
+
+    Args:
+        name: Reference pointing to an input element. Valid referents are ``TextInputElement``, ``CheckboxElement``,
+            ``RadioGroupElement``, ``SelectElement`` and ``HiddenElement``. If the reference points to nothing or to an
+            element not listed, ``validate_form`` will fail.
+        value: Static value to compare with. When the referent is a checkbox, a boolean can be passed here to emulate
+            ``is(_not)_checked``.
+
+    Examples:
+        >>> class MyModel(FormModel):
+        ...     email = text_input("Email address")
+        ...     send_spam = checkbox("Yes, send me lots of spam!", required=True, hide_if=equals("email", ""))
+    """
+    return Equals(name=name, value=value)
 
 
-is_checked = _condition_factory(IsChecked)
-"""Condition on a checkbox being checked."""
-is_not_checked = _condition_factory(IsNotChecked)
-"""Condition on a checkbox being unchecked."""
-equals = _condition_with_value_factory(Equals)
-"""Condition on the value of another field being equal to some static value."""
-does_not_equal = _condition_with_value_factory(DoesNotEqual)
-"""Condition on the value of another field not being equal to some static value."""
-is_in = _condition_with_value_factory(In)
-"""Condition on the value of another field being one of a number of static values."""
+def does_not_equal(name: str, value: Union[str, int, bool]) -> DoesNotEqual:
+    """Condition on the value of another field NOT being equal to some static value.
+
+    Many elements can be hidden or disabled client-side by passing conditions to ``hide_if`` or ``disable_if``. See the
+    module-level documentation for how references work in general.
+
+    Args:
+        name: Reference pointing to an input element. Valid referents are ``TextInputElement``, ``CheckboxElement``,
+            ``RadioGroupElement``, ``SelectElement`` and ``HiddenElement``. If the reference points to nothing or to an
+            element not listed, ``validate_form`` will fail.
+        value: Static value to compare with. When the referent is a checkbox, a boolean can be passed here to emulate
+            ``is(_not)_checked``.
+
+    Examples:
+        >>> class MyModel(FormModel):
+        ...     email = text_input("Email address")
+        ...     warning = static_text("Warning", "If you don't give us your email address, we can't send you any spam!",
+        ...                           hide_if=does_not_equal("email", ""))
+    """
+    return DoesNotEqual(name=name, value=value)
+
+
+def is_in(name: str, values: list[Union[str, int, bool]]) -> In:
+    """Condition on the value of another field being one of a number of static values.
+
+    Many elements can be hidden or disabled client-side by passing conditions to ``hide_if`` or ``disable_if``. See the
+    module-level documentation for how references work in general.
+
+    Args:
+        name: Reference pointing to an input element. Valid referents are ``TextInputElement``, ``CheckboxElement``,
+            ``RadioGroupElement``, ``SelectElement`` and ``HiddenElement``. If the reference points to nothing or to an
+            element not listed, ``validate_form`` will fail.
+        values: Static values to compare with.
+    """
+    return In(name=name, value=values)
