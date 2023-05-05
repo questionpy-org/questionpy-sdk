@@ -14,7 +14,7 @@ class _OptionInfo:
     selected: bool
 
 
-class OptionEnum(Enum):
+class OptionEnum(str, Enum):
     """Enum specifying the possible options for radio groups and drop-downs.
 
     Specify options using `option`.
