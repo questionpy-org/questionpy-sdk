@@ -1,14 +1,16 @@
 {% extends "elements/element.html.jinja2" %}
 
 {% block content %}
-    <fieldset id="{{ element_options.name }}">
+    <fieldset id="{{ element_id}}">
         {% for option in element_options.options %}
             <div class="answer-option">
                 <label class="answer-label">
-                    <input type="radio" class="answer-{{ element_options.kind }}" name="{{ element_options.name }}"
-                            id="{{ element_options.name ~ "-" ~ option.value }}" value="{{ option.value }}"
+                    <input type="radio" class="answer-{{ element_options.kind }}"
+                            id="{{ element_id ~ "-" ~ option.value }}" value="{{ option.value }}"
+                            name="{{ element_reference }}"
                             {{ 'checked' if option.selected and not form_data
-                                or form_data is defined and form_data[element_options.name] == option.value}}>
+                                or form_data is defined and form_data[element_options.name] == option.value}}
+                            {{ {'data-absolute_path': absolute_path|tojson|forceescape}|xmlattr }}>
                     {{ option.label }}
                 </label>
             </div>

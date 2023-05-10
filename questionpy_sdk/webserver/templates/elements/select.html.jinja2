@@ -1,18 +1,22 @@
 {% extends "elements/element.html.jinja2" %}
 
 {% block content %}
-   <select class="answer-{{ element_options.kind }}" name="{{ element_options.name }}">
+   <select class="answer-{{ element_options.kind }}" name="{{ element_options.name }}" id="{{ element_id }}">
 {# TODO: sollen wir diese Aufforderung drin lassen wenn required=false ist? Dann müssen wir auch was im _dsl #}
 {# TODO: ändern sonst werden die Options falsch geparsed  #}
 {#        {% if not element_options.required %}#}
 {#            <option value="">--Please choose an option--</option>#}
 {#        {% endif %}#}
+       {% set option_id = absolute_path %}
         {% for option in element_options.options %}
-            <option value="{{ option.value }}" id="{{ element_options.name ~ "-" ~ option.value }}"
+            {% do option_id.append(option.value) %}
+            <option value="{{ option.value }}" id="{{ option_id|join("_") }}"
                     {{ 'selected' if option.selected and not form_data
-                                or form_data is defined and form_data[element_options.name] == option.value}}>
+                                or form_data is defined and form_data[element_options.name] == option.value}}
+                    {{ {'data-absolute_path': absolute_path|tojson|forceescape}|xmlattr }}>
                 {{ option.label }}
             </option>
+            {% do option_id.pop() %}
         {% endfor %}
    </select>
 {% endblock %}

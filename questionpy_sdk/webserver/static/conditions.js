@@ -4,6 +4,7 @@
  * (c) Technische Universität Berlin, innoCampus <info@isis.tu-berlin.de>
  */
 
+import * as utils from "./utils.js";
 export class Types {
     constructor(value) {
         this.value = value
@@ -46,21 +47,24 @@ export class Condition {
      * @param object the plain javascript object
      * @returns {Condition} the condition object
      */
-    static from_object(object) {
+    static from_object(object, source_reference) {
         if (!object || !object.kind) {
             throw new Error("Invalid condition")
         }
+        const object_reference = utils.to_reference(object.name);
+        const target_reference = utils.merge_references(source_reference, object_reference)
+        const name = utils.to_reference_string(target_reference)
         switch (object.kind) {
             case "is_checked":
-                return new IsChecked(object.name);
+                return new IsChecked(name);
             case "is_not_checked":
-                return new IsNotChecked(object.name);
+                return new IsNotChecked(name);
             case "equals":
-                return new Equals(object.name, object.value);
+                return new Equals(name, object.value);
             case "does_not_equal":
-                return new DoesNotEqual(object.name, object.value);
+                return new DoesNotEqual(name, object.value);
             case "in":
-                return new In(object.name, object.value);
+                return new In(name, object.value);
             default:
                 throw new Error("Invalid condition kind")
         }

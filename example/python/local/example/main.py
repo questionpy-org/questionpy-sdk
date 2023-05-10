@@ -16,6 +16,11 @@ class MyOptions(OptionEnum):
     OPT_2 = option("Option 2")
 
 
+class Participants(FormModel):
+    role = select("Role:", MyOptions)
+    name = group("Name", NameGroup)
+
+
 class MyModel(FormModel):
     static = static_text("Some static text", """Lorem ipsum dolor sit amet, consetetur sadipscing elitr, sed diam
     nonumy eirmod tempor invidunt ut labore et dolore magna aliquyam erat, sed diam voluptua. At vero eos et accusam
@@ -25,11 +30,11 @@ class MyModel(FormModel):
     radio = radio_group("My Radio Group", MyOptions)
     my_select = select("My select box", MyOptions, multiple=True)
     my_hidden = hidden("foo")
+    my_repetition = repeat(Participants)
 
     has_name = checkbox(None, "I have a name.")
     name_group = group("Name", NameGroup, disable_if=[is_not_checked("has_name")])
 
 
 class ExampleQuestionType(QuestionType[MyModel]):
-
     pass

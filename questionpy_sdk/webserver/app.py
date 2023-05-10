@@ -67,6 +67,28 @@ async def submit_form(request: web.Request) -> web.Response:
     async with webserver.worker_pool.get_worker(webserver.package, 0, None) as worker:
         form_definition, _ = await worker.get_options_form(None)
         options = webserver.state_storage.parse_form_data(form_definition, form_data)
+        # options['repetition'] = [{'role': 'OPT_1'}]
+        try:
+            question = await worker.create_question_from_options(old_state=None, form_data=options)
+        except WorkerUnknownError as err:
+            print(err)
+            return HTTPBadRequest()
+
+    question_state = json.loads(question.question_state)
+    webserver.state_storage.insert(webserver.package, question_state)
+
+    return web.json_response(question.question_state)
+
+
+@routes.post('/repeat')
+async def repeat_element(request: web.Request) -> web.Response:
+    """Get the options form definition and the form data on."""
+    webserver: 'WebServer' = request.app['sdk_webserver_app']
+    form_data = await request.json()
+    async with webserver.worker_pool.get_worker(webserver.package, 0, None) as worker:
+        manifest = await worker.get_manifest()
+        form_definition, _ = await worker.get_options_form(None)
+        options = webserver.state_storage.parse_form_data(form_definition, form_data)
         try:
             question = await worker.create_question_from_options(old_state=None, form_data=options)
         except WorkerUnknownError:
@@ -75,4 +97,10 @@ async def submit_form(request: web.Request) -> web.Response:
     question_state = json.loads(question.question_state)
     webserver.state_storage.insert(webserver.package, question_state)
 
-    return web.json_response(form_data)
+    context = {
+        'manifest': manifest,
+        'options': form_definition.dict(),
+        'form_data': webserver.state_storage.get(webserver.package)
+    }
+
+    return aiohttp_jinja2.render_template('options.html.jinja2', request, context)

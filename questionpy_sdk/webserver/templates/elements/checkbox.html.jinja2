@@ -9,7 +9,8 @@
 {% block content %}
     <label class="answer-label">
         <input class="answer-checkbox" type="checkbox" id="{{ section_name }}_{{ element_options.name }}"
-                name="{{ element_options.name }}"
+                name="{{ element_reference }}"
+                {{ {'data-absolute_path': absolute_path|tojson|forceescape}|xmlattr }}
                 {{ 'required' if element_options.required }}
                 {{ 'checked' if element_options.selected and not form_data
                     or form_data is defined and form_data[element_options.name]}}>

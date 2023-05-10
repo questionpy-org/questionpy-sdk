@@ -6,7 +6,6 @@
 
 import * as conditions from "./conditions.js";
 
-
 /**
  * Selects all elements that have a list of conditions as a data attribute. The lists of conditions are an
  * unparsed JSON string and represent either a hide_if list or a disable_if list (see: {@link conditions.Types}).
@@ -43,7 +42,16 @@ function add_conditions_to_element(element, condition_type){
     }
     element.conditions[condition_type.value] = [];
     JSON.parse(element.dataset[condition_type.value]).forEach(object => {
-        let condition = conditions.Condition.from_object(object);
+        var reference = null
+        console.log(element)
+        console.log(element.dataset['absolute_path'])
+        try {
+            reference = JSON.parse(element.dataset['absolute_path'])
+        } catch (e) {
+            console.log(e)
+            return
+        }
+        let condition = conditions.Condition.from_object(object, reference);
         condition.targets.forEach(target => add_source_element_to_target(target, element, condition_type));
         element.conditions[condition_type.value].push(condition);
     });
@@ -226,6 +234,35 @@ async function post_http_request(url, headers, body) {
     }
 }
 
+/**
+ * Adds a repetition element to the repetition element parent.
+ *
+ * Adds n repetitions, where n = repetition_increment, to the parent element. The function looks
+ * for the div with class '.repetition-content-copy' located in the parent elment, then clones the div,
+ * appends it n times and appends the button at the end of the parent.
+ * @param event
+ */
+async function add_repetition_element(event) {
+    // prevent reload on submit
+    event.preventDefault();
+    const form = document.getElementById('options_form');
+
+    const json_form_data = {};
+    console.log(event.target)
+    for (const pair of new FormData(form)) {
+        json_form_data[pair[0]] = pair[1];
+    }
+
+    const headers = {'Content-Type': 'application/json'}
+    const response = await post_http_request('/repeat', headers, json_form_data);
+    if (response.status == 200){
+        document.getElementById('submit_success_info').hidden = null;
+    } else {
+        alert('An error occured.');
+    }
+}
+
+
 document.addEventListener("DOMContentLoaded", function () {
     const elements = get_elements_with_conditions();
     // check conditions manually. without the change event
@@ -233,4 +270,7 @@ document.addEventListener("DOMContentLoaded", function () {
 
     const form = document.querySelector('form');
     form.addEventListener('submit', handle_submit);
+
+    const repetition_buttons = document.getElementsByClassName("repetition-button");
+    Array.from(repetition_buttons).forEach(button => button.addEventListener("click", add_repetition_element));
 })
