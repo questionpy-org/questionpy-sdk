@@ -14,13 +14,23 @@ from questionpy_common.manifest import Manifest
 def assert_same_structure(directory: Path, expected: list[Path]) -> None:
     """
     Checks if the directory has the same folder structure as `expected`.
+
+    Args:
+        directory: directory to check
+        expected: expected structure
     """
     assert sorted(file for file in directory.rglob("*") if file.is_file()) == sorted(expected)
 
 
 def normalized_file_name(manifest: Manifest) -> str:
     """
-    Returns a normalized file name for the given `manifest`.
+    Creates a normalized file name for the given manifest.
+
+    Args:
+        manifest: manifest of the package
+
+    Returns:
+        normalized file name
     """
     return f"{manifest.namespace}-{manifest.short_name}-{manifest.version}.qpy"
 
@@ -28,9 +38,18 @@ def normalized_file_name(manifest: Manifest) -> str:
 def create_package(path: Path, short_name: str, namespace: str = "local", version: str = "0.1.0") -> \
         tuple[Path, Manifest]:
     """
-    Create a '.qpy'-package inside the existing folder of the given `path`.
+    Create a '.qpy'-package.
 
-    The test will skip if the packaging fails.
+    The test will skip if the packaging fails and xfail if the manifest is invalid.
+
+    Args:
+        path: path to the folder where the package should be created or the path to the package itself
+        short_name: short name of the package
+        namespace: namespace of the package
+        version: version of the package
+
+    Returns:
+        path to the package and the manifest
     """
     try:
         manifest = Manifest(short_name=short_name, namespace=namespace, version=version, api_version="0.1",
