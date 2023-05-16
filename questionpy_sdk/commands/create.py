@@ -16,26 +16,16 @@ log = logging.getLogger(__name__)
 # TODO: use partial model validation instead of accessing the validator directly.
 #       This feature will be available in pydantic V2:
 #       https://github.com/pydantic/pydantic/pull/3179#issuecomment-1205328414
-def validate_short_name(context: click.Context, _parameter: click.Parameter, value: str) -> str:
+def validate_name(context: click.Context, _parameter: click.Parameter, value: str) -> str:
     try:
-        ensure_is_valid_name(value)
+        return ensure_is_valid_name(value)
     except ValueError as error:
         raise click.BadParameter(str(error), ctx=context) from error
-    return value
-
-
-def validate_namespace(context: click.Context, _parameter: click.Parameter, value: Optional[str]) -> Optional[str]:
-    try:
-        if value is not None:
-            ensure_is_valid_name(value)
-    except ValueError as error:
-        raise click.BadParameter(str(error), ctx=context) from error
-    return value
 
 
 @click.command(context_settings={"show_default": True})
-@click.argument("short_name", callback=validate_short_name)
-@click.option("--namespace", "-n", "namespace", callback=validate_namespace, default=DEFAULT_NAMESPACE)
+@click.argument("short_name", callback=validate_name)
+@click.option("--namespace", "-n", "namespace", callback=validate_name, default=DEFAULT_NAMESPACE)
 @click.option("--out", "-o", "out_path", type=click.Path(path_type=Path))
 def create(short_name: str, namespace: str, out_path: Optional[Path]) -> None:
     if not out_path:

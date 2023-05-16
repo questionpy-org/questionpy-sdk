@@ -27,6 +27,7 @@ class IndexCreator:
     """Handles the creation of the repository index and metadata."""
     def __init__(self, root: Path):
         self._root = root
+        self._root.mkdir(parents=True, exist_ok=True)
         self._packages: dict[str, RepoPackageVersions] = {}
 
     def add(self, path: Path, manifest: ComparableManifest) -> None:
