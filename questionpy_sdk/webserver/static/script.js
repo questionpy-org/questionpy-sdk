@@ -211,12 +211,11 @@ async function post_http_request(url, headers, body) {
         throw new Error("One or more POST request parameters was not passed.");
     }
     try {
-        const response = await fetch(url, {
+        return await fetch(url, {
             method: "POST",
             headers: headers,
             body: JSON.stringify(body)
         });
-        return response;
     } catch(err) {
         console.error(`Error at fetch POST: ${err}`);
         throw err;

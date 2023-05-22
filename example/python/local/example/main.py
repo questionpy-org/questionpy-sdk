@@ -1,3 +1,7 @@
+from typing import Optional
+
+from questionpy_common.qtype import BaseQuestion
+
 from questionpy import QuestionType
 from questionpy.form import *
 
@@ -27,4 +31,5 @@ class MyModel(FormModel):
 
 
 class ExampleQuestionType(QuestionType[MyModel]):
-    None
+
+    pass
