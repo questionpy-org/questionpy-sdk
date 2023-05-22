@@ -1,6 +1,7 @@
 from dataclasses import dataclass
-from enum import Enum
-from typing import Callable, Tuple, Type, Iterable, Any, get_origin, get_args, Literal, TYPE_CHECKING, Dict
+from enum import Enum, EnumMeta
+from typing import Callable, Tuple, Type, Iterable, Any, get_origin, get_args, Literal, TYPE_CHECKING, Dict, \
+    Optional, cast
 
 from pydantic import BaseModel, Field
 from pydantic.fields import ModelField
@@ -12,17 +13,67 @@ from questionpy_common.elements import FormElement, FormSection, OptionsFormDefi
 class _OptionInfo:
     label: str
     selected: bool
+    value: Optional[str] = None
+    """Set by :meth:`_OptionEnumMeta.__new__` because __set_name__ doesn't get called for enum members."""
 
 
-class OptionEnum(str, Enum):
+class _OptionEnumMeta(EnumMeta):
+    """
+    This metaclass is necessary in order to make :class:`OptionEnum`\\ s subclasses of str without losing the ``label``
+    and ``selected`` attributes. Making them subclasses of str means they will be serialized to their value without any
+    custom json encoders.
+    """
+
+    def __new__(mcs, cls_name: str, bases: tuple[type, ...], namespace: dict, **kwargs: object) -> "_OptionEnumMeta":
+        for key, member in namespace.items():
+            if not (key.startswith("_") and key.endswith("_")):
+                if not isinstance(member, _OptionInfo):
+                    raise TypeError("Please use option(label, selected) to create OptionEnum members")
+
+                member.value = key
+
+        return super().__new__(mcs, cls_name, bases, cast(Any, namespace), **kwargs)
+
+
+class OptionEnum(str, Enum, metaclass=_OptionEnumMeta):
     """Enum specifying the possible options for radio groups and drop-downs.
 
     Specify options using `option`.
+
+    Implementation Note:
+        When serialized by ``json.dump(s)`` or Pydantic's ``.json()``, we want :class:`OptionEnum` members to produce
+        their value as a string. Pydantic supports this with some drawbacks using ``json_encoders``, but
+        ``json.dump(s)`` does not. Instead, we make :class:`OptionEnum` a subclass of ``str``, so it is automatically
+        serialized as a string.
+
+        >>> from questionpy.form import option
+        >>> class MyEnum(OptionEnum):
+        ...     OPT_1 = option("Some Label")
+        >>> isinstance(MyEnum.OPT_1, str)
+        True
+        >>> MyEnum.OPT_1 == "OPT_1"
+        True
+
+        Here, Python will pass the :class:`_OptionInfo` returned by :func:`option` to :meth:`OptionEnum.__new__`.
+        However, :class:`_OptionInfo` does not contain the name of the enum member, which we want the str value to be.
+        Apart from passing `"OPT_1"` again to :func:`option`, the solution to this is a custom metaclass extending
+        :class:`EnumMeta`. The metaclass adds the member name to the :class:`_OptionInfo`, allowing
+        :meth:`OptionEnum.__new__` to use it as the string value (by passing it to :meth:`str.__new__`).
+
+        :meth:`OptionEnum.__init__` then sets the ``label`` and ``selected`` flag on the enum member.
+
+        >>> MyEnum.OPT_1.label
+        'Some Label'
+        >>> MyEnum.OPT_1.selected
+        False
     """
 
-    def __init__(self, option: _OptionInfo):
+    def __new__(cls, option: _OptionInfo) -> "OptionEnum":
+        return super().__new__(cls, option.value)
+
+    def __init__(self, option: _OptionInfo) -> None:
         super().__init__()
-        self._value_ = self.name
+        self._value_ = option.value
         self.label = option.label
         self.selected = option.selected
 

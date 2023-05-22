@@ -1,7 +1,8 @@
+import json
 from typing import Optional, List, Literal, Set, Any
 
 import pytest
-from pydantic import ValidationError
+from pydantic import ValidationError, parse_raw_as
 
 from questionpy.form import *  # pylint: disable=wildcard-import
 
@@ -209,3 +210,11 @@ def test_should_raise_TypeError_when_annotation_is_wrong(annotation: object, ini
         class TheModel(FormModel):
             # pylint: disable=unused-variable
             field: annotation = initializer  # type: ignore[valid-type]
+
+
+def test_OptionEnum_should_serialize_to_value() -> None:
+    assert json.dumps(MyOptionEnum.OPT_1) == '"OPT_1"'
+
+
+def test_OptionEnum_should_deserialize_from_value() -> None:
+    assert parse_raw_as(MyOptionEnum, '"OPT_1"') is MyOptionEnum.OPT_1
