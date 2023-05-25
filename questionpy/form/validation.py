@@ -18,7 +18,7 @@ class FormError(Exception):
     """A node in the form failed validation."""
     def __init__(self, node: str, message: str):
         self.node = node
-        """Absolute name of the form node which caused the error."""
+        """Absolute name of the form node that caused the error."""
         super().__init__(f"In '{node}': {message}")
 
 
@@ -26,11 +26,11 @@ class FormReferenceError(FormError):
     """A node in the form failed validation because it references a nonexistent element."""
     def __init__(self, node: str, reference: str, container_name: Optional[str], local_name: str):
         self.reference = reference
-        """Full reference which could not be resolved."""
+        """Full reference that could not be resolved."""
         self.container_name = container_name
         """Container of which a direct child was not found."""
         self.local_name = local_name
-        """Local name of the direct child which was not found."""
+        """Local name of the direct child that was not found."""
 
         message = f"Unresolved reference '{reference}'"
         if container_name:
@@ -131,7 +131,7 @@ def validate_form(form: OptionsFormDefinition) -> None:
     resolves to an element, and that that element is a valid target for the condition kind:
 
     - `is_(not_)checked` conditions may only point to :class:`CheckboxElement`\\ s.
-    - `equals`, `does_not_equal` and `is_in` conditions may point to all input elements which produce a value, including
+    - `equals`, `does_not_equal` and `is_in` conditions may point to all input elements that produce a value, including
       :class:`CheckboxElement`.
 
     Args:

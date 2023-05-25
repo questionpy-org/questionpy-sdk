@@ -21,7 +21,7 @@ References:
     - An element name, or
     - ``..``, which resolves to the parent element
 
-    A reference is always relative to the element which defines it. For example, the condition
+    A reference is always relative to the element that defines it. For example, the condition
     ``is_checked(..[foo][bar])`` is resolved as follows:
 
     - Get the parent of the model in which the reference is made. If the reference is made at the top level, it is
@@ -375,7 +375,7 @@ def hidden(value: _S, *, disable_if: _ZeroOrMoreConditions = None, hide_if: _Zer
 
 
 def section(header: str, model: Type[_F]) -> _F:
-    """Adds a form section which can be expanded and collapsed.
+    """Adds a form section that can be expanded and collapsed.
 
     Args:
         header: Header to be shown at the top of the section.
@@ -418,7 +418,7 @@ def group(label: str, model: Type[_F], *,
 
     Examples:
         This example shows a text input field directly followed by a drop-down with possible units. We define a separate
-        ``FormModel`` subclass which will contain our grouped inputs.
+        ``FormModel`` subclass that will contain our grouped inputs.
 
         >>> class SizeGroup(FormModel):
         ...     amount = text_input("Amount")
@@ -445,14 +445,14 @@ def repeat(model: Type[_F], *, initial: int = 1, increment: int = 1, button_labe
         model: Sub-FormModel containing the fields to repeat.
         initial: Number of repetitions to show when the form is first loaded.
         increment: Number of repetitions to add with each click of the button.
-        button_label: Label for the button which adds more repetitions, or None to use default provided by LMS.
+        button_label: Label for the button that adds more repetitions, or None to use default provided by LMS.
 
     Returns:
         An internal object containing metadata about the section.
 
     Examples:
         The following shows part of a simplified multiple-choice question. A separate sub-model defines the elements
-        which should be repeated.
+        that should be repeated.
 
         >>> class Choice(FormModel):
         ...     text = text_input("Choice")

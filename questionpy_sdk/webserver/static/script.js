@@ -2,7 +2,7 @@ import * as conditions from "./conditions.js";
 
 
 /**
- * Selects all elements which have a list of conditions as a data attribute. The lists of conditions are an
+ * Selects all elements that have a list of conditions as a data attribute. The lists of conditions are an
  * unparsed JSON string and represent either a hide_if list or a disable_if list (see: {@link conditions.Types}).
  *
  *
@@ -47,7 +47,7 @@ function add_conditions_to_element(element, condition_type){
 /**
  * Adds the source element to the targets list of source elements.
  * Adds the event listener corresponding to the condition_type to the target.
- * When the targets event listener is triggered, the source list contains all the elements which conditions have to be
+ * When the target's event listener is triggered, the source list contains all the elements whose conditions have to be
  * checked.
  *
  * @param {HTMLElement} target the conditions target

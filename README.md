@@ -24,7 +24,7 @@ version: 0.1.0
 api_version: 0.1
 # You or your organization
 author: Bob Sample <bob@example.org>
-# Optional: The module within your package which should be imported when the package is run
+# Optional: The module within your package that should be imported when the package is run
 entrypoint: main
 ```
 
