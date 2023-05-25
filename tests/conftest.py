@@ -4,12 +4,12 @@ from shutil import move
 import pytest
 from click.testing import CliRunner
 from pydantic.error_wrappers import ValidationError
+from yaml import safe_dump
+
+from questionpy_common.manifest import Manifest
 
 from questionpy_sdk.commands._helper import create_normalized_filename
 from questionpy_sdk.commands.package import package
-
-from yaml import safe_dump
-from questionpy_common.manifest import Manifest
 
 
 def assert_same_structure(directory: Path, expected: list[Path]) -> None:
