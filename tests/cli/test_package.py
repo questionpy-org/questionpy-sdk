@@ -8,9 +8,9 @@ from click.testing import CliRunner
 
 from questionpy_common.manifest import Manifest
 
+from questionpy_sdk.commands._helper import create_normalized_filename
 from questionpy_sdk.commands.package import package
 from questionpy_sdk.resources import EXAMPLE_PACKAGE
-from tests.conftest import normalized_file_name
 
 
 def create_manifest(source: Path) -> Manifest:
@@ -91,7 +91,7 @@ def test_package_with_only_source() -> None:
         manifest = create_source_directory(Path(f), "source")
         result = runner.invoke(package, ["source"])
         assert result.exit_code == 0
-        assert Path(".", f"{normalized_file_name(manifest)}").exists()
+        assert Path(".", f"{create_normalized_filename(manifest)}").exists()
 
 
 def test_package_creates_package_in_cwd() -> None:
@@ -107,7 +107,7 @@ def test_package_creates_package_in_cwd() -> None:
 
         result = runner.invoke(package, ["../source"])
         assert result.exit_code == 0
-        assert Path(".", normalized_file_name(manifest)).exists()
+        assert Path(".", create_normalized_filename(manifest)).exists()
 
 
 def test_package_with_out_path() -> None:
@@ -176,7 +176,7 @@ def test_package_with_namespace_argument() -> None:
         manifest = create_manifest(directory)
 
         result = runner.invoke(package, ["source", "--manifest", "qpy_manifest.yml"])
-        assert f"Successfully created '{normalized_file_name(manifest)}'." in result.stdout
+        assert f"Successfully created '{create_normalized_filename(manifest)}'." in result.stdout
         assert result.exit_code == 0
 
 

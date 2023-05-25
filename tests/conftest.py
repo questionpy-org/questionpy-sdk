@@ -5,6 +5,7 @@ import pytest
 from click.testing import CliRunner
 from pydantic.error_wrappers import ValidationError
 
+from questionpy_sdk.commands._helper import create_normalized_filename
 from questionpy_sdk.commands.package import package
 
 from yaml import safe_dump
@@ -20,19 +21,6 @@ def assert_same_structure(directory: Path, expected: list[Path]) -> None:
         expected: expected structure
     """
     assert sorted(file for file in directory.rglob("*") if file.is_file()) == sorted(expected)
-
-
-def normalized_file_name(manifest: Manifest) -> str:
-    """
-    Creates a normalized file name for the given manifest.
-
-    Args:
-        manifest: manifest of the package
-
-    Returns:
-        normalized file name
-    """
-    return f"{manifest.namespace}-{manifest.short_name}-{manifest.version}.qpy"
 
 
 def create_package(path: Path, short_name: str, namespace: str = "local", version: str = "0.1.0") -> \
@@ -72,7 +60,7 @@ def create_package(path: Path, short_name: str, namespace: str = "local", versio
             pytest.skip(f"Could not create the package: {result.stdout}")
 
         if path.is_dir():
-            new_package_path = path / normalized_file_name(manifest)
+            new_package_path = path / create_normalized_filename(manifest)
         else:
             new_package_path = path
         move(package_path, new_package_path)

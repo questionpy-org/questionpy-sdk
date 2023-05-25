@@ -3,8 +3,9 @@ from pathlib import Path
 import pytest
 from click.testing import CliRunner
 
+from questionpy_sdk.commands._helper import create_normalized_filename
 from questionpy_sdk.commands.repo.structure import structure
-from tests.conftest import create_package, normalized_file_name, assert_same_structure
+from tests.conftest import create_package, assert_same_structure
 
 
 def test_structure_no_arguments_raises_error() -> None:
@@ -84,7 +85,7 @@ def test_structure_creates_only_one_package_if_identical(count: int) -> None:
         assert_same_structure(Path(directory, "out"), [
             out / "META.json",
             out / "PACKAGES.json.gz",
-            out / manifest.namespace / manifest.short_name / normalized_file_name(manifest)
+            out / manifest.namespace / manifest.short_name / create_normalized_filename(manifest)
         ])
 
 
@@ -114,6 +115,6 @@ def test_structure_with_multiple_packages(package_1: tuple[str, str, str], packa
         assert_same_structure(Path(directory, "out"), [
             out / "META.json",
             out / "PACKAGES.json.gz",
-            out / manifest_1.namespace / manifest_1.short_name / normalized_file_name(manifest_1),
-            out / manifest_2.namespace / manifest_2.short_name / normalized_file_name(manifest_2),
+            out / manifest_1.namespace / manifest_1.short_name / create_normalized_filename(manifest_1),
+            out / manifest_2.namespace / manifest_2.short_name / create_normalized_filename(manifest_2),
         ])
