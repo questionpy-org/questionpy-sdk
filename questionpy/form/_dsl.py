@@ -1,4 +1,4 @@
-"""This module contains DSL-like functions for defining the contents of :class:`FormModel` s.
+"""This module contains DSL-like functions for defining the contents of :class:`FormModel`\\ s.
 
 In order to allow for correct type inference of the resulting fields, most functions are typed to return what will later
 be part of the expected for data.
@@ -71,6 +71,7 @@ def _listify(value: _ZeroOrMoreConditions) -> list[Condition]:
 @overload
 def text_input(label: str, *, required: Literal[False] = False,
                default: Optional[str] = None, placeholder: Optional[str] = None,
+               help: Optional[str] = None,
                disable_if: _ZeroOrMoreConditions = None, hide_if: _ZeroOrMoreConditions = None) -> Optional[str]:
     pass
 
@@ -78,6 +79,7 @@ def text_input(label: str, *, required: Literal[False] = False,
 @overload
 def text_input(label: str, *, required: Literal[True],
                default: Optional[str] = None, placeholder: Optional[str] = None,
+               help: Optional[str] = None,
                disable_if: None = None, hide_if: None = None) -> str:
     pass
 
@@ -85,6 +87,7 @@ def text_input(label: str, *, required: Literal[True],
 @overload
 def text_input(label: str, *, required: bool = False,
                default: Optional[str] = None, placeholder: Optional[str] = None,
+               help: Optional[str] = None,
                disable_if: _OneOrMoreConditions, hide_if: _ZeroOrMoreConditions = None) -> Optional[str]:
     pass
 
@@ -92,12 +95,14 @@ def text_input(label: str, *, required: bool = False,
 @overload
 def text_input(label: str, *, required: bool = False,
                default: Optional[str] = None, placeholder: Optional[str] = None,
+               help: Optional[str] = None,
                disable_if: _ZeroOrMoreConditions = None, hide_if: _OneOrMoreConditions) -> Optional[str]:
     pass
 
 
 def text_input(label: str, *, required: bool = False,
                default: Optional[str] = None, placeholder: Optional[str] = None,
+               help: Optional[str] = None,
                disable_if: _ZeroOrMoreConditions = None, hide_if: _ZeroOrMoreConditions = None) -> Any:
     """Adds a text input field.
 
@@ -115,6 +120,7 @@ def text_input(label: str, *, required: bool = False,
     return _FieldInfo(
         lambda name: TextInputElement(name=name, label=label, required=required,
                                       default=default, placeholder=placeholder,
+                                      help=help,
                                       disable_if=_listify(disable_if), hide_if=_listify(hide_if)),
         Optional[str] if not required or disable_if or hide_if else str,
         None if not required or disable_if or hide_if else ...,
@@ -122,6 +128,7 @@ def text_input(label: str, *, required: bool = False,
 
 
 def static_text(label: str, text: str, *,
+                help: Optional[str] = None,
                 disable_if: _ZeroOrMoreConditions = None, hide_if: _ZeroOrMoreConditions = None) -> StaticTextElement:
     """Adds a line with a label and some static text.
 
@@ -136,7 +143,7 @@ def static_text(label: str, text: str, *,
     """
     return cast(
         StaticTextElement,
-        _StaticElementInfo(lambda name: StaticTextElement(name=name, label=label, text=text,
+        _StaticElementInfo(lambda name: StaticTextElement(name=name, label=label, text=text, help=help,
                                                           disable_if=_listify(disable_if), hide_if=_listify(hide_if)))
     )
 
@@ -144,6 +151,7 @@ def static_text(label: str, text: str, *,
 @overload
 def checkbox(left_label: Optional[str] = None, right_label: Optional[str] = None, *,
              required: Literal[True], selected: bool = False,
+             help: Optional[str] = None,
              disable_if: None = None, hide_if: None = None) -> Literal[True]:
     pass
 
@@ -151,6 +159,7 @@ def checkbox(left_label: Optional[str] = None, right_label: Optional[str] = None
 @overload
 def checkbox(left_label: Optional[str] = None, right_label: Optional[str] = None, *,
              required: Literal[False] = False, selected: bool = False,
+             help: Optional[str] = None,
              disable_if: _ZeroOrMoreConditions = None, hide_if: _ZeroOrMoreConditions = None) -> bool:
     pass
 
@@ -158,6 +167,7 @@ def checkbox(left_label: Optional[str] = None, right_label: Optional[str] = None
 @overload
 def checkbox(left_label: Optional[str] = None, right_label: Optional[str] = None, *,
              required: bool = False, selected: bool = False,
+             help: Optional[str] = None,
              disable_if: _OneOrMoreConditions, hide_if: _ZeroOrMoreConditions = None) -> bool:
     pass
 
@@ -165,12 +175,14 @@ def checkbox(left_label: Optional[str] = None, right_label: Optional[str] = None
 @overload
 def checkbox(left_label: Optional[str] = None, right_label: Optional[str] = None, *,
              required: bool = False, selected: bool = False,
+             help: Optional[str] = None,
              disable_if: _ZeroOrMoreConditions = None, hide_if: _OneOrMoreConditions) -> bool:
     pass
 
 
 def checkbox(left_label: Optional[str] = None, right_label: Optional[str] = None, *,
              required: bool = False, selected: bool = False,
+             help: Optional[str] = None,
              disable_if: _ZeroOrMoreConditions = None, hide_if: _ZeroOrMoreConditions = None) -> Any:
     """Adds a checkbox.
 
@@ -187,6 +199,7 @@ def checkbox(left_label: Optional[str] = None, right_label: Optional[str] = None
     """
     return _FieldInfo(
         lambda name: CheckboxElement(name=name, left_label=left_label, right_label=right_label, required=required,
+                                     help=help,
                                      selected=selected, disable_if=_listify(disable_if), hide_if=_listify(hide_if)),
         bool if not required or disable_if or hide_if else Literal[True],
         False if not required or disable_if or hide_if else ...
@@ -195,29 +208,34 @@ def checkbox(left_label: Optional[str] = None, right_label: Optional[str] = None
 
 @overload
 def radio_group(label: str, enum: Type[_E], *, required: Literal[False] = False,
+                help: Optional[str] = None,
                 disable_if: _ZeroOrMoreConditions = None, hide_if: _ZeroOrMoreConditions = None) -> Optional[_E]:
     pass
 
 
 @overload
 def radio_group(label: str, enum: Type[_E], *, required: Literal[True],
+                help: Optional[str] = None,
                 disable_if: _OneOrMoreConditions, hide_if: _ZeroOrMoreConditions = None) -> Optional[_E]:
     pass
 
 
 @overload
 def radio_group(label: str, enum: Type[_E], *, required: Literal[True],
+                help: Optional[str] = None,
                 disable_if: _ZeroOrMoreConditions = None, hide_if: _OneOrMoreConditions) -> Optional[_E]:
     pass
 
 
 @overload
 def radio_group(label: str, enum: Type[_E], *, required: Literal[True],
+                help: Optional[str] = None,
                 disable_if: None = None, hide_if: None = None) -> _E:
     pass
 
 
 def radio_group(label: str, enum: Type[_E], *, required: bool = False,
+                help: Optional[str] = None,
                 disable_if: _ZeroOrMoreConditions = None, hide_if: _ZeroOrMoreConditions = None) -> Any:
     """Adds a group of radio buttons, of which at most one can be selected at a time.
 
@@ -234,7 +252,7 @@ def radio_group(label: str, enum: Type[_E], *, required: bool = False,
     options = [Option(label=variant.label, value=variant.value, selected=variant.selected) for variant in enum]
 
     return _FieldInfo(
-        lambda name: RadioGroupElement(name=name, label=label, options=options, required=required,
+        lambda name: RadioGroupElement(name=name, label=label, options=options, required=required, help=help,
                                        disable_if=_listify(disable_if), hide_if=_listify(hide_if)),
         Optional[enum] if not required or disable_if or hide_if else enum,
         None if not required or disable_if or hide_if else ...
@@ -244,6 +262,7 @@ def radio_group(label: str, enum: Type[_E], *, required: bool = False,
 @overload
 def select(label: str, enum: Type[_E], *,
            required: Literal[False] = False, multiple: Literal[False] = False,
+           help: Optional[str] = None,
            disable_if: _ZeroOrMoreConditions = None, hide_if: _ZeroOrMoreConditions = None) -> Optional[_E]:
     pass
 
@@ -251,6 +270,7 @@ def select(label: str, enum: Type[_E], *,
 @overload
 def select(label: str, enum: Type[_E], *,
            required: Literal[True], multiple: Literal[False] = False,
+           help: Optional[str] = None,
            disable_if: _OneOrMoreConditions, hide_if: _ZeroOrMoreConditions = None) -> Optional[_E]:
     pass
 
@@ -258,6 +278,7 @@ def select(label: str, enum: Type[_E], *,
 @overload
 def select(label: str, enum: Type[_E], *,
            required: Literal[True], multiple: Literal[False] = False,
+           help: Optional[str] = None,
            disable_if: _ZeroOrMoreConditions = None, hide_if: _OneOrMoreConditions) -> Optional[_E]:
     pass
 
@@ -265,6 +286,7 @@ def select(label: str, enum: Type[_E], *,
 @overload
 def select(label: str, enum: Type[_E], *,
            required: Literal[True], multiple: Literal[False] = False,
+           help: Optional[str] = None,
            disable_if: None = None, hide_if: None = None) -> _E:
     pass
 
@@ -272,12 +294,14 @@ def select(label: str, enum: Type[_E], *,
 @overload
 def select(label: str, enum: Type[_E], *,
            required: bool = False, multiple: Literal[True],
+           help: Optional[str] = None,
            disable_if: _ZeroOrMoreConditions = None, hide_if: _ZeroOrMoreConditions = None) -> Set[_E]:
     pass
 
 
 def select(label: str, enum: Type[_E], *,
            required: bool = False, multiple: bool = False,
+           help: Optional[str] = None,
            disable_if: _ZeroOrMoreConditions = None, hide_if: _ZeroOrMoreConditions = None) -> Any:
     """Adds a drop-down list.
 
@@ -311,6 +335,7 @@ def select(label: str, enum: Type[_E], *,
 
     return _FieldInfo(
         lambda name: SelectElement(name=name, label=label, multiple=multiple, required=required, options=options,
+                                   help=help,
                                    disable_if=_listify(disable_if), hide_if=_listify(hide_if)),
         expected_type,
         default
@@ -404,6 +429,7 @@ def section(header: str, model: Type[_F]) -> _F:
 
 
 def group(label: str, model: Type[_F], *,
+          help: Optional[str] = None,
           disable_if: _ZeroOrMoreConditions = None, hide_if: _ZeroOrMoreConditions = None) -> _F:
     """Groups multiple elements horizontally with a common label.
 
@@ -433,6 +459,7 @@ def group(label: str, model: Type[_F], *,
     # We pretend to return an instance of the model so the type of the section field can be inferred.
     return cast(_F, _FieldInfo(
         lambda name: GroupElement(name=name, label=label, elements=model.qpy_form.general,
+                                  help=help,
                                   disable_if=_listify(disable_if), hide_if=_listify(hide_if)),
         model
     ))
