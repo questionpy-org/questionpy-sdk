@@ -32,32 +32,25 @@ class QuestionStateStorage:
     def _parse_section(self, section: List[FormElement], form_data: dict) -> dict:
         options = {}
         for form_element in section:
-            if not isinstance(form_element, StaticTextElement):
+            if not isinstance(form_element, StaticTextElement) \
+                    and (form_element.name in form_data or isinstance(form_element, GroupElement)):
                 options[form_element.name] = self._parse_form_element(form_element, form_data)
         return options
 
     def _parse_form_element(self, form_element: FormElement, form_data: dict) \
             -> Union[str, int, list, dict, FormElement]:
         if isinstance(form_element, SelectElement):
-            if form_element.name not in form_data or form_data[form_element.name] == '':
-                return [form_element.options[0].value]
-            return [form_data[form_element.name]]
+            if form_element.multiple:
+                return [form_data[form_element.name]]
+            return form_data[form_element.name]
         elif isinstance(form_element, GroupElement):
             group = {}
             for child in form_element.elements:
-                if not isinstance(child, StaticTextElement):
+                if not isinstance(child, StaticTextElement) and child.name in form_data:
                     group[child.name] = self._parse_form_element(child, form_data)
             return group
         elif isinstance(form_element, RepetitionElement):
             # TODO: RepetitionElement -> next PR
             return ''
-        elif isinstance(form_element, HiddenElement):
-            return form_data[form_element.name] if form_element.name in form_data else ''
-        elif isinstance(form_element, TextInputElement):
-            return form_data[form_element.name] if form_element.name in form_data else ''
-        elif isinstance(form_element, CheckboxElement):
-            return form_data[form_element.name] if form_element.name in form_data else 0
-        elif isinstance(form_element, RadioGroupElement):
-            return form_data[form_element.name] if form_element.name in form_data else form_element.options[0].value
         else:
-            return ""
+            return form_data[form_element.name]
