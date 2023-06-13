@@ -8,6 +8,7 @@ from jinja2 import FileSystemLoader
 from questionpy_common.constants import MiB
 from questionpy_server import WorkerPool
 from questionpy_server.worker.exception import WorkerUnknownError
+from questionpy_server.worker.worker.thread import ThreadWorker
 
 from questionpy_sdk.webserver.state_storage import QuestionStateStorage
 
@@ -28,7 +29,7 @@ class WebServer:
         aiohttp_jinja2.setup(self.web_app,
                              loader=FileSystemLoader(self.template_folder),
                              extensions=jinja2_extensions)
-        self.worker_pool = WorkerPool(1, 500 * MiB)
+        self.worker_pool = WorkerPool(1, 500 * MiB, worker_type=ThreadWorker)
         self.package = package
         self.state_storage = QuestionStateStorage()
 

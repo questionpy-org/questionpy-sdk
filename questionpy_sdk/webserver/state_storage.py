@@ -20,9 +20,15 @@ class QuestionStateStorage:
             json.dump(question_state, file)
 
     def get(self, key: Path) -> Optional[dict]:
-        path = self.paths.get(key)
+        path = Path()
+        if key in self.paths:
+            path = self.paths.get(key)
+        if path and path.exists():
+            return self.paths.get(key)
+        path = self.storage_path / key.with_suffix('.json')
         if not path or not path.exists():
             return None
+        self.paths[key] = path
         return json.loads(path.read_text())
 
     def parse_form_data(self, form_definition: OptionsFormDefinition, form_data: dict) -> dict:

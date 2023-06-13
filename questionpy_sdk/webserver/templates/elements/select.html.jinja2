@@ -2,9 +2,11 @@
 
 {% block content %}
    <select class="answer-{{ element_options.kind }}" name="{{ element_options.name }}">
-        {% if not element_options.required %}
-            <option value="">--Please choose an option--</option>
-        {% endif %}
+{# TODO: sollen wir diese Aufforderung drin lassen wenn required=false ist? Dann müssen wir auch was im _dsl #}
+{# TODO: ändern sonst werden die Options falsch geparsed  #}
+{#        {% if not element_options.required %}#}
+{#            <option value="">--Please choose an option--</option>#}
+{#        {% endif %}#}
         {% for option in element_options.options %}
             <option value="{{ option.value }}" id="{{ element_options.name ~ "-" ~ option.value }}"
                     {{ 'selected' if option.selected and not form_data
