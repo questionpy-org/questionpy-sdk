@@ -20,11 +20,10 @@ class QuestionStateStorage:
             json.dump(question_state, file)
 
     def get(self, key: Path) -> Optional[dict]:
-        path = Path()
         if key in self.paths:
             path = self.paths.get(key)
-        if path and path.exists():
-            return self.paths.get(key)
+            if path and path.exists():
+                return json.loads(path.read_text())
         path = self.storage_path / key.with_suffix('.json')
         if not path or not path.exists():
             return None
