@@ -38,7 +38,7 @@ def test_NestedFormModel_should_render_correct_form() -> None:
                 elements=[TextInputElement(name="input", label="My Text Input", required=True)]
             ),
             RepetitionElement(
-                name="rep", initial_elements=1, increment=1,
+                name="rep", initial_repetitions=1, increment=1,
                 elements=[TextInputElement(name="input", label="My Text Input", required=True)]
             )
         ],
@@ -82,7 +82,7 @@ def test_should_raise_ValidationError_when_required_option_is_missing() -> None:
                     required=True, multiple=True, help="Help")]),
     (hidden("value"), [HiddenElement(name="field", value="value")]),
     (repeat(SimpleFormModel, initial=1),
-     [RepetitionElement(name="field", initial_elements=1, increment=1,
+     [RepetitionElement(name="field", initial_repetitions=1, increment=1,
                         elements=[TextInputElement(name="input", label="My Text Input", required=True)])])
 ])
 def test_should_render_correct_form(initializer: object, expected_elements: List[FormElement]) -> None:

@@ -36,7 +36,7 @@ def test_should_raise_FormReferenceError_when_node_doesnt_exist() -> None:
 def test_should_allow_reference_out_of_repetition() -> None:
     form_definition = OptionsFormDefinition(general=[
         CheckboxElement(name="chk"),
-        RepetitionElement(name="repetition", initial_elements=1, increment=1, elements=[
+        RepetitionElement(name="repetition", initial_repetitions=1, increment=1, elements=[
             StaticTextElement(name="static", label="", text="", hide_if=[is_checked("..[chk]")]),
         ])
     ])
@@ -46,7 +46,7 @@ def test_should_allow_reference_out_of_repetition() -> None:
 
 def test_should_allow_reference_within_repetition() -> None:
     form_definition = OptionsFormDefinition(general=[
-        RepetitionElement(name="repetition", initial_elements=1, increment=1, elements=[
+        RepetitionElement(name="repetition", initial_repetitions=1, increment=1, elements=[
             CheckboxElement(name="chk"),
             StaticTextElement(name="static", label="", text="", hide_if=[is_checked("chk")]),
         ])
@@ -58,7 +58,7 @@ def test_should_allow_reference_within_repetition() -> None:
 def test_should_forbid_reference_into_repetition() -> None:
     form_definition = OptionsFormDefinition(general=[
         StaticTextElement(name="static", label="", text="", hide_if=[is_checked("repetition[chk]")]),
-        RepetitionElement(name="repetition", initial_elements=1, increment=1, elements=[
+        RepetitionElement(name="repetition", initial_repetitions=1, increment=1, elements=[
             CheckboxElement(name="chk")
         ])
     ])

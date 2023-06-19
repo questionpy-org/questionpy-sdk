@@ -467,12 +467,14 @@ def group(label: str, model: Type[_F], *,
     ))
 
 
-def repeat(model: Type[_F], *, initial: int = 1, increment: int = 1, button_label: Optional[str] = None) -> list[_F]:
+def repeat(model: Type[_F], *, initial: int = 1, minimum: int = 1, increment: int = 1,
+           button_label: Optional[str] = None) -> list[_F]:
     """Repeats a sub-model, allowing the user to add new repetitions with the click of a button.
 
     Args:
         model: Sub-FormModel containing the fields to repeat.
         initial: Number of repetitions to show when the form is first loaded.
+        minimum: Minimum number of repetitions, at or below which removal is not possible.
         increment: Number of repetitions to add with each click of the button.
         button_label: Label for the button that adds more repetitions, or None to use default provided by LMS.
 
@@ -494,7 +496,8 @@ def repeat(model: Type[_F], *, initial: int = 1, increment: int = 1, button_labe
         ...     choices = repeat(Choice, initial=3, increment=3, button_label="Add 3 more choices")
     """
     return cast(list[_F], _FieldInfo(
-        lambda name: RepetitionElement(name=name, initial_elements=initial, increment=increment,
+        lambda name: RepetitionElement(name=name, initial_repetitions=initial, minimum_repetitions=minimum,
+                                       increment=increment,
                                        button_label=button_label, elements=model.qpy_form.general),
         list[model]  # type: ignore[valid-type]
     ))
