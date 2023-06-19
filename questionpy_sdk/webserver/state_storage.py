@@ -25,14 +25,13 @@ class QuestionStateStorage:
             if path and path.exists():
                 return json.loads(path.read_text())
         path = self.storage_path / key.with_suffix('.json')
-        if not path or not path.exists():
+        if not path.exists():
             return None
         self.paths[key] = path
         return json.loads(path.read_text())
 
     def parse_form_data(self, form_definition: OptionsFormDefinition, form_data: dict) -> dict:
-        options = self._parse_section(form_definition.general, form_data)
-        return options
+        return self._parse_section(form_definition.general, form_data)
 
     def _parse_section(self, section: List[FormElement], form_data: dict) -> dict:
         options = {}

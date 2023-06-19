@@ -1,7 +1,3 @@
-from typing import Optional
-
-from questionpy_common.qtype import BaseQuestion
-
 from questionpy import QuestionType
 from questionpy.form import *
 
