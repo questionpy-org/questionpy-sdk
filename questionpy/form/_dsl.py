@@ -40,6 +40,10 @@ Todo:
     - Make labels optional
 """
 
+#  This file is part of the QuestionPy SDK. (https://questionpy.org)
+#  The QuestionPy SDK is free software released under terms of the MIT license. See LICENSE.md.
+#  (c) Technische Universität Berlin, innoCampus <info@isis.tu-berlin.de>
+
 from typing import cast, TypeVar, Any, overload, Literal, Optional, Set, Union, Type
 
 from questionpy_common.conditions import Condition, IsChecked, IsNotChecked, Equals, DoesNotEqual, In

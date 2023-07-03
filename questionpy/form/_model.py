@@ -1,3 +1,7 @@
+#  This file is part of the QuestionPy SDK. (https://questionpy.org)
+#  The QuestionPy SDK is free software released under terms of the MIT license. See LICENSE.md.
+#  (c) Technische Universität Berlin, innoCampus <info@isis.tu-berlin.de>
+
 from dataclasses import dataclass
 from enum import Enum, EnumMeta
 from typing import Callable, Tuple, Type, Iterable, Any, get_origin, get_args, Literal, TYPE_CHECKING, Dict, \

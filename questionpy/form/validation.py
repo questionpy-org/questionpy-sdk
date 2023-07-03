@@ -3,6 +3,10 @@
 The form is considered a tree whose root node is the :class:`OptionsFormDefinition` and other nodes are either form
 sections or form elements. A reference is a path from the referrer to the referent along that tree.
 """
+#  This file is part of the QuestionPy SDK. (https://questionpy.org)
+#  The QuestionPy SDK is free software released under terms of the MIT license. See LICENSE.md.
+#  (c) Technische Universität Berlin, innoCampus <info@isis.tu-berlin.de>
+
 from itertools import chain
 from typing import Union, Sequence, Optional
 
