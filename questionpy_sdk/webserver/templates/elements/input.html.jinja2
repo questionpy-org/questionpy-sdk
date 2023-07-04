@@ -6,7 +6,7 @@
             {{ {'placeholder': element_options.placeholder}|xmlattr if element_options.placeholder }}
             {{ 'required' if element_options.required }}
             {{ 'checked' if element_options.selected }}
-            {{ {'value': form_data[element_options.name]}|xmlattr if form_data }}
+            {{ {'value': form_data}|xmlattr if form_data }}
             {{ {'data-absolute_path': absolute_path|tojson|forceescape}|xmlattr }}>
     </span>
 {% endblock %}

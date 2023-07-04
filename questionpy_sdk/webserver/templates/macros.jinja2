@@ -9,6 +9,7 @@
 
 {% macro create_elements(section_name, element_list, form_data, absolute_path) %}
     {% for element_options in element_list %}
+        {% set form_data = form_data[element_options.name] if form_data %}
         {% do absolute_path.append(element_options.name) %}
         {% set element_id = absolute_path|join("_") %}
         {% set element_reference = absolute_path|join('][')|replace(']', '', 1) ~ ']' %}
@@ -36,25 +37,45 @@
 {% endmacro %}
 
 
+{% for repetition in form_data %}
+                {{ create_repetition(section_name, element_options, repetition, absolute_path) }}
+            {% endfor %}
+
 {% macro create_repetition(section_name, repetition_element, form_data, absolute_path) %}
     {% set element_id = absolute_path|join("_") %}
     <div class="repetition" id="rep_{{ element_id }}" name="{{ absolute_path|join('][')|replace(']', '', 1) ~ ']' }}"
          data-section="{{section_name}}" >
-        {% for n in range(repetition_element.initial_elements) %}
-            {% do absolute_path.append(n) %}
-            <div class="repetition-content" id="">
-                {{ create_elements(section_name, repetition_element.elements, form_data, absolute_path) }}
-            </div>
-            {% do absolute_path.pop() %}
-        {% endfor %}
-{#        <div class="repetition-content-copy" style="display: none;" data-initial_elements="{{ repetition_element.initial_elements }}"#}
-{#            data-absolute_path="{{ absolute_path }}">#}
-{#            {{ create_elements(section_name, repetition_element.elements, form_data, absolute_path) }}#}
-{#        </div>#}
+
+        {% if form_data %}
+            {% for repetition in form_data %}
+               {% do absolute_path.append(loop.index) %}
+                <div class="repetition-content" id="">
+                    {{ create_elements(section_name, repetition_element.elements, repetition, absolute_path) }}
+                    <button class="repetition-button-delete" id="rep_{{ element_id }}_delete_button"
+                        name="{{ absolute_path|join('][')|replace(']', '', 1) ~ ']' }}">
+                        Delete
+                    </button>
+                </div>
+                {% do absolute_path.pop() %}
+            {% endfor %}
+        {% else %}
+            {% for n in range(repetition_element.initial_repetitions) %}
+                {% do absolute_path.append(n) %}
+                <div class="repetition-content" id="">
+                    {{ create_elements(section_name, repetition_element.elements, form_data, absolute_path) }}
+                    <button class="repetition-button-delete" id="rep_{{ element_id }}_delete_button"
+                        name="{{ absolute_path|join('][')|replace(']', '', 1) ~ ']' }}">
+                        Delete
+                    </button>
+                </div>
+                {% do absolute_path.pop() %}
+            {% endfor %}
+        {% endif %}
         <button class="repetition-button" id="rep_{{ element_id }}_button"
+            name="{{ absolute_path|join('][')|replace(']', '', 1) ~ ']' }}"
             {{ {'data-repetition_increment': repetition_element.increment|tojson|forceescape}|xmlattr
                 if repetition_element.increment}}>
-            {{ repetition_element.button_label if repetition_element.button_label else 'Add Element' }}
+            {{ repetition_element.button_label if repetition_element.button_label else 'Add Repetition' }}
         </button>
     </div>
 {% endmacro %}

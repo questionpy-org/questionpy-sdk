@@ -14,7 +14,7 @@ from questionpy_server import WorkerPool
 from questionpy_server.worker.exception import WorkerUnknownError
 from questionpy_server.worker.worker.thread import ThreadWorker
 
-from questionpy_sdk.webserver.state_storage import QuestionStateStorage
+from questionpy_sdk.webserver.state_storage import QuestionStateStorage, add_repetition
 
 routes = web.RouteTableDef()
 
@@ -61,17 +61,16 @@ async def render_options(request: web.Request) -> web.Response:
 
 @routes.post('/submit')
 async def submit_form(request: web.Request) -> web.Response:
-    """Get the options form definition and the form data on."""
+    """Store the form_data from the Options Form in the StateStorage."""
     webserver: 'WebServer' = request.app['sdk_webserver_app']
     form_data = await request.json()
+
     async with webserver.worker_pool.get_worker(webserver.package, 0, None) as worker:
         form_definition, _ = await worker.get_options_form(None)
-        options = webserver.state_storage.parse_form_data(form_definition, form_data)
-        # options['repetition'] = [{'role': 'OPT_1'}]
+        parsed_form_data = webserver.state_storage.parse_form_data(form_definition, form_data)
         try:
-            question = await worker.create_question_from_options(old_state=None, form_data=options)
-        except WorkerUnknownError as err:
-            print(err)
+            question = await worker.create_question_from_options(old_state=None, form_data=parsed_form_data)
+        except WorkerUnknownError:
             return HTTPBadRequest()
 
     question_state = json.loads(question.question_state)
@@ -82,15 +81,19 @@ async def submit_form(request: web.Request) -> web.Response:
 
 @routes.post('/repeat')
 async def repeat_element(request: web.Request) -> web.Response:
-    """Get the options form definition and the form data on."""
+    """Add Repetitions to the referenced RepetitionElement and store the form_data in the StateStorage."""
     webserver: 'WebServer' = request.app['sdk_webserver_app']
-    form_data = await request.json()
+    data = await request.json()
+    form_data = data['form_data']
+    repetition_reference = data['element-name'].replace(']', '').split('[')
+
     async with webserver.worker_pool.get_worker(webserver.package, 0, None) as worker:
         manifest = await worker.get_manifest()
         form_definition, _ = await worker.get_options_form(None)
-        options = webserver.state_storage.parse_form_data(form_definition, form_data)
+        parsed_form_data = webserver.state_storage.parse_form_data(form_definition, form_data)
+        parsed_form_data = add_repetition(parsed_form_data, form_definition, repetition_reference)
         try:
-            question = await worker.create_question_from_options(old_state=None, form_data=options)
+            question = await worker.create_question_from_options(old_state=None, form_data=parsed_form_data)
         except WorkerUnknownError:
             return HTTPBadRequest()
 

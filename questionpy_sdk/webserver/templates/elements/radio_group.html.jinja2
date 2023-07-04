@@ -9,7 +9,7 @@
                             id="{{ element_id ~ "-" ~ option.value }}" value="{{ option.value }}"
                             name="{{ element_reference }}"
                             {{ 'checked' if option.selected and not form_data
-                                or form_data is defined and form_data[element_options.name] == option.value}}
+                                or form_data is defined and form_data == option.value}}
                             {{ {'data-absolute_path': absolute_path|tojson|forceescape}|xmlattr }}>
                     {{ option.label }}
                 </label>

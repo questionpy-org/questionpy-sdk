@@ -13,7 +13,7 @@
                 {{ {'data-absolute_path': absolute_path|tojson|forceescape}|xmlattr }}
                 {{ 'required' if element_options.required }}
                 {{ 'checked' if element_options.selected and not form_data
-                    or form_data is defined and form_data[element_options.name]}}>
+                    or form_data is defined and form_data}}>
         {% if element_options.right_label %}
             {{ element_options.right_label }}
         {% endif %}

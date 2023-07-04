@@ -43,12 +43,9 @@ function add_conditions_to_element(element, condition_type){
     element.conditions[condition_type.value] = [];
     JSON.parse(element.dataset[condition_type.value]).forEach(object => {
         var reference = null
-        console.log(element)
-        console.log(element.dataset['absolute_path'])
         try {
             reference = JSON.parse(element.dataset['absolute_path'])
         } catch (e) {
-            console.log(e)
             return
         }
         let condition = conditions.Condition.from_object(object, reference);
@@ -201,7 +198,6 @@ async function handle_submit(event) {
     for (const pair of new FormData(event.target)) {
         json_form_data[pair[0]] = pair[1];
     }
-
     const headers = {'Content-Type': 'application/json'}
     const response = await post_http_request('/submit', headers, json_form_data);
     if (response.status == 200){
@@ -248,19 +244,35 @@ async function add_repetition_element(event) {
     const form = document.getElementById('options_form');
 
     const json_form_data = {};
-    console.log(event.target)
     for (const pair of new FormData(form)) {
         json_form_data[pair[0]] = pair[1];
     }
 
+    const data = {
+        'form_data': json_form_data,
+        'element-name': event.target.name
+    }
+
     const headers = {'Content-Type': 'application/json'}
-    const response = await post_http_request('/repeat', headers, json_form_data);
+    const response = await post_http_request('/repeat', headers, data);
     if (response.status == 200){
         document.getElementById('submit_success_info').hidden = null;
+        window.location.reload();
     } else {
         alert('An error occured.');
     }
 }
+
+
+/**
+ * When a Delete Button is clicked, removes the corresponding repetition.
+ */
+async function delete_repetition_element(event) {
+    // prevent reload on click
+    event.preventDefault();
+    event.target.parentElement.remove()
+}
+
 
 
 document.addEventListener("DOMContentLoaded", function () {
@@ -273,4 +285,7 @@ document.addEventListener("DOMContentLoaded", function () {
 
     const repetition_buttons = document.getElementsByClassName("repetition-button");
     Array.from(repetition_buttons).forEach(button => button.addEventListener("click", add_repetition_element));
+
+    const repetition_buttons_delete = document.getElementsByClassName("repetition-button-delete");
+    Array.from(repetition_buttons_delete).forEach(button => button.addEventListener("click", delete_repetition_element));
 })

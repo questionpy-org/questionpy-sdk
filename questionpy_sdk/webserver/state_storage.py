@@ -23,6 +23,35 @@ def _unflatten(flat_form_data: dict[str, str]) -> dict[str, Any]:
     return unflattened_dict
 
 
+def add_repetition(form_data: dict[str, Any], form_definition: OptionsFormDefinition, reference: list) \
+        -> dict[str, Any]:
+    """Adds repetitions of the referenced RepetitionElement to the form_data."""
+    # Find RepetitionElement in the FormDefinition.
+    definition_element = form_definition.general
+    form_data_element = form_data
+
+    if ref := reference.pop(0) != 'general':
+        section = next(filter(lambda s: s.name == ref, form_definition.sections))
+        definition_element = section.elements
+        form_data_element = form_data_element[section.name]
+    while reference:
+        ref = reference.pop(0)
+        element = next(filter(lambda e: (e.name == ref), definition_element))
+        if not (isinstance(element, GroupElement) or isinstance(element, RepetitionElement)):
+            return form_data
+        definition_element = element.elements
+        form_data_element = form_data_element[ref]
+
+    if not isinstance(element, RepetitionElement) or not isinstance(form_data_element, list):
+        return form_data
+
+    # Add "increment" number of repetitions.
+    for i in range(element.increment):
+        form_data_element.append(form_data_element[-1])
+
+    return form_data
+
+
 class QuestionStateStorage:
 
     def __init__(self) -> None:
@@ -48,9 +77,8 @@ class QuestionStateStorage:
         return json.loads(path.read_text())
 
     def parse_form_data(self, form_definition: OptionsFormDefinition, form_data: dict) -> dict:
-        options = {}
         unflattened_form_data = _unflatten(form_data)
-        options['general'] = self._parse_section(form_definition.general, unflattened_form_data['general'])
+        options = self._parse_section(form_definition.general, unflattened_form_data['general'])
         for section in form_definition.sections:
             options[section.name] = self._parse_section(section.elements, unflattened_form_data[section.name])
         return options
@@ -72,13 +100,13 @@ class QuestionStateStorage:
         elif isinstance(form_element, GroupElement):
             group = {}
             for child in form_element.elements:
-                if not isinstance(child, StaticTextElement) and child.name in form_data:
-                    group[child.name] = self._parse_form_element(child, form_data)
+                if not isinstance(child, StaticTextElement) and child.name in form_data[form_element.name]:
+                    group[child.name] = self._parse_form_element(child, form_data[form_element.name])
             return group
         elif isinstance(form_element, RepetitionElement):
-            repetition = {}
+            repetition = []
             for key, value in form_data[form_element.name].items():
-                repetition[key] = self._parse_section(form_element.elements, value)
+                repetition.append(self._parse_section(form_element.elements, value))
             return repetition
         else:
             return form_data[form_element.name]
