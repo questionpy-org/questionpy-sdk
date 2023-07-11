@@ -88,16 +88,18 @@ class QuestionStateStorage:
         for form_element in section:
             if not isinstance(form_element, StaticTextElement) \
                     and (form_element.name in section_form_data or isinstance(form_element, GroupElement)):
-                options[form_element.name] = self._parse_form_element(form_element, section_form_data)
+                parsed_element = self._parse_form_element(form_element, section_form_data)
+                if parsed_element:
+                    options[form_element.name] = parsed_element
         return options
 
     def _parse_form_element(self, form_element: FormElement, form_data: dict) \
-            -> Union[str, int, list, dict, FormElement]:
+            -> Optional[Union[str, int, list, dict, FormElement]]:
         if isinstance(form_element, SelectElement):
-            if form_element.multiple:
-                return [form_data[form_element.name]]
             return form_data[form_element.name]
         elif isinstance(form_element, GroupElement):
+            if form_element.name not in form_data:
+                return None
             group = {}
             for child in form_element.elements:
                 if not isinstance(child, StaticTextElement) and child.name in form_data[form_element.name]:

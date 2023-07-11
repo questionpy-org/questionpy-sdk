@@ -42,12 +42,7 @@ function add_conditions_to_element(element, condition_type){
     }
     element.conditions[condition_type.value] = [];
     JSON.parse(element.dataset[condition_type.value]).forEach(object => {
-        var reference = null
-        try {
-            reference = JSON.parse(element.dataset['absolute_path'])
-        } catch (e) {
-            return
-        }
+        var reference = JSON.parse(element.dataset['absolute_path'])
         let condition = conditions.Condition.from_object(object, reference);
         condition.targets.forEach(target => add_source_element_to_target(target, element, condition_type));
         element.conditions[condition_type.value].push(condition);
@@ -196,7 +191,12 @@ async function handle_submit(event) {
 
     const json_form_data = {};
     for (const pair of new FormData(event.target)) {
-        json_form_data[pair[0]] = pair[1];
+        if (json_form_data[pair[0]]) {
+            json_form_data[pair[0]] = [json_form_data[pair[0]]]
+            json_form_data[pair[0]].push(pair[1]);
+        } else {
+            json_form_data[pair[0]] = pair[1];
+        }
     }
     const headers = {'Content-Type': 'application/json'}
     const response = await post_http_request('/submit', headers, json_form_data);
@@ -233,9 +233,7 @@ async function post_http_request(url, headers, body) {
 /**
  * Adds a repetition element to the repetition element parent.
  *
- * Adds n repetitions, where n = repetition_increment, to the parent element. The function looks
- * for the div with class '.repetition-content-copy' located in the parent elment, then clones the div,
- * appends it n times and appends the button at the end of the parent.
+ * Adds n repetitions, where n = repetition_increment, to the parent element.
  * @param event
  */
 async function add_repetition_element(event) {
@@ -270,7 +268,11 @@ async function add_repetition_element(event) {
 async function delete_repetition_element(event) {
     // prevent reload on click
     event.preventDefault();
-    event.target.parentElement.remove()
+    // count current repetitions - 1 for the add-repetition button
+    const current_repetitions = event.target.parentElement.parentElement.children.length - 1;
+    if (current_repetitions > event.target.dataset['initial_repetitions']) {
+        event.target.parentElement.remove();
+    }
 }
 
 

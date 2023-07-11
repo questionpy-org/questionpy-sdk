@@ -20,24 +20,23 @@ export function to_reference(reference_string) {
  * Resolve the absolute reference of the target element.
  *
  * e.g. merge_reference(["sect", "my_input"], ["chk"]) ->  ["sect", "chk"]
+ * see: https://github.com/questionpy-org/moodle-qtype_questionpy/blob/dev/classes/form/context/render_context.php#L172-L201
  * @param from_reference the absolute reference (list) of the current element
  * @param to_reference  the relative reference (list) to the target element
  * @return list
  */
 export function merge_references(from_reference, to_reference) {
-    console.log('from: ', from_reference)
-    console.log('to: ', to_reference)
-    from_reference = Array.from(from_reference)
-    for (var i = 0; i <= to_reference.filter(ref => ref == '..').length; i++) {
-        from_reference.pop();
-    }
-    return from_reference.concat(to_reference);
-}
-
-
-export function change_reference_trunk(reference, new_trunc) {
-    for (let i = 0; i < new_trunc.length; i++) {
-        reference[i] = new_trunc[i];
-    }
-    return reference;
+    from_reference = Array.from(from_reference);
+    from_reference.pop();
+    to_reference.forEach(part => {
+        if (part === '..') {
+            const removed = from_reference.pop();
+            if (typeof removed == 'number') {
+                from_reference.pop()
+            }
+        } else {
+            from_reference.push(part);
+        }
+    });
+    return from_reference;
 }

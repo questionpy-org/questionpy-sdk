@@ -37,14 +37,10 @@
 {% endmacro %}
 
 
-{% for repetition in form_data %}
-                {{ create_repetition(section_name, element_options, repetition, absolute_path) }}
-            {% endfor %}
-
 {% macro create_repetition(section_name, repetition_element, form_data, absolute_path) %}
     {% set element_id = absolute_path|join("_") %}
     <div class="repetition" id="rep_{{ element_id }}" name="{{ absolute_path|join('][')|replace(']', '', 1) ~ ']' }}"
-         data-section="{{section_name}}" >
+         data-section="{{section_name}}">
 
         {% if form_data %}
             {% for repetition in form_data %}
@@ -52,7 +48,8 @@
                 <div class="repetition-content" id="">
                     {{ create_elements(section_name, repetition_element.elements, repetition, absolute_path) }}
                     <button class="repetition-button-delete" id="rep_{{ element_id }}_delete_button"
-                        name="{{ absolute_path|join('][')|replace(']', '', 1) ~ ']' }}">
+                        name="{{ absolute_path|join('][')|replace(']', '', 1) ~ ']' }}"
+                        {{ {'data-initial_repetitions': repetition_element.initial_repetitions|tojson|forceescape}|xmlattr}}>
                         Delete
                     </button>
                 </div>
@@ -64,7 +61,8 @@
                 <div class="repetition-content" id="">
                     {{ create_elements(section_name, repetition_element.elements, form_data, absolute_path) }}
                     <button class="repetition-button-delete" id="rep_{{ element_id }}_delete_button"
-                        name="{{ absolute_path|join('][')|replace(']', '', 1) ~ ']' }}">
+                        name="{{ absolute_path|join('][')|replace(']', '', 1) ~ ']' }}"
+                        {{ {'data-initial_repetitions': repetition_element.initial_repetitions|tojson|forceescape}|xmlattr}}>
                         Delete
                     </button>
                 </div>
