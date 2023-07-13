@@ -4,10 +4,7 @@
 
 import json
 from pathlib import Path
-from typing import Optional, Union, List, Any
-
-from questionpy_common.elements import StaticTextElement, SelectElement, GroupElement, OptionsFormDefinition, \
-    FormElement, RepetitionElement
+from typing import Optional, Any, Union
 
 
 def _unflatten(flat_form_data: dict[str, str]) -> dict[str, Any]:
@@ -20,34 +17,52 @@ def _unflatten(flat_form_data: dict[str, str]) -> dict[str, Any]:
                 current_dict[k] = {}
             current_dict = current_dict[k]
         current_dict[key.split('[')[-1][:-1]] = value
-    return unflattened_dict
+
+    result = _convert_repetition_dict_to_list(unflattened_dict)
+    if isinstance(result, dict):
+        return result
+    else:
+        raise ValueError("The result is not a dictionary.")
 
 
-def add_repetition(form_data: dict[str, Any], form_definition: OptionsFormDefinition, reference: list) \
-        -> dict[str, Any]:
+def _convert_repetition_dict_to_list(dictionary: dict[str, Any]) -> Union[dict[str, Any], list[Any]]:
+    if not isinstance(dictionary, dict):
+        return dictionary
+
+    if all(key.isnumeric() for key in dictionary.keys()):
+        return list(dictionary.values())
+
+    for key, value in dictionary.items():
+        dictionary[key] = _convert_repetition_dict_to_list(value)
+
+    return dictionary
+
+
+def parse_form_data(form_data: dict) -> dict:
+    unflattened_form_data = _unflatten(form_data)
+    options = unflattened_form_data['general']
+    for section_name, section in unflattened_form_data.items():
+        if not section_name == 'general':
+            options[section_name] = section
+    return options
+
+
+def add_repetition(form_data: dict[str, Any], reference: list, increment: int) -> dict[str, Any]:
     """Adds repetitions of the referenced RepetitionElement to the form_data."""
-    # Find RepetitionElement in the FormDefinition.
-    definition_element = form_definition.general
-    form_data_element = form_data
+    current_element = form_data
 
     if ref := reference.pop(0) != 'general':
-        section = next(filter(lambda s: s.name == ref, form_definition.sections))
-        definition_element = section.elements
-        form_data_element = form_data_element[section.name]
+        current_element = current_element[ref]
     while reference:
         ref = reference.pop(0)
-        element = next(filter(lambda e: (e.name == ref), definition_element))
-        if not (isinstance(element, GroupElement) or isinstance(element, RepetitionElement)):
-            return form_data
-        definition_element = element.elements
-        form_data_element = form_data_element[ref]
+        current_element = current_element[ref]
 
-    if not isinstance(element, RepetitionElement) or not isinstance(form_data_element, list):
+    if not isinstance(current_element, list):
         return form_data
 
     # Add "increment" number of repetitions.
-    for i in range(element.increment):
-        form_data_element.append(form_data_element[-1])
+    for i in range(increment):
+        current_element.append(current_element[-1])
 
     return form_data
 
@@ -75,40 +90,3 @@ class QuestionStateStorage:
             return None
         self.paths[key] = path
         return json.loads(path.read_text())
-
-    def parse_form_data(self, form_definition: OptionsFormDefinition, form_data: dict) -> dict:
-        unflattened_form_data = _unflatten(form_data)
-        options = self._parse_section(form_definition.general, unflattened_form_data['general'])
-        for section in form_definition.sections:
-            options[section.name] = self._parse_section(section.elements, unflattened_form_data[section.name])
-        return options
-
-    def _parse_section(self, section: List[FormElement], section_form_data: dict) -> dict:
-        options = {}
-        for form_element in section:
-            if not isinstance(form_element, StaticTextElement) \
-                    and (form_element.name in section_form_data or isinstance(form_element, GroupElement)):
-                parsed_element = self._parse_form_element(form_element, section_form_data)
-                if parsed_element:
-                    options[form_element.name] = parsed_element
-        return options
-
-    def _parse_form_element(self, form_element: FormElement, form_data: dict) \
-            -> Optional[Union[str, int, list, dict, FormElement]]:
-        if isinstance(form_element, SelectElement):
-            return form_data[form_element.name]
-        elif isinstance(form_element, GroupElement):
-            if form_element.name not in form_data:
-                return None
-            group = {}
-            for child in form_element.elements:
-                if not isinstance(child, StaticTextElement) and child.name in form_data[form_element.name]:
-                    group[child.name] = self._parse_form_element(child, form_data[form_element.name])
-            return group
-        elif isinstance(form_element, RepetitionElement):
-            repetition = []
-            for key, value in form_data[form_element.name].items():
-                repetition.append(self._parse_section(form_element.elements, value))
-            return repetition
-        else:
-            return form_data[form_element.name]

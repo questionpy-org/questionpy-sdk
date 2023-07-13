@@ -243,12 +243,18 @@ async function add_repetition_element(event) {
 
     const json_form_data = {};
     for (const pair of new FormData(form)) {
-        json_form_data[pair[0]] = pair[1];
+        if (json_form_data[pair[0]]) {
+            json_form_data[pair[0]] = [json_form_data[pair[0]]]
+            json_form_data[pair[0]].push(pair[1]);
+        } else {
+            json_form_data[pair[0]] = pair[1];
+        }
     }
 
     const data = {
         'form_data': json_form_data,
-        'element-name': event.target.name
+        'element-name': event.target.name,
+        'increment': event.target.dataset['repetition_increment']
     }
 
     const headers = {'Content-Type': 'application/json'}
