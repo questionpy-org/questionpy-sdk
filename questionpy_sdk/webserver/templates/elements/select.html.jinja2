@@ -1,6 +1,9 @@
 {% extends "elements/element.html.jinja2" %}
 
 {% block content %}
+    {% if element_options.multiple and element_options.multiple == True %}
+        {% set element_reference = element_reference + '_[]' %}
+    {% endif %}
    <select class="answer-{{ element_options.kind }}" name="{{ element_reference }}"
     {{ 'multiple' if element_options.multiple and element_options.multiple == True }}>
 {# TODO: sollen wir diese Aufforderung drin lassen wenn required=false ist? Dann müssen wir auch was im _dsl #}
