@@ -193,11 +193,9 @@ async function handle_submit(event) {
     for (const pair of new FormData(event.target)) {
         json_form_data[pair[0]] = pair[1];
     }
-    console.log(json_form_data);
 
     const headers = {'Content-Type': 'application/json'}
-    const response = await post_http_request('http://0.0.0.0:8080/submit', headers, json_form_data);
-    console.log(response)
+    const response = await post_http_request('/submit', headers, json_form_data);
     if (response.status == 200){
         document.getElementById('submit_success_info').hidden = null;
     } else {
