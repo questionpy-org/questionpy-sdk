@@ -26,7 +26,8 @@ class MyModel(FormModel):
     nonumy eirmod tempor invidunt ut labore et dolore magna aliquyam erat, sed diam voluptua. At vero eos et accusam
     et justo duo dolores et ea rebum.""")
     input = text_input("My second Input", required=True, hide_if=[is_checked("chk")])
-    chk = checkbox("Left label", None)
+    chk = checkbox("Left label", None, help="""Lorem ipsum dolor sit amet, consetetur sadipscing elitr, sed diam
+    nonumy eirmod tempor invidunt ut labore et dolore magna aliquyam erat, sed diam voluptua.""")
     radio = radio_group("My Radio Group", MyOptions)
     my_select = select("My select box", MyOptions, multiple=True)
     my_hidden = hidden("foo")

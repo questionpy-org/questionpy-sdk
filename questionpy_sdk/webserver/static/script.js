@@ -36,7 +36,7 @@ function get_elements_with_conditions() {
  * @param {string} condition_type.value from ['disable_if', 'hide_if']
  * @return void
  */
-function add_conditions_to_element(element, condition_type){
+function add_conditions_to_element(element, condition_type) {
     if (!element.conditions) {
         element.conditions = {};
     }
@@ -66,11 +66,13 @@ function add_source_element_to_target(target, source, condition_type) {
         target.source_elements = []
     }
     target.source_elements.push(source);
-    switch(condition_type.value) {
+    switch (condition_type.value) {
         case conditions.Types.values.hide_if:
-            target.addEventListener("change", hide_if_listener); break;
+            target.addEventListener("change", hide_if_listener);
+            break;
         case conditions.Types.values.disable_if:
-            target.addEventListener("change", disable_if_listener); break;
+            target.addEventListener("change", disable_if_listener);
+            break;
     }
 }
 
@@ -158,11 +160,13 @@ function enable(element) {
  * @param {string} condition_type_value
  */
 function toggle_condition(element, condition_type_value) {
-    switch(condition_type_value) {
+    switch (condition_type_value) {
         case conditions.Types.values.hide_if:
-            toggle_visibility(element); break;
+            toggle_visibility(element);
+            break;
         case conditions.Types.values.disable_if:
-            toggle_availability(element); break;
+            toggle_availability(element);
+            break;
     }
 }
 
@@ -200,7 +204,7 @@ function create_json_form_data(form) {
 
     for (var entry in json_form_data) {
         if (entry.endsWith('_[]')) {
-            json_form_data[entry.substring(0, entry.length-3)] = json_form_data[entry];
+            json_form_data[entry.substring(0, entry.length - 3)] = json_form_data[entry];
             delete json_form_data[entry];
         }
     }
@@ -217,7 +221,7 @@ function create_json_form_data(form) {
  * @return {Promise<*>}
  */
 async function post_http_request(url, headers, body) {
-    if(!url || !headers || !body) {
+    if (!url || !headers || !body) {
         throw new Error("One or more POST request parameters was not passed.");
     }
     try {
@@ -226,7 +230,7 @@ async function post_http_request(url, headers, body) {
             headers: headers,
             body: JSON.stringify(body)
         });
-    } catch(err) {
+    } catch (err) {
         console.error(`Error at fetch POST: ${err}`);
         throw err;
     }
@@ -245,7 +249,7 @@ async function handle_submit(event) {
     const json_form_data = create_json_form_data(event.target);
     const headers = {'Content-Type': 'application/json'}
     const response = await post_http_request('/submit', headers, json_form_data);
-    if (response.status == 200){
+    if (response.status == 200) {
         document.getElementById('submit_success_info').hidden = null;
     } else {
         alert('An error occured.');
@@ -272,7 +276,7 @@ async function add_repetition_element(event) {
 
     const headers = {'Content-Type': 'application/json'}
     const response = await post_http_request('/repeat', headers, data);
-    if (response.status == 200){
+    if (response.status == 200) {
         document.getElementById('submit_success_info').hidden = null;
         window.location.reload();
     } else {
@@ -295,6 +299,42 @@ async function delete_repetition_element(event) {
 }
 
 
+/**
+ * Hides all help_dialogs when the target of the event is not the previously clicked element.
+ * @param event
+ * @return {Promise<void>}
+ */
+async function hide_help_dialogs(event) {
+    const help_dialogs = document.getElementsByClassName("help_dialog");
+
+    if (event.target !== help_icon) {
+        Array.from(help_dialogs).forEach(dialog => dialog.style.display = "none");
+    }
+}
+
+
+/**
+ * Shows the corresponding help dialog when a help icon is clicked.
+ * @param event click
+ * @return {Promise<void>}
+ */
+async function show_help_dialog(event) {
+    await hide_help_dialogs(event);
+
+    const icon = event.target;
+    help_icon = icon;
+
+    const help_dialog = icon.parentElement.getElementsByClassName("help_dialog")[0];
+    help_dialog.style.left = `${icon.offsetLeft}px`;
+    help_dialog.style.display = 'block';
+}
+
+
+/**
+ * Current selected help_icon.
+ * @type {HTMLElement}
+ */
+let help_icon = null;
 
 document.addEventListener("DOMContentLoaded", function () {
     const elements = get_elements_with_conditions();
@@ -309,4 +349,9 @@ document.addEventListener("DOMContentLoaded", function () {
 
     const repetition_buttons_delete = document.getElementsByClassName("repetition-button-delete");
     Array.from(repetition_buttons_delete).forEach(button => button.addEventListener("click", delete_repetition_element));
+
+    const help_icons = document.getElementsByClassName("help_icon");
+    Array.from(help_icons).forEach(icon => icon.addEventListener("click", show_help_dialog));
+
+    document.addEventListener('click', hide_help_dialogs);
 })

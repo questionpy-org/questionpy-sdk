@@ -41,7 +41,7 @@ html, body {
 }
 
 .header {
-    margin:0;
+    margin: 0;
 }
 
 
@@ -91,6 +91,8 @@ html, body {
     float: left;
     width: 12em;
     overflow: hidden;
+    display: table;
+    justify-content: space-between;
 }
 
 p.info {
@@ -132,3 +134,48 @@ fieldset {
     width: 100%;
 }
 
+/* Icons */
+
+.icon_container {
+    display: table-cell;
+    vertical-align: middle;
+}
+
+.icon {
+    height: 16px;
+    width: 16px;
+    display: block;
+    margin: auto 0 auto auto;
+}
+
+.help_icon {
+    background: url('help_icon.png');
+    background-size: contain;
+    cursor: pointer;
+}
+
+.help_icon::before {
+    content: attr(title);
+    position: absolute;
+    top: -30px;
+    left: 50%;
+    transform: translateX(-50%);
+    background-color: #333;
+    color: #fff;
+    padding: 5px 10px;
+    border-radius: 5px;
+    font-size: 12px;
+    opacity: 0.9;
+}
+
+.help_dialog {
+    position: absolute;
+    transform: translateY(calc(-50% - 8px));
+    background-color: #fff;
+    border: 1px solid #ccc;
+    box-shadow: 0 2px 4px rgba(0, 0, 0, 0.1);
+    display: none;
+    z-index: 1;
+    padding: 5px 10px;
+    margin: auto 20% auto 24px;
+}

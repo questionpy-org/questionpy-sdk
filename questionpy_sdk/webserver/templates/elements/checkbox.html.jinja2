@@ -2,7 +2,14 @@
 
 {% block info %}
     {% if element_options.left_label %}
-        {{ element_options.left_label }}
+        <p class="element-label">{{ element_options.left_label }}{{ '*' if element_options.required }}</p>
+    {% endif %}
+    {% if element_options.help %}
+        {% if element_options.left_label %}
+        	{{ macros.create_icon_container(element_options.left_label, element_options.help) }}
+        {% elif element_options.right_label %}
+            {{ macros.create_icon_container(element_options.right_label, element_options.help) }}
+        {% endif %}
     {% endif %}
 {% endblock %}
 
@@ -15,8 +22,7 @@
                 {{ 'checked' if element_options.selected and not form_data
                     or form_data is defined and form_data}}>
         {% if element_options.right_label %}
-            {{ element_options.right_label }}
+            {{ element_options.right_label }}{{ '*' if element_options.required }}
         {% endif %}
-        {{ label }}
     </label>
 {% endblock %}

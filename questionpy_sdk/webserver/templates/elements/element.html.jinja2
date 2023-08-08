@@ -1,3 +1,5 @@
+{% import "./macros.jinja2" as macros %}
+
 {% block element %}
 <div class="element {{ element_options.kind }}" id="el_{{ element_id }}"
         data-section="{{section_name}}"
@@ -7,6 +9,9 @@
     <div class="info">
         {% block info %}
             <p class="element-label">{{ element_options.label }}{{ '*' if element_options.required }}</p>
+            {% if element_options.help %}
+                {{ macros.create_icon_container(element_options.label, element_options.help) }}
+            {% endif %}
         {% endblock %}
     </div>
     <div class="content">

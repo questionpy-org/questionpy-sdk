@@ -77,3 +77,11 @@
         </button>
     </div>
 {% endmacro %}
+
+
+{% macro create_icon_container(label, help_text) %}
+    <div class="icon_container">
+        <i class="icon help_icon" title="Help with {{ label }}"></i>
+        <div class="help_dialog">{{ help_text }}</div>
+    </div>
+{% endmacro %}
