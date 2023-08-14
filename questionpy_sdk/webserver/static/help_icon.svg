@@ -1,0 +1,41 @@
+<?xml version="1.0" encoding="UTF-8" standalone="no"?>
+<!-- Created with Inkscape (http://www.inkscape.org/) -->
+
+<svg
+   width="53.932407mm"
+   height="53.932407mm"
+   viewBox="0 0 53.932407 53.932407"
+   version="1.1"
+   id="svg5"
+   xmlns="http://www.w3.org/2000/svg"
+   xmlns:svg="http://www.w3.org/2000/svg">
+  <defs
+     id="defs2">
+    <rect
+       x="154.96501"
+       y="436.60825"
+       width="204.22826"
+       height="203.83961"
+       id="rect11080" />
+  </defs>
+  <g
+     id="layer1"
+     transform="translate(-76.94319,-108.36787)">
+    <circle
+       style="fill:#5c84b3;fill-opacity:1;fill-rule:evenodd;stroke-width:0.264583"
+       id="path31"
+       cx="103.90939"
+       cy="135.33408"
+       r="26.966204" />
+    <text
+       xml:space="preserve"
+       transform="matrix(0.26458333,0,0,0.26458333,35.97386,-7.1050002)"
+       id="text11078"
+       style="font-style:normal;font-variant:normal;font-weight:900;font-stretch:normal;font-size:180px;line-height:1.25;font-family:Lato;-inkscape-font-specification:'Lato, Heavy';font-variant-ligatures:normal;font-variant-caps:normal;font-variant-numeric:normal;font-variant-east-asian:normal;text-align:center;writing-mode:lr-tb;white-space:pre;shape-inside:url(#rect11080);fill:#000000;fill-opacity:1;stroke:none"><tspan
+         x="214.64424"
+         y="604.00742"
+         id="tspan975"><tspan
+           style="fill:#ececec"
+           id="tspan973">?</tspan></tspan></text>
+  </g>
+</svg>

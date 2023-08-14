@@ -91,8 +91,8 @@ html, body {
     float: left;
     width: 12em;
     overflow: hidden;
+    /* "Display: table" allows a label and an icon to be side by side. */
     display: table;
-    justify-content: space-between;
 }
 
 p.info {
@@ -149,27 +149,16 @@ fieldset {
 }
 
 .help_icon {
-    background: url('help_icon.png');
+    background: url('help_icon.svg');
     background-size: contain;
     cursor: pointer;
 }
 
-.help_icon::before {
-    content: attr(title);
-    position: absolute;
-    top: -30px;
-    left: 50%;
-    transform: translateX(-50%);
-    background-color: #333;
-    color: #fff;
-    padding: 5px 10px;
-    border-radius: 5px;
-    font-size: 12px;
-    opacity: 0.9;
-}
-
 .help_dialog {
     position: absolute;
+    /* Translate up (-Y)
+       50% of help_dialog div height
+       + 8px (50% of icon size) to center the element with the icon */
     transform: translateY(calc(-50% - 8px));
     background-color: #fff;
     border: 1px solid #ccc;
@@ -177,5 +166,7 @@ fieldset {
     display: none;
     z-index: 1;
     padding: 5px 10px;
+    /* Margin-right 20% to scale with container size
+       Margin-left 24px (16px for icon + 8px margin) */
     margin: auto 20% auto 24px;
 }

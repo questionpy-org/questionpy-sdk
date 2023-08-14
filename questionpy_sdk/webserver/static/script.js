@@ -288,7 +288,7 @@ async function add_repetition_element(event) {
 /**
  * When a Delete Button is clicked, removes the corresponding repetition.
  */
-async function delete_repetition_element(event) {
+function delete_repetition_element(event) {
     // prevent reload on click
     event.preventDefault();
     // count current repetitions - 1 for the add-repetition button
@@ -304,7 +304,7 @@ async function delete_repetition_element(event) {
  * @param event
  * @return {Promise<void>}
  */
-async function hide_help_dialogs(event) {
+function hide_help_dialogs(event) {
     const help_dialogs = document.getElementsByClassName("help_dialog");
 
     if (event.target !== help_icon) {
@@ -318,8 +318,8 @@ async function hide_help_dialogs(event) {
  * @param event click
  * @return {Promise<void>}
  */
-async function show_help_dialog(event) {
-    await hide_help_dialogs(event);
+function show_help_dialog(event) {
+    hide_help_dialogs(event);
 
     const icon = event.target;
     help_icon = icon;
