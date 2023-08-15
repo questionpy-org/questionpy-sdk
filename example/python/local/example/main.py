@@ -2,7 +2,11 @@
 #  The QuestionPy SDK is free software released under terms of the MIT license. See LICENSE.md.
 #  (c) Technische Universität Berlin, innoCampus <info@isis.tu-berlin.de>
 
-from questionpy import QuestionType
+from importlib.resources import files
+
+from questionpy_common.models import QuestionModel, ScoringMethod, AttemptModel, AttemptUi
+
+from questionpy import QuestionType, Attempt, Question, BaseQuestionState
 from questionpy.form import *
 
 
@@ -37,5 +41,17 @@ class MyModel(FormModel):
     name_group = group("Name", NameGroup, disable_if=[is_not_checked("has_name")])
 
 
-class ExampleQuestionType(QuestionType[MyModel]):
+class ExampleAttempt(Attempt):
+    def export(self) -> AttemptModel:
+        return AttemptModel(variant=1, ui=AttemptUi(
+            content=(files(__package__) / "multiple-choice.xhtml").read_text()
+        ))
+
+
+class ExampleQuestion(Question[BaseQuestionState, ExampleAttempt]):
+    def export(self) -> QuestionModel:
+        return QuestionModel(scoring_method=ScoringMethod.AUTOMATICALLY_SCORABLE)
+
+
+class ExampleQuestionType(QuestionType[MyModel, ExampleQuestion]):
     pass

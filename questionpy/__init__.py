@@ -3,4 +3,4 @@
 #  (c) Technische Universität Berlin, innoCampus <info@isis.tu-berlin.de>
 
 from questionpy_common.manifest import Manifest, PackageType  # noqa
-from questionpy._qtype import QuestionType  # noqa
+from questionpy._qtype import QuestionType, Question, Attempt, BaseQuestionState, BaseAttemptState  # noqa
