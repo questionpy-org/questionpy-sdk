@@ -3,13 +3,13 @@
 #  (c) Technische Universität Berlin, innoCampus <info@isis.tu-berlin.de>
 
 from dataclasses import dataclass
-from enum import Enum, EnumMeta
-from typing import Callable, Tuple, Type, Iterable, Any, get_origin, get_args, Literal, TYPE_CHECKING, Dict, \
-    Optional, cast
+from enum import Enum
+from typing import Callable, Type, Any, get_origin, get_args, Literal, Optional, TYPE_CHECKING, ClassVar
 
 from pydantic import BaseModel, Field
-from pydantic.fields import ModelField
-from pydantic.main import ModelMetaclass
+from pydantic._internal._model_construction import ModelMetaclass
+from pydantic.main import FieldInfo
+from pydantic_core import CoreSchema, core_schema
 from questionpy_common.elements import FormElement, FormSection, OptionsFormDefinition
 
 
@@ -18,72 +18,25 @@ class _OptionInfo:
     label: str
     selected: bool
     value: Optional[str] = None
-    """Set by :meth:`_OptionEnumMeta.__new__` because __set_name__ doesn't get called for enum members."""
+    """Set by :meth:`OptionEnum.__init__` because __set_name__ doesn't get called for enum members."""
 
 
-class _OptionEnumMeta(EnumMeta):
-    """
-    This metaclass is necessary in order to make :class:`OptionEnum`\\ s subclasses of str without losing the ``label``
-    and ``selected`` attributes. Making them subclasses of str means they will be serialized to their value without any
-    custom json encoders.
-    """
-
-    def __new__(mcs, cls_name: str, bases: tuple[type, ...], namespace: dict, **kwargs: object) -> "_OptionEnumMeta":
-        for key, member in namespace.items():
-            if not (key.startswith("_") and key.endswith("_")):
-                if not isinstance(member, _OptionInfo):
-                    raise TypeError("Please use option(label, selected) to create OptionEnum members")
-
-                member.value = key
-
-        return super().__new__(mcs, cls_name, bases, cast(Any, namespace), **kwargs)
-
-
-class OptionEnum(str, Enum, metaclass=_OptionEnumMeta):
+class OptionEnum(Enum):
     """Enum specifying the possible options for radio groups and drop-downs.
 
     Specify options using `option`.
-
-    Implementation Note:
-        When serialized by ``json.dump(s)`` or Pydantic's ``.json()``, we want :class:`OptionEnum` members to produce
-        their value as a string. Pydantic supports this with some drawbacks using ``json_encoders``, but
-        ``json.dump(s)`` does not. Instead, we make :class:`OptionEnum` a subclass of ``str``, so it is automatically
-        serialized as a string.
-
-        >>> from questionpy.form import option
-        >>> class MyEnum(OptionEnum):
-        ...     OPT_1 = option("Some Label")
-        >>> isinstance(MyEnum.OPT_1, str)
-        True
-        >>> MyEnum.OPT_1 == "OPT_1"
-        True
-
-        Here, Python will pass the :class:`_OptionInfo` returned by :func:`option` to :meth:`OptionEnum.__new__`.
-        However, :class:`_OptionInfo` does not contain the name of the enum member, which we want the str value to be.
-        Apart from passing `"OPT_1"` again to :func:`option`, the solution to this is a custom metaclass extending
-        :class:`EnumMeta`. The metaclass adds the member name to the :class:`_OptionInfo`, allowing
-        :meth:`OptionEnum.__new__` to use it as the string value (by passing it to :meth:`str.__new__`).
-
-        :meth:`OptionEnum.__init__` then sets the ``label`` and ``selected`` flag on the enum member.
-
-        >>> MyEnum.OPT_1.label
-        'Some Label'
-        >>> MyEnum.OPT_1.selected
-        False
     """
-
-    def __new__(cls, option: _OptionInfo) -> "OptionEnum":
-        return super().__new__(cls, option.value)
 
     def __init__(self, option: _OptionInfo) -> None:
         super().__init__()
-        self._value_ = option.value
+        self._value_ = option.value = self.name
         self.label = option.label
         self.selected = option.selected
 
     @classmethod
-    def __get_validators__(cls) -> Iterable[Callable[[Any], "OptionEnum"]]:
-        """This allows pydantic to convert a string to the enum member with that name."""
+    def __get_pydantic_core_schema__(cls, *_: object) -> CoreSchema:
+        # Configure Pydantic to validate us from and serialize us to strings.
+        # This doesn't change the behaviour of json.dump or json.load, but that's probably ok.
 
         def validate(value: Any) -> "OptionEnum":
             if isinstance(value, cls):
@@ -97,7 +50,13 @@ class OptionEnum(str, Enum, metaclass=_OptionEnumMeta):
 
             raise TypeError(f"str or {cls.__name__} required, got '{value}'")
 
-        yield validate
+        def serialize(enum_member: "OptionEnum") -> str:
+            return enum_member.value
+
+        return core_schema.no_info_plain_validator_function(
+            validate,
+            serialization=core_schema.plain_serializer_function_ser_schema(serialize)
+        )
 
 
 @dataclass
@@ -159,30 +118,33 @@ class _FormModelMeta(ModelMetaclass):
 
     if TYPE_CHECKING:
         # this is set by ModelMetaclass, but mypy doesn't know
-        __fields__: Dict[str, ModelField]
+        model_fields: dict[str, FieldInfo]
 
     __slots__ = ()
 
-    def __new__(mcs, name: str, bases: tuple[type, ...], namespace: dict, **kwargs: object) -> "_FormModelMeta":
+    # pylint: disable=signature-differs
+    def __new__(mcs, name: str, bases: tuple[type, ...], namespace: dict, **kwargs: Any) -> type:
         annotations = namespace.get("__annotations__", {}).copy()
         new_namespace = {}
+        form = OptionsFormDefinition()
 
         for key, value in namespace.items():
             if isinstance(value, _FieldInfo):
                 expected_type = value.type
-                new_namespace[key] = Field(form_element=value.build(key))
+                form.general.append(value.build(key))
+                new_namespace[key] = Field()
                 if value.default is not ...:
                     new_namespace[key].default = value.default
                 elif value.default_factory:
                     new_namespace[key].default_factory = value.default_factory
             elif isinstance(value, _SectionInfo):
-                section = FormSection(name=key, header=value.header, elements=value.model.qpy_form.general)
+                form.sections.append(FormSection(name=key, header=value.header, elements=value.model.qpy_form.general))
                 expected_type = value.model
-                new_namespace[key] = Field(form_section=section)
             elif isinstance(value, _StaticElementInfo):
                 element = value.build(key)
+                form.general.append(element)
                 expected_type = type(element)
-                new_namespace[key] = Field(default=element, const=True, form_element=element, exclude=True)
+                new_namespace[key] = Field(default=element, frozen=True, exclude=True)
             else:
                 # not one of our special types, use as is
                 new_namespace[key] = value
@@ -198,19 +160,9 @@ class _FormModelMeta(ModelMetaclass):
                 # this won't help type checkers or code completion, but will allow pydantic to validate inputs
                 annotations[key] = expected_type
 
+        new_namespace["qpy_form"] = form
         new_namespace["__annotations__"] = annotations
         return super().__new__(mcs, name, bases, new_namespace, **kwargs)
-
-    def __init__(cls, name: str, bases: Tuple[type, ...], namespace: dict):
-        super().__init__(name, bases, namespace)
-
-        cls.qpy_form = OptionsFormDefinition(
-            general=[field.field_info.extra["form_element"] for field in cls.__fields__.values()
-                     if "form_element" in field.field_info.extra],
-            sections=[field.field_info.extra["form_section"] for field in cls.__fields__.values()
-                      if "form_section" in field.field_info.extra]
-        )
-        """The form defined by this declarative model."""
 
 
 class FormModel(BaseModel, metaclass=_FormModelMeta):
@@ -220,3 +172,6 @@ class FormModel(BaseModel, metaclass=_FormModelMeta):
     type-safe instance of your model.
     """
     __slots__ = ()
+
+    qpy_form: ClassVar[OptionsFormDefinition]
+    """The form defined by this declarative model."""

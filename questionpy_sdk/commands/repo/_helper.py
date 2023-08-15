@@ -4,13 +4,13 @@
 
 from bisect import insort
 from datetime import datetime, timezone
-from pathlib import Path
 from gzip import open as gzip_open
+from pathlib import Path
 from zipfile import ZipFile
 
 from questionpy_server.misc import calculate_hash
 from questionpy_server.repository.models import RepoPackageVersions, RepoPackageVersion, RepoMeta, RepoPackageIndex
-from questionpy_server.utils.manfiest import ComparableManifest, semver_encoder
+from questionpy_server.utils.manifest import ComparableManifest
 
 
 def get_manifest(path: Path) -> ComparableManifest:
@@ -71,12 +71,12 @@ class IndexCreator:
         packages_path = self._root / "PACKAGES.json.gz"
 
         for package in self._packages.values():
-            repo_package_dict = package.dict(exclude={"manifest": {"entrypoint"}})
+            repo_package_dict = package.model_dump(exclude={"manifest": {"entrypoint"}})
             packages.append(repo_package_dict)
 
         with gzip_open(packages_path, "wt") as gzip_file:
             index = RepoPackageIndex(packages=packages)
-            gzip_file.write(index.json(encoder=semver_encoder))
+            gzip_file.write(index.model_dump_json())
 
         return packages_path
 
@@ -94,7 +94,7 @@ class IndexCreator:
             size=index_path.stat().st_size,
         )
         meta_path = self._root / "META.json"
-        meta_path.write_text(meta.json())
+        meta_path.write_text(meta.model_dump_json())
         return meta_path
 
     def write(self) -> tuple[Path, Path]:

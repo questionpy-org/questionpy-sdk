@@ -11,7 +11,9 @@ from aiohttp import web
 from aiohttp.web_exceptions import HTTPBadRequest
 from jinja2 import FileSystemLoader
 from questionpy_common.constants import MiB
+from questionpy_common.elements import OptionsFormDefinition
 from questionpy_server import WorkerPool
+from questionpy_server.worker.worker import Worker
 from questionpy_server.worker.exception import WorkerUnknownError
 from questionpy_server.worker.worker.thread import ThreadWorker
 
@@ -49,13 +51,14 @@ async def render_options(request: web.Request) -> web.Response:
     stored_state = webserver.state_storage.get(webserver.package)
     old_state: Optional[bytes] = json.dumps(stored_state).encode() if stored_state else None
 
+    worker: Worker
     async with webserver.worker_pool.get_worker(webserver.package, 0, None) as worker:
         manifest = await worker.get_manifest()
         form_definition, form_data = await worker.get_options_form(old_state)
 
     context = {
         'manifest': manifest,
-        'options': form_definition.dict(),
+        'options': form_definition.model_dump(),
         'form_data': form_data
     }
 
@@ -71,6 +74,7 @@ async def submit_form(request: web.Request) -> web.Response:
     stored_state = webserver.state_storage.get(webserver.package)
     old_state: Optional[bytes] = json.dumps(stored_state).encode() if stored_state else None
 
+    worker: Worker
     async with webserver.worker_pool.get_worker(webserver.package, 0, None) as worker:
         try:
             question = await worker.create_question_from_options(old_state, form_data=parsed_form_data)
@@ -94,6 +98,7 @@ async def repeat_element(request: web.Request) -> web.Response:
     stored_state = webserver.state_storage.get(webserver.package)
     old_state: Optional[bytes] = json.dumps(stored_state).encode() if stored_state else None
 
+    worker: Worker
     async with webserver.worker_pool.get_worker(webserver.package, 0, None) as worker:
         manifest = await worker.get_manifest()
         try:
@@ -103,11 +108,12 @@ async def repeat_element(request: web.Request) -> web.Response:
 
         new_state = question.question_state
         webserver.state_storage.insert(webserver.package, json.loads(new_state))
+        form_definition: OptionsFormDefinition
         form_definition, form_data = await worker.get_options_form(new_state.encode())
 
     context = {
         'manifest': manifest,
-        'options': form_definition.dict(),
+        'options': form_definition.model_dump(),
         'form_data': form_data
     }
 

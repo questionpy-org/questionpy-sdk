@@ -2,11 +2,10 @@
 #  The QuestionPy SDK is free software released under terms of the MIT license. See LICENSE.md.
 #  (c) Technische Universität Berlin, innoCampus <info@isis.tu-berlin.de>
 
-import json
 from typing import Optional, List, Literal, Set, Any
 
 import pytest
-from pydantic import ValidationError, parse_raw_as
+from pydantic import ValidationError, TypeAdapter
 
 from questionpy.form import *  # pylint: disable=wildcard-import
 
@@ -22,9 +21,9 @@ class SimpleFormModel(FormModel):
 class NestedFormModel(FormModel):
     general_field: Optional[str] = text_input("General Text Input")
 
-    sect = section("My Header", SimpleFormModel)
-    grp = group("My Group", SimpleFormModel)
-    rep = repeat(SimpleFormModel, initial=1)
+    sect: SimpleFormModel = section("My Header", SimpleFormModel)
+    grp: SimpleFormModel = group("My Group", SimpleFormModel)
+    rep: list[SimpleFormModel] = repeat(SimpleFormModel, initial=1)
 
 
 def test_SimpleFormModel_should_render_correct_form() -> None:
@@ -67,7 +66,7 @@ def test_NestedFormModel_should_parse_correctly() -> None:
 
 def test_should_raise_ValidationError_when_required_option_is_missing() -> None:
     with pytest.raises(ValidationError):
-        SimpleFormModel.parse_obj({})
+        SimpleFormModel.model_validate({})
 
 
 @pytest.mark.parametrize("initializer,expected_elements", [
@@ -138,13 +137,11 @@ def test_should_parse_correctly_when_input_is_valid(annotation: object, initiali
     class TheModel(FormModel):
         field: annotation = initializer  # type: ignore[valid-type]
 
-    parsed = TheModel.parse_obj({} if input_value is Ellipsis else {
+    parsed = TheModel.model_validate({} if input_value is Ellipsis else {
         "field": input_value
     })
 
-    assert parsed.dict() == {
-        "field": expected_result
-    }
+    assert parsed.field == expected_result
 
 
 @pytest.mark.parametrize("annotation,initializer,input_value", [
@@ -178,7 +175,7 @@ def test_should_raise_ValidationError_when_input_is_invalid(annotation: object, 
         field: annotation = initializer  # type: ignore[valid-type]
 
     with pytest.raises(ValidationError):
-        TheModel.parse_obj({} if input_value is Ellipsis else {
+        TheModel.model_validate({} if input_value is Ellipsis else {
             "field": input_value
         })
 
@@ -218,11 +215,14 @@ def test_should_raise_TypeError_when_annotation_is_wrong(annotation: object, ini
 
 
 def test_OptionEnum_should_serialize_to_value() -> None:
-    assert json.dumps(MyOptionEnum.OPT_1) == '"OPT_1"'
+    type_adapter = TypeAdapter(MyOptionEnum)
+    assert type_adapter.dump_json(MyOptionEnum.OPT_1) == b'"OPT_1"'
 
 
 def test_OptionEnum_should_deserialize_from_value() -> None:
-    assert parse_raw_as(MyOptionEnum, '"OPT_1"') is MyOptionEnum.OPT_1
+    type_adapter = TypeAdapter(MyOptionEnum)
+    assert type_adapter.validate_python("OPT_1") is MyOptionEnum.OPT_1
+    assert type_adapter.validate_json('"OPT_1"') is MyOptionEnum.OPT_1
 
 
 def test_group_without_required_fields_can_be_omitted() -> None:
@@ -230,9 +230,9 @@ def test_group_without_required_fields_can_be_omitted() -> None:
         optional: Optional[str] = text_input("")
 
     class Outer(FormModel):
-        grp = group("", Inner)
+        grp: Inner = group("", Inner)
 
-    parsed = Outer.parse_obj({})
+    parsed = Outer.model_validate({})
     assert isinstance(parsed.grp, Inner)
     assert parsed.grp.optional is None
 
@@ -242,7 +242,7 @@ def test_group_with_required_field_cannot_be_omitted() -> None:
         optional: str = text_input("", required=True)
 
     class Outer(FormModel):
-        grp = group("", Inner)
+        grp: Inner = group("", Inner)
 
     with pytest.raises(ValidationError):
-        Outer.parse_obj({})
+        Outer.model_validate({})

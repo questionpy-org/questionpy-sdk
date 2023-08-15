@@ -13,7 +13,6 @@ from typing import Optional
 import click
 import yaml
 from pydantic import ValidationError
-
 from questionpy_common.manifest import Manifest
 
 import questionpy
@@ -42,7 +41,7 @@ def package(source: Path, manifest_path: Optional[Path], out_path: Optional[Path
 
     with manifest_path.open() as manifest_f:
         try:
-            manifest = Manifest.parse_obj(yaml.safe_load(manifest_f))
+            manifest = Manifest.model_validate(yaml.safe_load(manifest_f))
         except yaml.YAMLError as e:
             raise click.ClickException(f"Failed to parse manifest '{manifest_path}': {e}")
         except ValidationError as e:

@@ -23,10 +23,10 @@ script = "build.py"
 click = "8.1.3"
 python = "^3.9"
 aiohttp = "^3.8.1"
-pydantic = "^1.10.5"
+pydantic = "^2.2.1"
 PyYAML = "^6.0"
-questionpy-common = { git = "https://github.com/questionpy-org/questionpy-common.git", rev = "9b3bedd711b2b699b26882ba187002a97bf8a057" }
-questionpy-server = { git = "https://github.com/questionpy-org/questionpy-server.git", rev = "ddae12f3cdbc034e99d16ee58eee757a12173fc8" }
+questionpy-common = { git = "https://github.com/questionpy-org/questionpy-common.git", rev = "28e923b2c0bb24537918e82a69a7af8e96da802a" }
+questionpy-server = { git = "https://github.com/questionpy-org/questionpy-server.git", rev = "cb6787d1ed5a035303d158c46b101b1489100791" }
 jinja2 = "^3.1.2"
 aiohttp-jinja2 = "^1.5"
 

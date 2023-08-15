@@ -2,7 +2,6 @@
 #  The QuestionPy SDK is free software released under terms of the MIT license. See LICENSE.md.
 #  (c) Technische Universität Berlin, innoCampus <info@isis.tu-berlin.de>
 
-import json
 from typing import Any, Optional, Type, Generic, TypeVar, ClassVar, get_args, get_origin
 
 from pydantic import BaseModel, ValidationError
@@ -59,16 +58,13 @@ class QuestionType(BaseQuestionType, Generic[F]):
     def create_question_from_options(self, old_state: Optional[dict[str, object]],
                                      form_data: dict[str, object]) -> BaseQuestion:
         try:
-            parsed_form_data = self.form_model.parse_obj(form_data)
+            parsed_form_data = self.form_model.model_validate(form_data)
         except ValidationError as e:
             error_dict = {".".join(map(str, error["loc"])): error["msg"] for error in e.errors()}
             raise OptionsFormValidationError(error_dict) from e
 
         new_state = old_state.copy() if old_state else {}
-        # In dict(), pydantic doesn't serialize non-BaseModel fields such as out OptionEnum.
-        # So we do json() and loads() again. Looks like this is going to be fixed in pydantic v2:
-        # https://github.com/pydantic/pydantic/issues/951
-        new_state.update(json.loads(parsed_form_data.json()))
+        new_state.update(parsed_form_data.model_dump(mode="json"))
 
         return Question(question_state=new_state)
 

@@ -9,7 +9,6 @@ from zipfile import ZipFile
 
 import click
 import yaml
-
 from questionpy_common.manifest import ensure_is_valid_name, DEFAULT_NAMESPACE
 
 from questionpy_sdk.resources import EXAMPLE_PACKAGE
@@ -17,10 +16,10 @@ from questionpy_sdk.resources import EXAMPLE_PACKAGE
 log = logging.getLogger(__name__)
 
 
-# TODO: use partial model validation instead of accessing the validator directly.
-#       This feature will be available in pydantic V2:
-#       https://github.com/pydantic/pydantic/pull/3179#issuecomment-1205328414
 def validate_name(context: click.Context, _parameter: click.Parameter, value: str) -> str:
+    # We could model_validate() the manifest dict instead, but the pydantic.ValidationError would lead to a less nice
+    # error message. If we end up doing this in lots of places, converting the ValidationError to a custom
+    # click.UsageError might be nice.
     try:
         return ensure_is_valid_name(value)
     except ValueError as error:
