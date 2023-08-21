@@ -8,6 +8,24 @@ from typing import Optional, Any, Union
 
 
 def _unflatten(flat_form_data: dict[str, str]) -> dict[str, Any]:
+    """Splits the keys of a dictionary to form a new nested dictionary.
+
+    Each key of the input dictionary is a reference string of a FormElements from the Options Form.
+    These strings are split to create a nested dictionary, where each key is one part of the reference.
+    Additionally: Dictionaries with only numerical keys (Repetition Elements) are replaced by lists.
+
+    Example:
+        {'general[my_hidden]': 'foo',\n
+        'general[my_repetition][1][role]': 'OPT_1',\n
+        'general[my_repetition][1][name][first_name]': 'John '}
+
+        becomes:\n
+        {'general': {
+            'my_hidden': 'foo',\n
+            'my_repetition': [{'name': {'first_name': 'John '}, 'role': 'OPT_1'}]
+            }
+        }
+    """
     unflattened_dict: dict[str, Any] = {}
     for key, value in flat_form_data.items():
         keys = key.replace(']', '').split('[')[:-1]
@@ -26,6 +44,7 @@ def _unflatten(flat_form_data: dict[str, str]) -> dict[str, Any]:
 
 
 def _convert_repetition_dict_to_list(dictionary: dict[str, Any]) -> Union[dict[str, Any], list[Any]]:
+    """Recursively transforms a dict with only numerical keys to a list."""
     if not isinstance(dictionary, dict):
         return dictionary
 
@@ -39,6 +58,21 @@ def _convert_repetition_dict_to_list(dictionary: dict[str, Any]) -> Union[dict[s
 
 
 def parse_form_data(form_data: dict) -> dict:
+    """Form data from a flat dictionary is parsed into a nested dictionary.
+
+    This function parses a dictionary, where the keys are the references to the Form Element from the Options Form.
+    The references are used to create a nested dictionary with the form data. Elements in the 'general' section are
+    moved to the root of the dictionary.
+    Example:
+        {'general[my_hidden]': 'foo',\n
+        'general[my_repetition][1][role]': 'OPT_1',\n
+        'general[my_repetition][1][name][first_name]': 'John '}
+
+        becomes:
+
+        {'my_hidden': 'foo',\n
+        'my_repetition': [{'name': {'first_name': 'John '}, 'role': 'OPT_1'}]}
+    """
     unflattened_form_data = _unflatten(form_data)
     options = unflattened_form_data['general']
     for section_name, section in unflattened_form_data.items():
