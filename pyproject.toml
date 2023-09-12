@@ -41,6 +41,7 @@ flake8 = "^6.0.0"
 types-PyYAML = "^6.0.11"
 coverage = { extras = ["toml"], version = "^7.2.1" }
 tox = "^4.2.6"
+selenium = "^4.11.2"
 
 [tool.poetry.scripts]
 questionpy-sdk = 'questionpy_sdk.__main__:cli'
@@ -124,7 +125,7 @@ env_list =
 minversion = 4.2.6
 
 [testenv]
-allowlist_externals = poetry
+allowlist_externals = poetry, *
 # tox already installs the package (und thus its main dependencies) for us, so we only install dev dependencies here.
 commands_pre =
     poetry install --no-root --without main
