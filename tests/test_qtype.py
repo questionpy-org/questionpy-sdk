@@ -19,11 +19,11 @@ class MyQuestionState(BaseQuestionState[SomeModel]):
     my_question_field: int = 42
 
 
-class MyAttemptState(BaseAttemptState[MyQuestionState]):
+class MyAttemptState(BaseAttemptState):
     my_attempt_field: int = 17
 
 
-class SomeAttempt(Attempt[MyAttemptState]):
+class SomeAttempt(Attempt["SomeQuestion", MyAttemptState]):
     def export(self) -> AttemptModel:
         return AttemptModel(variant=1, ui=AttemptUi(content=""))
 
@@ -98,7 +98,6 @@ QUESTION_STATE_DICT = {
 
 ATTEMPT_STATE_DICT = {
     "my_attempt_field": 17,
-    "question": QUESTION_STATE_DICT
 }
 
 

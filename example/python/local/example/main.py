@@ -6,7 +6,7 @@ from importlib.resources import files
 
 from questionpy_common.models import QuestionModel, ScoringMethod, AttemptModel, AttemptUi
 
-from questionpy import QuestionType, Attempt, Question, BaseQuestionState
+from questionpy import QuestionType, Attempt, Question, BaseQuestionState, BaseAttemptState
 from questionpy.form import *
 
 
@@ -41,7 +41,7 @@ class MyModel(FormModel):
     name_group = group("Name", NameGroup, disable_if=[is_not_checked("has_name")])
 
 
-class ExampleAttempt(Attempt):
+class ExampleAttempt(Attempt["ExampleQuestion", BaseAttemptState]):
     def export(self) -> AttemptModel:
         return AttemptModel(variant=1, ui=AttemptUi(
             content=(files(__package__) / "multiple-choice.xhtml").read_text()

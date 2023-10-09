@@ -64,8 +64,8 @@ def _get_type_arg(derived: type, generic_base: type, arg_index: int, *,
     raise TypeError(f"{derived.__name__} is not a direct subclass of {generic_base.__name__}")
 
 
-class BaseAttemptState(BaseModel, Generic[_QS]):
-    question: _QS
+class BaseAttemptState(BaseModel):
+    pass
 
 
 class BaseQuestionState(BaseModel, Generic[_F]):
@@ -74,18 +74,19 @@ class BaseQuestionState(BaseModel, Generic[_F]):
     options: _F
 
 
-class Attempt(BaseAttempt, ABC, Generic[_AS]):
+class Attempt(BaseAttempt, ABC, Generic[_Q, _AS]):
     state_class: Type[BaseAttemptState] = BaseAttemptState
 
-    def __init__(self, state: _AS):
-        self.state = state
+    def __init__(self, question: _Q, attempt_state: _AS):
+        self.question = question
+        self.state = attempt_state
 
     def export_attempt_state(self) -> str:
         return self.state.model_dump_json()
 
     def __init_subclass__(cls, **kwargs: object) -> None:
         super().__init_subclass__(**kwargs)
-        cls.state_class = _get_type_arg(cls, Attempt, 0, bound=BaseAttemptState, default=BaseAttemptState)
+        cls.state_class = _get_type_arg(cls, Attempt, 1, bound=BaseAttemptState, default=BaseAttemptState)
 
 
 class Question(BaseQuestion, ABC, Generic[_QS, _A]):
@@ -96,15 +97,15 @@ class Question(BaseQuestion, ABC, Generic[_QS, _A]):
         self.state = state
 
     def start_attempt(self, variant: int) -> BaseAttempt:
-        state = self.attempt_class.state_class(question=self.state)
-        return self.attempt_class(state)
+        state = self.attempt_class.state_class()
+        return self.attempt_class(self, state)
 
     def view_attempt(self, attempt_state: str,
                      scoring_state: Optional[str] = None,
                      response: Optional[dict] = None) -> BaseAttempt:
         # TODO: Implement scoring_state and response.
         state = self.attempt_class.state_class.model_validate_json(attempt_state)
-        return self.attempt_class(state)
+        return self.attempt_class(self, state)
 
     def export_question_state(self) -> str:
         return self.state.model_dump_json()
