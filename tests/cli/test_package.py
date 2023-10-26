@@ -23,7 +23,7 @@ def create_manifest(source: Path) -> Manifest:
     """
     manifest = Manifest(short_name="short_name", author="pytest", api_version="0.1", version="0.1.0")
     with (source / "qpy_manifest.yml").open("w") as file:
-        yaml.dump(manifest.dict(exclude={"type"}), file)
+        yaml.dump(manifest.model_dump(exclude={"type"}), file)
     return manifest
 
 

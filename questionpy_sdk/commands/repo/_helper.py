@@ -24,7 +24,7 @@ def get_manifest(path: Path) -> ComparableManifest:
     """
     with ZipFile(path) as zip_file:
         raw_manifest = zip_file.read("qpy_manifest.json")
-    return ComparableManifest.parse_raw(raw_manifest)
+    return ComparableManifest.model_validate_json(raw_manifest)
 
 
 class IndexCreator:
