@@ -2,13 +2,38 @@
 #  The QuestionPy SDK is free software released under terms of the MIT license. See LICENSE.md.
 #  (c) Technische Universität Berlin, innoCampus <info@isis.tu-berlin.de>
 import json
-from typing import Optional
+from collections.abc import Generator
+from types import SimpleNamespace
+from typing import Optional, cast
 
 import pytest
+from questionpy_common.environment import set_qpy_environment
 from questionpy_common.models import QuestionModel, ScoringMethod, AttemptModel, AttemptUi
+from questionpy_server.worker.runtime.manager import EnvironmentImpl
+from questionpy_server.worker.runtime.package import QPyMainPackage
 
-from questionpy import QuestionType, Question, BaseQuestionState, Attempt, BaseAttemptState
+from questionpy import QuestionType, Question, BaseQuestionState, Attempt, BaseAttemptState, Environment, RequestUser
 from questionpy.form import FormModel, text_input
+
+
+@pytest.fixture(autouse=True)
+def environment() -> Generator[Environment, None, None]:
+    env = EnvironmentImpl(
+        type="test",
+        limits=None,
+        request_user=RequestUser(["en"]),
+        main_package=cast(QPyMainPackage, SimpleNamespace(manifest=SimpleNamespace(
+            namespace="test_ns", short_name="test_package",
+            version="1.2.3"
+        ))),
+        packages={},
+        _on_request_callbacks=[]
+    )
+    set_qpy_environment(env)
+    try:
+        yield env
+    finally:
+        set_qpy_environment(None)
 
 
 class SomeModel(FormModel):
@@ -112,7 +137,7 @@ def test_should_raise_with_generic_form_model() -> None:
 
 
 QUESTION_STATE_DICT = {
-    "package_name": "TODO",
+    "package_name": "test_ns.test_package",
     "package_version": "1.2.3",
     "options": {
         "input": "something"

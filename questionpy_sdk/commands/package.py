@@ -58,6 +58,7 @@ def package(source: Path, manifest_path: Optional[Path], out_path: Optional[Path
             _copy_package(out_file, questionpy)
             _install_dependencies(out_file, manifest_path, manifest)
             out_file.write_glob(source, "python/**/*")
+            out_file.write_glob(source, "static/**/*")
             out_file.write_manifest(manifest)
     except subprocess.CalledProcessError as e:
         out_path.unlink(missing_ok=True)

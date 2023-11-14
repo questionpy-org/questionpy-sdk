@@ -3,12 +3,13 @@
 #  (c) Technische Universität Berlin, innoCampus <info@isis.tu-berlin.de>
 
 from abc import ABC
-from typing import Optional, Type, Generic, TypeVar, ClassVar, get_args, get_origin, Literal, Union, cast
+from typing import Optional, Type, Generic, TypeVar, get_args, get_origin, Literal, Union, cast
 
 from pydantic import BaseModel, ValidationError
 from questionpy_common.qtype import OptionsFormDefinition, BaseQuestionType, BaseQuestion, OptionsFormValidationError, \
     BaseAttempt
 
+from questionpy import get_qpy_environment
 from questionpy.form import FormModel
 
 _T = TypeVar("_T")
@@ -139,9 +140,6 @@ class QuestionType(BaseQuestionType, Generic[_F, _Q]):
     options_class: Type[FormModel] = FormModel
     question_class: Type["Question"]
 
-    # TODO: questionpy-server#67: Replace with global init() function.
-    implementation: ClassVar[Optional[Type["QuestionType"]]] = None
-
     def __init__(self, options_class: Optional[Type[_F]] = None, question_class: Optional[Type[_Q]] = None) -> None:
         """Initializes a new question.
 
@@ -162,8 +160,6 @@ class QuestionType(BaseQuestionType, Generic[_F, _Q]):
         if cls.options_class != cls.question_class.state_class.model_fields['options'].annotation:
             raise TypeError(
                 f"{cls.__name__} must have the same FormModel as {cls.question_class.state_class.__name__}.")
-
-        QuestionType.implementation = cls
 
     def get_options_form(self, question_state: Optional[str]) -> tuple[OptionsFormDefinition, dict[str, object]]:
         if question_state:
@@ -186,10 +182,10 @@ class QuestionType(BaseQuestionType, Generic[_F, _Q]):
             # TBD: Should we also update package_name and package_version here? Or check that they match?
             state.options = parsed_form_data
         else:
+            env = get_qpy_environment()
             state = self.question_class.state_class(
-                # TODO: Replace these placeholders with values from the environment.
-                package_name="TODO",
-                package_version="1.2.3",
+                package_name=f"{env.main_package.manifest.namespace}.{env.main_package.manifest.short_name}",
+                package_version=env.main_package.manifest.version,
                 options=parsed_form_data,
             )
 

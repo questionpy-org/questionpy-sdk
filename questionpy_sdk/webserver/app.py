@@ -12,6 +12,7 @@ from aiohttp.web_exceptions import HTTPBadRequest
 from jinja2 import FileSystemLoader
 from questionpy_common.constants import MiB
 from questionpy_common.elements import OptionsFormDefinition
+from questionpy_common.environment import RequestUser
 from questionpy_server import WorkerPool
 from questionpy_server.worker.worker import Worker
 from questionpy_server.worker.exception import WorkerUnknownError
@@ -54,7 +55,7 @@ async def render_options(request: web.Request) -> web.Response:
     worker: Worker
     async with webserver.worker_pool.get_worker(webserver.package, 0, None) as worker:
         manifest = await worker.get_manifest()
-        form_definition, form_data = await worker.get_options_form(old_state)
+        form_definition, form_data = await worker.get_options_form(RequestUser(["de", "en"]), old_state)
 
     context = {
         'manifest': manifest,
@@ -77,7 +78,8 @@ async def submit_form(request: web.Request) -> web.Response:
     worker: Worker
     async with webserver.worker_pool.get_worker(webserver.package, 0, None) as worker:
         try:
-            question = await worker.create_question_from_options(old_state, form_data=parsed_form_data)
+            question = await worker.create_question_from_options(RequestUser(["de", "en"]), old_state,
+                                                                 form_data=parsed_form_data)
         except WorkerUnknownError:
             return HTTPBadRequest()
 
@@ -102,14 +104,15 @@ async def repeat_element(request: web.Request) -> web.Response:
     async with webserver.worker_pool.get_worker(webserver.package, 0, None) as worker:
         manifest = await worker.get_manifest()
         try:
-            question = await worker.create_question_from_options(old_state, form_data=old_form_data)
+            question = await worker.create_question_from_options(RequestUser(["de", "en"]), old_state,
+                                                                 form_data=old_form_data)
         except WorkerUnknownError:
             return HTTPBadRequest()
 
         new_state = question.question_state
         webserver.state_storage.insert(webserver.package, json.loads(new_state))
         form_definition: OptionsFormDefinition
-        form_definition, form_data = await worker.get_options_form(new_state.encode())
+        form_definition, form_data = await worker.get_options_form(RequestUser(["de", "en"]), new_state.encode())
 
     context = {
         'manifest': manifest,

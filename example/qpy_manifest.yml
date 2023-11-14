@@ -6,5 +6,4 @@ author: Maximilian Haye <m.haye@tu-berlin.de>
 name:
   de: Beispiel
   en: Example
-entrypoint: main
 languages: [de, en]
