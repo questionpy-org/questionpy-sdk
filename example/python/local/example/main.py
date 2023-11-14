@@ -48,7 +48,7 @@ class ExampleAttempt(Attempt["ExampleQuestion", BaseAttemptState]):
         ))
 
 
-class ExampleQuestion(Question[BaseQuestionState, ExampleAttempt]):
+class ExampleQuestion(Question[BaseQuestionState[MyModel], ExampleAttempt]):
     def export(self) -> QuestionModel:
         return QuestionModel(scoring_method=ScoringMethod.AUTOMATICALLY_SCORABLE)
 

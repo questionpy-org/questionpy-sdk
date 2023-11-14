@@ -78,7 +78,7 @@ class QuestionStateStorage:
         path = self.storage_path / key.with_suffix('.json')
         self.paths[key] = path
         with path.open('w') as file:
-            json.dump(question_state, file)
+            json.dump(question_state, file, indent=2)
 
     def get(self, key: Path) -> Optional[dict]:
         if key in self.paths:
