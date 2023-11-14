@@ -8,7 +8,7 @@ from typing import Callable, Type, Any, get_origin, get_args, Literal, Optional,
 
 from pydantic import BaseModel, Field
 from pydantic._internal._model_construction import ModelMetaclass
-from pydantic.main import FieldInfo
+from pydantic.fields import FieldInfo
 from pydantic_core import CoreSchema, core_schema
 from questionpy_common.elements import FormElement, FormSection, OptionsFormDefinition
 
