@@ -113,6 +113,8 @@ class Question(BaseQuestion, ABC, Generic[_QS, _A]):
     def __init_subclass__(cls, **kwargs: object) -> None:
         super().__init_subclass__(**kwargs)
         cls.state_class = _get_type_arg(cls, Question, 0, bound=BaseQuestionState, default=BaseQuestionState)
+        if _get_type_arg(cls, Question, 0) == BaseQuestionState:
+            raise TypeError(f"{cls.state_class.__name__} must declare a specific FormModel.")
         cls.attempt_class = _get_type_arg(cls, Question, 1, bound=Attempt)
 
 
@@ -127,7 +129,7 @@ class QuestionType(BaseQuestionType, Generic[_F, _Q]):
 
       >>> class MyOptions(FormModel): ...
       >>> class MyAttempt(Attempt): ...
-      >>> class MyQuestion(Question[BaseQuestionState, MyAttempt]): ...
+      >>> class MyQuestion(Question[BaseQuestionState[MyOptions], MyAttempt]): ...
       >>> class MyQuestionType(QuestionType[MyOptions, MyQuestion]):
       ...   ...  # Your code goes here.
     """
