@@ -87,6 +87,30 @@ def test_should_raise_when_transitive_inheritance() -> None:
             pass
 
 
+def test_should_raise_with_different_form_models() -> None:
+    class SomeModel2(SomeModel):
+        pass
+
+    with pytest.raises(TypeError, match="must have the same FormModel as"):
+        class MyQType(QuestionType[SomeModel2, SomeQuestion]):
+            pass
+
+    class SomeQuestion2(Question[BaseQuestionState[SomeModel2], SomeAttempt]):
+        def export(self) -> QuestionModel:
+            return QuestionModel(scoring_method=ScoringMethod.AUTOMATICALLY_SCORABLE)
+
+    with pytest.raises(TypeError, match="must have the same FormModel as"):
+        class MyQType2(QuestionType[SomeModel, SomeQuestion2]):
+            pass
+
+
+def test_should_raise_with_generic_form_model() -> None:
+    with pytest.raises(TypeError, match="BaseQuestionState must declare a specific FormModel."):
+        class SomeQuestion2(Question[BaseQuestionState, SomeAttempt]):
+            def export(self) -> QuestionModel:
+                return QuestionModel(scoring_method=ScoringMethod.AUTOMATICALLY_SCORABLE)
+
+
 QUESTION_STATE_DICT = {
     "package_name": "TODO",
     "package_version": "1.2.3",
