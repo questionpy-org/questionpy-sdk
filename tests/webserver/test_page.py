@@ -4,24 +4,28 @@
 from typing import TypeVar, Any, Optional, Callable, cast
 
 import pytest
+from questionpy_common.api.attempt import AttemptModel, AttemptUi, ScoreModel, ScoringCode
+from questionpy_common.api.qtype import BaseQuestionType
+from questionpy_common.api.question import QuestionModel, ScoringMethod
 from questionpy_common.environment import PackageInitFunction
 from questionpy_common.manifest import Manifest
-from questionpy_common.models import QuestionModel, AttemptModel, ScoringMethod, AttemptUi
-from questionpy_common.qtype import BaseQuestionType
 from questionpy_server.worker.runtime.package_location import FunctionPackageLocation
 from selenium import webdriver
 from selenium.webdriver.common.by import By
 from selenium.webdriver.support import expected_conditions
 from selenium.webdriver.support.wait import WebDriverWait
 
-from questionpy import QuestionType, Question, BaseQuestionState, Attempt, BaseAttemptState
+from questionpy import QuestionType, Question, BaseQuestionState, Attempt, BaseAttemptState, BaseScoringState
 from questionpy.form import FormModel, repeat, checkbox
 
 _F = TypeVar("_F", bound=FormModel)
 
 
 def noop_question(form_model: type[_F]) -> type[Question[BaseQuestionState[_F], Any]]:
-    class Package1Attempt(Attempt["Package1Question", BaseAttemptState]):
+    class Package1Attempt(Attempt["Package1Question", BaseAttemptState, BaseScoringState]):
+        def export_score(self) -> ScoreModel:
+            return ScoreModel(scoring_code=ScoringCode.NEEDS_MANUAL_SCORING, score=None)
+
         def export(self) -> AttemptModel:
             return AttemptModel(variant=1, ui=AttemptUi(content=""))
 

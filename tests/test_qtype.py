@@ -7,12 +7,14 @@ from types import SimpleNamespace
 from typing import Optional, cast
 
 import pytest
+from questionpy_common.api.attempt import AttemptModel, AttemptUi, ScoreModel, ScoringCode
+from questionpy_common.api.question import QuestionModel, ScoringMethod
 from questionpy_common.environment import set_qpy_environment
-from questionpy_common.models import QuestionModel, ScoringMethod, AttemptModel, AttemptUi
 from questionpy_server.worker.runtime.manager import EnvironmentImpl
 from questionpy_server.worker.runtime.package import ImportablePackage
 
-from questionpy import QuestionType, Question, BaseQuestionState, Attempt, BaseAttemptState, Environment, RequestUser
+from questionpy import (QuestionType, Question, BaseQuestionState, Attempt, BaseAttemptState, Environment, RequestUser,
+                        BaseScoringState)
 from questionpy.form import FormModel, text_input
 
 
@@ -48,7 +50,10 @@ class MyAttemptState(BaseAttemptState):
     my_attempt_field: int = 17
 
 
-class SomeAttempt(Attempt["SomeQuestion", MyAttemptState]):
+class SomeAttempt(Attempt["SomeQuestion", MyAttemptState, BaseScoringState]):
+    def export_score(self) -> ScoreModel:
+        return ScoreModel(scoring_code=ScoringCode.NEEDS_MANUAL_SCORING, score=None)
+
     def export(self) -> AttemptModel:
         return AttemptModel(variant=1, ui=AttemptUi(content=""))
 
@@ -112,10 +117,12 @@ def test_should_raise_when_transitive_inheritance() -> None:
             pass
 
 
-def test_should_raise_with_different_form_models() -> None:
-    class SomeModel2(SomeModel):
-        pass
+class SomeModel2(SomeModel):
+    # Mypy crashes for some reason if this is local in test_should_raise_with_different_form_models.
+    pass
 
+
+def test_should_raise_with_different_form_models() -> None:
     with pytest.raises(TypeError, match="must have the same FormModel as"):
         # pylint: disable=unused-variable
         class MyQType(QuestionType[SomeModel2, SomeQuestion]):
@@ -149,6 +156,7 @@ QUESTION_STATE_DICT = {
 }
 
 ATTEMPT_STATE_DICT = {
+    "variant": 3,
     "my_attempt_field": 17,
 }
 
@@ -174,16 +182,16 @@ def test_should_create_question_from_state() -> None:
 def test_should_start_attempt() -> None:
     qtype = QuestionType(SomeModel, SomeQuestion)
     question = qtype.create_question_from_state(json.dumps(QUESTION_STATE_DICT))
-    attempt = question.start_attempt(1)
+    attempt = question.start_attempt(3)
 
     assert isinstance(attempt, SomeAttempt)
     assert json.loads(attempt.export_attempt_state()) == ATTEMPT_STATE_DICT
 
 
-def test_should_view_attempt() -> None:
+def test_should_get_attempt() -> None:
     qtype = QuestionType(SomeModel, SomeQuestion)
     question = qtype.create_question_from_state(json.dumps(QUESTION_STATE_DICT))
-    attempt = question.view_attempt(json.dumps(ATTEMPT_STATE_DICT))
+    attempt = question.get_attempt(json.dumps(ATTEMPT_STATE_DICT))
 
     assert isinstance(attempt, SomeAttempt)
     assert json.loads(attempt.export_attempt_state()) == ATTEMPT_STATE_DICT

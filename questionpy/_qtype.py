@@ -3,91 +3,28 @@
 #  (c) Technische Universität Berlin, innoCampus <info@isis.tu-berlin.de>
 
 from abc import ABC
-from typing import Optional, Type, Generic, TypeVar, get_args, get_origin, Literal, Union, cast
+from typing import Optional, Type, Generic, TypeVar, cast
 
 from pydantic import BaseModel, ValidationError
+from questionpy_common.api.attempt import BaseAttempt
+from questionpy_common.api.qtype import BaseQuestionType, OptionsFormValidationError
+from questionpy_common.api.question import BaseQuestion
 from questionpy_common.environment import get_qpy_environment
-from questionpy_common.qtype import OptionsFormDefinition, BaseQuestionType, BaseQuestion, OptionsFormValidationError, \
-    BaseAttempt
 
-from questionpy.form import FormModel
+from ._attempt import Attempt
+from ._util import get_type_arg
+from .form import FormModel, OptionsFormDefinition
 
-_T = TypeVar("_T")
 _F = TypeVar("_F", bound=FormModel)
 _QS = TypeVar("_QS", bound="BaseQuestionState")
-_AS = TypeVar("_AS", bound="BaseAttemptState")
-_A = TypeVar("_A", bound="Attempt")
+_A = TypeVar("_A", bound=Attempt)
 _Q = TypeVar("_Q", bound="Question")
-
-
-def _get_type_arg(derived: type, generic_base: type, arg_index: int, *,
-                  bound: type = object, default: Union[_T, Literal["nodefault"]] = "nodefault") -> Union[type, _T]:
-    """Finds a type arg used by `derived` when inheriting from `generic_base`.
-
-    Args:
-        derived: The type which directly inherits from `generic_base`.
-        generic_base: One of the direct bases of `derived`.
-        arg_index: Among the type arguments accepted by `generic_base`, this is the index of the type argument to
-                   return.
-        bound: Raises :class:`TypeError` if the type argument is not a subclass of this.
-        default: Returns this when the type argument isn't given. If unset, an error is raised instead.
-
-    Raises:
-        TypeError: Upon any of the following:
-            - `derived` is not a direct subclass of `generic_base` (transitive subclasses are not supported),
-            - the type argument is not given and `default` is unset, or
-            - the type argument is not a subclass of `bound`
-    """
-    # __orig_bases__ is only present when at least one base is a parametrized generic.
-    # See PEP 560 https://peps.python.org/pep-0560/
-    if "__orig_bases__" in derived.__dict__:
-        bases = derived.__dict__["__orig_bases__"]
-    else:
-        bases = derived.__bases__
-
-    for base in bases:
-        origin = get_origin(base) or base
-        if origin is generic_base:
-            args = get_args(base)
-            if not args or arg_index >= len(args):
-                # No type argument provided.
-                if default == "nodefault":
-                    raise TypeError(f"Missing type argument on {generic_base.__name__} (type arg #{arg_index})")
-
-                return default
-
-            arg = args[arg_index]
-            if not isinstance(arg, type) or not issubclass(arg, bound):
-                raise TypeError(f"Type parameter '{arg!r}' of {generic_base.__name__} is not a subclass of "
-                                f"{bound.__name__}")
-            return arg
-
-    raise TypeError(f"{derived.__name__} is not a direct subclass of {generic_base.__name__}")
-
-
-class BaseAttemptState(BaseModel):
-    pass
 
 
 class BaseQuestionState(BaseModel, Generic[_F]):
     package_name: str
     package_version: str
     options: _F
-
-
-class Attempt(BaseAttempt, ABC, Generic[_Q, _AS]):
-    state_class: Type[BaseAttemptState] = BaseAttemptState
-
-    def __init__(self, question: _Q, attempt_state: _AS):
-        self.question = question
-        self.state = attempt_state
-
-    def export_attempt_state(self) -> str:
-        return self.state.model_dump_json()
-
-    def __init_subclass__(cls, *args: object, **kwargs: object) -> None:
-        super().__init_subclass__(*args, **kwargs)
-        cls.state_class = _get_type_arg(cls, Attempt, 1, bound=BaseAttemptState, default=BaseAttemptState)
 
 
 class Question(BaseQuestion, ABC, Generic[_QS, _A]):
@@ -98,25 +35,28 @@ class Question(BaseQuestion, ABC, Generic[_QS, _A]):
         self.state = state
 
     def start_attempt(self, variant: int) -> BaseAttempt:
-        state = self.attempt_class.state_class()
-        return self.attempt_class(self, state)
+        attempt_state = self.attempt_class.attempt_state_class(variant=variant)
+        return self.attempt_class(self, attempt_state)
 
-    def view_attempt(self, attempt_state: str,
-                     scoring_state: Optional[str] = None,
-                     response: Optional[dict] = None) -> BaseAttempt:
-        # TODO: Implement scoring_state and response.
-        state = self.attempt_class.state_class.model_validate_json(attempt_state)
-        return self.attempt_class(self, state)
+    def get_attempt(self, attempt_state: str, scoring_state: Optional[str] = None,
+                    response: Optional[dict] = None, compute_score: bool = False,
+                    generate_hint: bool = False) -> BaseAttempt:
+        # TODO: Implement response.
+        attempt_state_obj = self.attempt_class.attempt_state_class.model_validate_json(attempt_state)
+        scoring_state_obj = None
+        if scoring_state is not None:
+            scoring_state_obj = self.attempt_class.scoring_state_class.model_validate_json(scoring_state)
+        return self.attempt_class(self, attempt_state_obj, response, scoring_state_obj)
 
     def export_question_state(self) -> str:
         return self.state.model_dump_json()
 
     def __init_subclass__(cls, *args: object, **kwargs: object) -> None:
         super().__init_subclass__(*args, **kwargs)
-        cls.state_class = _get_type_arg(cls, Question, 0, bound=BaseQuestionState, default=BaseQuestionState)
-        if _get_type_arg(cls, Question, 0) == BaseQuestionState:
+        cls.state_class = get_type_arg(cls, Question, 0, bound=BaseQuestionState, default=BaseQuestionState)
+        if get_type_arg(cls, Question, 0) == BaseQuestionState:
             raise TypeError(f"{cls.state_class.__name__} must declare a specific FormModel.")
-        cls.attempt_class = _get_type_arg(cls, Question, 1, bound=Attempt)
+        cls.attempt_class = get_type_arg(cls, Question, 1, bound=Attempt)
 
 
 class QuestionType(BaseQuestionType, Generic[_F, _Q]):
@@ -155,8 +95,8 @@ class QuestionType(BaseQuestionType, Generic[_F, _Q]):
     def __init_subclass__(cls, *args: object, **kwargs: object) -> None:
         super().__init_subclass__(*args, **kwargs)
 
-        cls.options_class = _get_type_arg(cls, QuestionType, 0, bound=FormModel, default=FormModel)
-        cls.question_class = _get_type_arg(cls, QuestionType, 1, bound=Question)
+        cls.options_class = get_type_arg(cls, QuestionType, 0, bound=FormModel, default=FormModel)
+        cls.question_class = get_type_arg(cls, QuestionType, 1, bound=Question)
         if cls.options_class != cls.question_class.state_class.model_fields['options'].annotation:
             raise TypeError(
                 f"{cls.__name__} must have the same FormModel as {cls.question_class.state_class.__name__}.")
