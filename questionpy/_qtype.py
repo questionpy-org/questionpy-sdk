@@ -159,7 +159,7 @@ class QuestionType(BaseQuestionType, Generic[_F, _Q]):
 
         cls.options_class = _get_type_arg(cls, QuestionType, 0, bound=FormModel, default=FormModel)
         cls.question_class = _get_type_arg(cls, QuestionType, 1, bound=Question)
-        if not cls.options_class == cls.question_class.state_class.model_fields['options'].annotation:
+        if cls.options_class != cls.question_class.state_class.model_fields['options'].annotation:
             raise TypeError(
                 f"{cls.__name__} must have the same FormModel as {cls.question_class.state_class.__name__}.")
 
