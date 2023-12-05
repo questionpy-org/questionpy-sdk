@@ -18,6 +18,7 @@ from questionpy_server.worker.worker import Worker
 from questionpy_server.worker.exception import WorkerUnknownError
 from questionpy_server.worker.worker.thread import ThreadWorker
 
+from questionpy_sdk.webserver.context import contextualize
 from questionpy_sdk.webserver.state_storage import QuestionStateStorage, add_repetition, parse_form_data
 
 routes = web.RouteTableDef()
@@ -59,8 +60,7 @@ async def render_options(request: web.Request) -> web.Response:
 
     context = {
         'manifest': manifest,
-        'options': form_definition.model_dump(),
-        'form_data': form_data
+        'options': contextualize(form_definition=form_definition, form_data=form_data).model_dump()
     }
 
     return aiohttp_jinja2.render_template('options.html.jinja2', request, context)
@@ -116,8 +116,7 @@ async def repeat_element(request: web.Request) -> web.Response:
 
     context = {
         'manifest': manifest,
-        'options': form_definition.model_dump(),
-        'form_data': form_data
+        'options': contextualize(form_definition=form_definition, form_data=form_data).model_dump()
     }
 
     return aiohttp_jinja2.render_template('options.html.jinja2', request, context)

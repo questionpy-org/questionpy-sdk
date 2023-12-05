@@ -1,22 +1,22 @@
 {% extends "elements/element.html.jinja2" %}
 
 {% block content %}
-    {% if element_options.multiple and element_options.multiple == True %}
+    {% if element.multiple and element.multiple == True %}
         {% set element_reference = element_reference + '_[]' %}
     {% endif %}
-   <select class="answer-{{ element_options.kind }}" name="{{ element_reference }}"
-    {{ 'multiple' if element_options.multiple and element_options.multiple == True }}>
+   <select class="answer-{{ element.kind }}" name="{{ element_reference }}"
+    {{ 'multiple' if element.multiple and element.multiple == True }}>
 {# TODO: sollen wir diese Aufforderung drin lassen wenn required=false ist? Dann müssen wir auch was im _dsl #}
 {# TODO: ändern sonst werden die Options falsch geparsed  #}
-{#        {% if not element_options.required %}#}
+{#        {% if not element.required %}#}
 {#            <option value="">--Please choose an option--</option>#}
 {#        {% endif %}#}
-       {% set option_id = absolute_path %}
-        {% for option in element_options.options %}
-            <option value="{{ option.value }}" id="{{ element_options.name ~ "-" ~ option.value }}"
-                    {{ 'selected' if option.selected and not form_data
-                                or form_data is defined and option.value in form_data}}
-                    {{ {'data-absolute_path': absolute_path|tojson|forceescape}|xmlattr }}>
+       {% set option_id = element.id %}
+        {% for option in element.cxd_options %}
+            <option value="{{ option.value }}" id="{{ element.id ~ "-" ~ option.value }}"
+                    {{ 'selected' if option.selected and not element.value
+                                or element.value and option.value in element.value}}
+                    {{ {'data-absolute_path': element.path|tojson|forceescape}|xmlattr }}>
                 {{ option.label }}
             </option>
         {% endfor %}

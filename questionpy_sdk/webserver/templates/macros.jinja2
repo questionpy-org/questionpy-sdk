@@ -1,80 +1,59 @@
-{% macro create_section(section_name, header, elements, form_data) %}
-    {% set absolute_path = [section_name] %}
+{% macro create_section(section_name, header, elements) %}
     <div class="container elements section" id="{{ section_name }}">
         <h3> {{ header }} </h3>
-        {{ create_elements(section_name, elements, form_data, absolute_path) }}
+        {{ create_elements(elements) }}
     </div>
 {% endmacro %}
 
 
-{% macro create_elements(section_name, element_list, form_data, absolute_path) %}
-    {% for element_options in element_list %}
-        {% set form_data = form_data[element_options.name] if form_data %}
-        {% do absolute_path.append(element_options.name) %}
-        {% set element_id = absolute_path|join("_") %}
-        {% set element_reference = absolute_path|join('][')|replace(']', '', 1) ~ ']' %}
-        {% if element_options.kind == "group" %}
-            {{ create_group(section_name, element_options, form_data, absolute_path) }}
-        {% elif element_options.kind == "repetition" %}
-            {{ create_repetition(section_name, element_options, form_data, absolute_path) }}
+{% macro create_elements(element_list) %}
+    {% for element in element_list %}
+        {% set element_reference = element.path|join('][')|replace(']', '', 1) ~ ']' %}
+        {% if element.kind == "group" %}
+            {{ create_group(element) }}
+        {% elif element.kind == "repetition" %}
+            {{ create_repetition(element) }}
         {% else %}
-            {%  include "elements/" ~ element_options.kind ~ ".html.jinja2" %}
+            {%  include "elements/" ~ element.kind ~ ".html.jinja2" %}
         {% endif %}
-        {% do absolute_path.pop() %}
     {% endfor %}
 {% endmacro %}
 
 
-{% macro create_group(section_name, group_element, form_data, absolute_path) %}
-    <div class="group" id="gr_{{ absolute_path|join("_") }}" name="{{ absolute_path|join('][')|replace(']', '', 1) ~ ']' }}"
-        data-section="{{section_name}}" name="{{ absolute_path|join('][')|replace(']', '', 1) ~ ']' }}"
+{% macro create_group(group_element) %}
+    <div class="group" id="{{ group_element.id }}" name="{{ group_element.path|join('][')|replace(']', '', 1) ~ ']' }}"
+        data-section="{{ group_element.path[0] }}"
         {{ {'data-hide_if': group_element.hide_if|tojson|forceescape}|xmlattr if group_element.hide_if}}
         {{ {'data-disable_if': group_element.disable_if|tojson|forceescape}|xmlattr if group_element.disable_if}}
-        {{ {'data-absolute_path': absolute_path|tojson|forceescape}|xmlattr }}>
+        {{ {'data-absolute_path': group_element.path|tojson|forceescape}|xmlattr }}>
         <h3 class="group-heading">{{ group_element.label }}</h3>
-        {{ create_elements(section_name, group_element.elements, form_data, absolute_path) }}
+        {{ create_elements(group_element.cxd_elements) }}
     </div>
 {% endmacro %}
 
 
-{% macro create_repetition(section_name, repetition_element, form_data, absolute_path) %}
-    {% set element_id = absolute_path|join("_") %}
-    <div class="repetition" id="rep_{{ element_id }}" name="{{ absolute_path|join('][')|replace(']', '', 1) ~ ']' }}"
-         data-section="{{section_name}}">
+{% macro create_repetition(repetition_element) %}
+    <div class="repetition" id="{{ repetition_element.id }}"
+         name="{{ repetition_element.path|join('][')|replace(']', '', 1) ~ ']' }}" data-section="{{ repetition_element.path[0] }}">
 
-        {% if form_data %}
-            {% for repetition in form_data %}
-               {% do absolute_path.append(loop.index) %}
-                <div class="repetition-content" id="">
-                    {{ create_elements(section_name, repetition_element.elements, repetition, absolute_path) }}
-                    <button class="repetition-button-delete" id="rep_{{ element_id }}_delete_button"
-                        name="{{ absolute_path|join('][')|replace(']', '', 1) ~ ']' }}"
-                        {{ {'data-initial_repetitions': repetition_element.initial_repetitions|tojson|forceescape}|xmlattr}}>
-                        Delete
-                    </button>
-                </div>
-                {% do absolute_path.pop() %}
-            {% endfor %}
-        {% else %}
-            {% for n in range(repetition_element.initial_repetitions) %}
-                {% do absolute_path.append(n) %}
-                <div class="repetition-content" id="">
-                    {{ create_elements(section_name, repetition_element.elements, form_data, absolute_path) }}
-                    <button class="repetition-button-delete" id="rep_{{ element_id }}_delete_button"
-                        name="{{ absolute_path|join('][')|replace(']', '', 1) ~ ']' }}"
-                        {{ {'data-initial_repetitions': repetition_element.initial_repetitions|tojson|forceescape}|xmlattr}}>
-                        Delete
-                    </button>
-                </div>
-                {% do absolute_path.pop() %}
-            {% endfor %}
-        {% endif %}
-        <button class="repetition-button" id="rep_{{ element_id }}_button"
-            name="{{ absolute_path|join('][')|replace(']', '', 1) ~ ']' }}"
+        {% for repetition in repetition_element.cxd_elements %}
+            <div class="repetition-content" id="">
+                {{ create_elements(repetition) }}
+                <button class="repetition-button-delete" id="{{ repetition_element.id }}_delete_button"
+                    name="{{ repetition_element.path|join('][')|replace(']', '', 1) ~ ']' }}"
+                    {{ {'data-initial_repetitions': repetition_element.initial_repetitions|tojson|forceescape}|xmlattr}}>
+                    Delete
+                </button>
+            </div>
+        {% endfor %}
+
+        <button class="repetition-button" id="{{ repetition_element.id }}_button"
+            name="{{ repetition_element.path|join('][')|replace(']', '', 1) ~ ']' }}"
             {{ {'data-repetition_increment': repetition_element.increment|tojson|forceescape}|xmlattr
                 if repetition_element.increment}}>
             {{ repetition_element.button_label if repetition_element.button_label else 'Add Repetition' }}
         </button>
+
     </div>
 {% endmacro %}
 

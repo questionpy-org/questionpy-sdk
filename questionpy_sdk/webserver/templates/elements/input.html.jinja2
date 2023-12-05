@@ -2,11 +2,11 @@
 
 {% block content %}
     <span class="input-span">
-        <input class="input-text" id="{{ element_id }}" name="{{ element_reference }}"
-            {{ {'placeholder': element_options.placeholder}|xmlattr if element_options.placeholder }}
-            {{ 'required' if element_options.required }}
-            {{ 'checked' if element_options.selected }}
-            {{ {'value': form_data}|xmlattr if form_data }}
-            {{ {'data-absolute_path': absolute_path|tojson|forceescape}|xmlattr }}>
+        <input class="input-text" id="{{ element.id }}" name="{{ element_reference }}"
+            {{ {'placeholder': element.placeholder}|xmlattr if element.placeholder }}
+            {{ 'required' if element.required }}
+            {{ 'checked' if element.selected }}
+            {{ {'value': element.value}|xmlattr if element.value }}
+            {{ {'data-absolute_path': element.path|tojson|forceescape}|xmlattr }}>
     </span>
 {% endblock %}

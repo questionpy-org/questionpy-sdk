@@ -2,10 +2,10 @@
 
 {% block element %}
     {# TODO: see https://moodledev.io/docs/apis/subsystems/form/advanced/checkbox-controller #}
-    <div class="element {{ element_options.kind }}"
-        {{ {'data-hide_if': element_options.hide_if|tojson|forceescape}|xmlattr if element_options.hide_if}}
-        {{ {'data-disable_if': element_options.disable_if|tojson|forceescape}|xmlattr if element_options.disable_if}}>
-        {% for checkbox_element in element_options.checkboxes %}
+    <div class="element {{ element.definition.kind }}"
+        {{ {'data-hide_if': element.definition.hide_if|tojson|forceescape}|xmlattr if element.definition.hide_if}}
+        {{ {'data-disable_if': element.definition.disable_if|tojson|forceescape}|xmlattr if element.definition.disable_if}}>
+        {% for checkbox_element in element.definition.checkboxes %}
 
             <div class="info">
                 {% if checkbox_element.left_label %}
@@ -15,10 +15,10 @@
 
             <div class="answer-option">
                 <label class="answer-label">
-                    <input class="answer-checkbox" type="checkbox" id="{{ checkbox_element.name }}"
-                            {{ 'required' if element_options.required }}
-                            {{ 'checked' if element_options.selected and not form_data
-                                or form_data is defined and form_data}}>
+                    <input class="answer-checkbox" type="checkbox" id="{{ checkbox_element.id }}"
+                            {{ 'required' if checkbox_element.required }}
+                            {{ 'checked' if checkbox_element.selected and not element.value
+                                or element.value is defined and element.value}}>
                     {% if checkbox_element.right_label %}
                         {{ checkbox_element.right_label }}
                     {% endif %}

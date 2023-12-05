@@ -1,28 +1,28 @@
 {% extends "elements/element.html.jinja2" %}
 
 {% block info %}
-    {% if element_options.left_label %}
-        <p class="element-label">{{ element_options.left_label }}{{ '*' if element_options.required }}</p>
+    {% if element.left_label %}
+        <p class="element-label">{{ element.left_label }}{{ '*' if element.required }}</p>
     {% endif %}
-    {% if element_options.help %}
-        {% if element_options.left_label %}
-        	{{ macros.create_icon_container(element_options.left_label, element_options.help) }}
-        {% elif element_options.right_label %}
-            {{ macros.create_icon_container(element_options.right_label, element_options.help) }}
+    {% if element.help %}
+        {% if element.left_label %}
+        	{{ macros.create_icon_container(element.left_label, element.help) }}
+        {% elif element.right_label %}
+            {{ macros.create_icon_container(element.right_label, element.help) }}
         {% endif %}
     {% endif %}
 {% endblock %}
 
 {% block content %}
     <label class="answer-label">
-        <input class="answer-checkbox" type="checkbox" id="{{ section_name }}_{{ element_options.name }}"
+        <input class="answer-checkbox" type="checkbox" id="{{ element.id }}"
                 name="{{ element_reference }}"
-                {{ {'data-absolute_path': absolute_path|tojson|forceescape}|xmlattr }}
-                {{ 'required' if element_options.required }}
-                {{ 'checked' if element_options.selected and not form_data
-                    or form_data is defined and form_data}}>
-        {% if element_options.right_label %}
-            {{ element_options.right_label }}{{ '*' if element_options.required }}
+                {{ {'data-absolute_path': element.path|tojson|forceescape}|xmlattr }}
+                {{ 'required' if element.required }}
+                {{ 'checked' if element.selected and not element.value
+                    or element.value is defined and element.value}}>
+        {% if element.right_label %}
+            {{ element.right_label }}{{ '*' if element.required }}
         {% endif %}
     </label>
 {% endblock %}
