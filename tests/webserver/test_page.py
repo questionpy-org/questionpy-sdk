@@ -36,17 +36,17 @@ class TestTemplates:
     def test_repeat_element_if_present(self, driver: webdriver.Chrome, url: str) -> None:
         driver.get(url)
 
-        repetitions = driver.find_elements(By.CLASS_NAME, 'repetition')
+        repetition_elements = driver.find_elements(By.CLASS_NAME, 'repetition')
 
-        for repetition_element_id in [repetition_element.get_attribute('id') for repetition_element in repetitions]:
-            repetition_element = driver.find_element(By.ID, repetition_element_id)
+        for repetition_element in repetition_elements:
+            repetition_element_id = repetition_element.get_attribute('id')
             initial_repetitions = len(repetition_element.find_elements(By.CLASS_NAME, 'repetition-content'))
             button = repetition_element.find_element(By.CLASS_NAME, 'repetition-button')
             increment_attribute = button.get_attribute('data-repetition_increment')
 
             wait = WebDriverWait(driver, timeout=2)
             button.click()
-            wait.until(lambda d: repetition_element.is_displayed())
+            wait.until(lambda _: repetition_element.is_displayed())
 
             driver.get(url)
 
@@ -55,7 +55,7 @@ class TestTemplates:
 
             assert initial_repetitions > 0
             assert increment_attribute is not None
-            assert final_repetitions - initial_repetitions is int(increment_attribute)
+            assert final_repetitions - initial_repetitions == int(increment_attribute)
 
     def test_page_contains_correct_manifest_information(self, driver: webdriver.Chrome, url: str, manifest: Manifest) \
             -> None:

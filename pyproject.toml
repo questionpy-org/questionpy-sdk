@@ -125,7 +125,7 @@ env_list =
 minversion = 4.2.6
 
 [testenv]
-allowlist_externals = poetry, *
+allowlist_externals = poetry
 # tox already installs the package (und thus its main dependencies) for us, so we only install dev dependencies here.
 commands_pre =
     poetry install --no-root --without main

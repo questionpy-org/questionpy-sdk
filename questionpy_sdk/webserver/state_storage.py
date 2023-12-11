@@ -15,15 +15,18 @@ def _unflatten(flat_form_data: dict[str, str]) -> dict[str, Any]:
     Additionally: Dictionaries with only numerical keys (Repetition Elements) are replaced by lists.
 
     Example:
-        {'general[my_hidden]': 'foo',\n
-        'general[my_repetition][1][role]': 'OPT_1',\n
-        'general[my_repetition][1][name][first_name]': 'John '}
+    This::
 
-        becomes:\n
-        {'general': {
-            'my_hidden': 'foo',\n
-            'my_repetition': [{'name': {'first_name': 'John '}, 'role': 'OPT_1'}]
-            }
+        {
+            'general[my_hidden]': 'foo',
+            'general[my_repetition][1][role]': 'OPT_1',
+            'general[my_repetition][1][name][first_name]': 'John '
+        }
+    becomes::
+
+        {
+            'my_hidden': 'foo',
+            'my_repetition': [{'name': {'first_name': 'John '}, 'role': 'OPT_1'}],
         }
     """
     unflattened_dict: dict[str, Any] = {}
@@ -37,10 +40,10 @@ def _unflatten(flat_form_data: dict[str, str]) -> dict[str, Any]:
         current_dict[key.split('[')[-1][:-1]] = value
 
     result = _convert_repetition_dict_to_list(unflattened_dict)
-    if isinstance(result, dict):
-        return result
-    else:
+    if not isinstance(result, dict):
         raise ValueError("The result is not a dictionary.")
+
+    return result
 
 
 def _convert_repetition_dict_to_list(dictionary: dict[str, Any]) -> Union[dict[str, Any], list[Any]]:
@@ -95,7 +98,7 @@ def add_repetition(form_data: dict[str, Any], reference: list, increment: int) -
         return form_data
 
     # Add "increment" number of repetitions.
-    for i in range(increment):
+    for _ in range(increment):
         current_element.append(current_element[-1])
 
     return form_data

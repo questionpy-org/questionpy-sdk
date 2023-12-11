@@ -29,12 +29,10 @@ def test_parse_form_data_should_not_raise_if_valid() -> None:
 
 def test_parse_form_data_should_raise_error_if_no_general_section_present() -> None:
     """Tests parsing a non-valid form_data dictionary (section 'general' missing)."""
-    data = ({'some_key': 1})
+    data = {'some_key': 1}
 
-    with pytest.raises(KeyError) as exc_info:
+    with pytest.raises(KeyError):
         parse_form_data(data)
-
-    assert isinstance(exc_info.value, KeyError)  # Form data needs a 'general' section.
 
 
 @pytest.mark.parametrize('increment', (
@@ -50,14 +48,8 @@ def test_add_repetition_should_add_repetition_for_valid_input(increment: int) ->
     old_element = parse_form_data(RAW_FORM_DATA)
     new_element = add_repetition(parse_form_data(RAW_FORM_DATA), reference.copy(), increment)
 
-    # Find the repetition element
-    if (ref := reference.pop(0)) != 'general':
-        old_element = old_element[ref]
-        new_element = new_element[ref]
-    while reference:
-        ref = reference.pop(0)
-        old_element = old_element[ref]
-        new_element = new_element[ref]
+    old_element = old_element["my_repetition"]
+    new_element = new_element["my_repetition"]
 
     assert isinstance(old_element, list)
     assert isinstance(new_element, list)
