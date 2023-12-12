@@ -32,7 +32,7 @@ def _contextualize_element(element: FormElement, form_data: Optional[dict[str, A
 
     if isinstance(element, GroupElement):
         cxd_gr_element = CxdGroupElement(path=path.copy(), **element.model_dump(exclude={'elements'}))
-        cxd_gr_element.cxd_elements = _contextualize_element_list(element.elements, element_form_data, path)
+        cxd_gr_element.cxd_elements = _contextualize_element_list(element.elements, element_form_data, path, context)
         path.pop()
         return cxd_gr_element
 

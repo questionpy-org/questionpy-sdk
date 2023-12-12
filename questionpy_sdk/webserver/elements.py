@@ -129,6 +129,8 @@ class CxdSelectElement(SelectElement, _CxdFormElement):
 
     def contextualize(self, text: str) -> None:
         self.label = re.sub(r'\{ qpy:repno }', f'{text}', self.label)
+        for cxd_option in self.cxd_options:
+            cxd_option.contextualize(text)
 
     def add_form_data_value(self, element_form_data: Any) -> None:
         if not element_form_data:

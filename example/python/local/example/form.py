@@ -13,7 +13,7 @@ class MyOptions(OptionEnum):
 
 
 class Participants(FormModel):
-    role = select("Role:", MyOptions)
+    role = select("Participant #{ qpy:repno } Role:", MyOptions)
     name = group("Name", NameGroup)
 
 
