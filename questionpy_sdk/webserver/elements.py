@@ -2,7 +2,7 @@
 #  QuestionPy is free software released under terms of the MIT license. See LICENSE.md.
 #  (c) Technische Universität Berlin, innoCampus <info@isis.tu-berlin.de>
 
-import re
+from re import sub, Pattern
 from typing import List, Union, Annotated, Any, Optional
 from typing_extensions import TypeAlias
 from pydantic import Field, BaseModel
@@ -13,11 +13,17 @@ from questionpy_common.elements import StaticTextElement, GroupElement, HiddenEl
 from questionpy_common.elements import FormElement  # noqa: F401
 
 
+def replace(pattern: Pattern[str], replacement: str, string: str) -> str:
+    if not string:
+        return ""
+    return sub(pattern, f'{replacement}', string)
+
+
 class _CxdFormElement(BaseModel):
     path: list[str]
     id: str = ''
 
-    def contextualize(self, text: str) -> None:
+    def contextualize(self, pattern: Pattern[str], replacement: str) -> None:
         pass
 
     def add_form_data_value(self, element_form_data: Any) -> None:
@@ -27,10 +33,10 @@ class _CxdFormElement(BaseModel):
 class CxdTextInputElement(TextInputElement, _CxdFormElement):
     value: Optional[str] = None
 
-    def contextualize(self, text: str) -> None:
-        self.label = re.sub(r'\{ qpy:repno }', f'{text}', self.label)
-        self.default = re.sub(r'\{ qpy:repno }', f'{text}', self.default)
-        self.placeholder = re.sub(r'\{ qpy:repno }', f'{text}', self.placeholder)
+    def contextualize(self, pattern: Pattern[str], replacement: str) -> None:
+        self.label = replace(pattern, replacement, self.label)
+        self.default = replace(pattern, replacement, self.default)
+        self.placeholder = replace(pattern, replacement, self.placeholder)
 
     def add_form_data_value(self, element_form_data: Any) -> None:
         if element_form_data:
@@ -39,15 +45,15 @@ class CxdTextInputElement(TextInputElement, _CxdFormElement):
 
 class CxdStaticTextElement(StaticTextElement, _CxdFormElement):
 
-    def contextualize(self, text: str) -> None:
-        self.label = re.sub(r'\{ qpy:repno }', f'{text}', self.label)
-        self.text = re.sub(r'\{ qpy:repno }', f'{text}', self.text)
+    def contextualize(self, pattern: Pattern[str], replacement: str) -> None:
+        self.label = replace(pattern, replacement, self.label)
+        self.text = replace(pattern, replacement, self.text)
 
 
 class CxdCheckboxElement(CheckboxElement, _CxdFormElement):
-    def contextualize(self, text: str) -> None:
-        self.left_label = re.sub(r'\{ qpy:repno }', f'{text}', self.left_label)
-        self.right_label = re.sub(r'\{ qpy:repno }', f'{text}', self.right_label)
+    def contextualize(self, pattern: Pattern[str], replacement: str) -> None:
+        self.left_label = replace(pattern, replacement, self.left_label)
+        self.right_label = replace(pattern, replacement, self.right_label)
 
     def add_form_data_value(self, element_form_data: Any) -> None:
         if element_form_data:
@@ -68,9 +74,9 @@ class CxdCheckboxGroupElement(CheckboxGroupElement, _CxdFormElement):
             path.pop()
         self.checkboxes = []
 
-    def contextualize(self, text: str) -> None:
+    def contextualize(self, pattern: Pattern[str], replacement: str) -> None:
         for cxd_checkbox in self.cxd_checkboxes:
-            cxd_checkbox.contextualize(text)
+            cxd_checkbox.contextualize(pattern, replacement)
 
     def add_form_data_value(self, element_form_data: Any) -> None:
         if not element_form_data:
@@ -82,8 +88,8 @@ class CxdCheckboxGroupElement(CheckboxGroupElement, _CxdFormElement):
 
 
 class CxdOption(Option, _CxdFormElement):
-    def contextualize(self, text: str) -> None:
-        self.label = re.sub(r'\{ qpy:repno }', f'{text}', self.label)
+    def contextualize(self, pattern: Pattern[str], replacement: str) -> None:
+        self.label = replace(pattern, replacement, self.label)
 
 
 class CxdRadioGroupElement(RadioGroupElement, _CxdFormElement):
@@ -100,10 +106,10 @@ class CxdRadioGroupElement(RadioGroupElement, _CxdFormElement):
             path.pop()
         self.options = []
 
-    def contextualize(self, text: str) -> None:
-        self.label = re.sub(r'\{ qpy:repno }', f'{text}', self.label)
+    def contextualize(self, pattern: Pattern[str], replacement: str) -> None:
+        self.label = replace(pattern, replacement, self.label)
         for cxd_option in self.cxd_options:
-            cxd_option.contextualize(text)
+            cxd_option.contextualize(pattern, replacement)
 
     def add_form_data_value(self, element_form_data: Any) -> None:
         if not element_form_data:
@@ -127,10 +133,10 @@ class CxdSelectElement(SelectElement, _CxdFormElement):
             path.pop()
         self.options = []
 
-    def contextualize(self, text: str) -> None:
-        self.label = re.sub(r'\{ qpy:repno }', f'{text}', self.label)
+    def contextualize(self, pattern: Pattern[str], replacement: str) -> None:
+        self.label = replace(pattern, replacement, self.label)
         for cxd_option in self.cxd_options:
-            cxd_option.contextualize(text)
+            cxd_option.contextualize(pattern, replacement, )
 
     def add_form_data_value(self, element_form_data: Any) -> None:
         if not element_form_data:
@@ -142,7 +148,7 @@ class CxdSelectElement(SelectElement, _CxdFormElement):
 
 
 class CxdHiddenElement(HiddenElement, _CxdFormElement):
-    def contextualize(self, text: str) -> None:
+    def contextualize(self, pattern: Pattern[str], replacement: str) -> None:
         pass
 
     def add_form_data_value(self, element_form_data: Any) -> None:

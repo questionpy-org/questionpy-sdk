@@ -60,7 +60,7 @@ def _contextualize_element(element: FormElement, form_data: Optional[dict[str, A
     cxd_element_class = element_mapping[element.__class__]
     cxd_element = cxd_element_class(**element.model_dump(), path=path)
     if context:
-        cxd_element.contextualize(context.get('repno'))
+        cxd_element.contextualize(r'\{\s?qpy:repno\s?\}', context.get('repno'))
     cxd_element.add_form_data_value(element_form_data)
 
     path.pop()
