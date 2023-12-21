@@ -44,9 +44,9 @@ class TestTemplates:
             button = repetition_element.find_element(By.CLASS_NAME, 'repetition-button')
             increment_attribute = button.get_attribute('data-repetition_increment')
 
-            wait = WebDriverWait(driver, timeout=2)
             button.click()
-            wait.until(lambda _: repetition_element.is_displayed())
+            # pylint: disable=cell-var-from-loop
+            WebDriverWait(driver, timeout=2).until(lambda _: repetition_element.is_displayed())
 
             driver.get(url)
 
