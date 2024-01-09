@@ -13,20 +13,35 @@ from questionpy_common.elements import StaticTextElement, GroupElement, HiddenEl
 from questionpy_common.elements import FormElement  # noqa: F401
 
 
-def replace(pattern: Pattern[str], replacement: str, string: str) -> str:
-    if not string:
-        return ""
-    return sub(pattern, f'{replacement}', string)
-
-
 class _CxdFormElement(BaseModel):
     path: list[str]
     id: str = ''
 
     def contextualize(self, pattern: Pattern[str], replacement: str) -> None:
+        """
+        QuestionPy FormElements can contain a Pattern in their model fields which is replaced with a value when
+        the OptionsForm is presented to add additional context for the user.
+        Replaces the QPy pattern with the replacement string in model fields which can contain such a pattern.
+
+        Args:
+            pattern: The QPy Pattern to be replaced. A valid QPy Pattern matches '{qpy:<identifier>}'
+                e.g. '{qpy:repno}'
+            replacement: The replacement string
+        Returns:
+            None
+        """
         pass
 
     def add_form_data_value(self, element_form_data: Any) -> None:
+        """
+        If there is prior form data available, this data is used to set the CxdFormElements value or 'selected' state.
+
+        Args:
+            element_form_data: Any form data fitting this CxdFormElement
+
+        Returns:
+            None
+        """
         pass
 
 
@@ -34,9 +49,9 @@ class CxdTextInputElement(TextInputElement, _CxdFormElement):
     value: Optional[str] = None
 
     def contextualize(self, pattern: Pattern[str], replacement: str) -> None:
-        self.label = replace(pattern, replacement, self.label)
-        self.default = replace(pattern, replacement, self.default)
-        self.placeholder = replace(pattern, replacement, self.placeholder)
+        self.label = sub(pattern, replacement, self.label)
+        self.default = sub(pattern, replacement, self.default)
+        self.placeholder = sub(pattern, replacement, self.placeholder)
 
     def add_form_data_value(self, element_form_data: Any) -> None:
         if element_form_data:
@@ -46,14 +61,14 @@ class CxdTextInputElement(TextInputElement, _CxdFormElement):
 class CxdStaticTextElement(StaticTextElement, _CxdFormElement):
 
     def contextualize(self, pattern: Pattern[str], replacement: str) -> None:
-        self.label = replace(pattern, replacement, self.label)
-        self.text = replace(pattern, replacement, self.text)
+        self.label = sub(pattern, replacement, self.label)
+        self.text = sub(pattern, replacement, self.text)
 
 
 class CxdCheckboxElement(CheckboxElement, _CxdFormElement):
     def contextualize(self, pattern: Pattern[str], replacement: str) -> None:
-        self.left_label = replace(pattern, replacement, self.left_label)
-        self.right_label = replace(pattern, replacement, self.right_label)
+        self.left_label = sub(pattern, replacement, self.left_label)
+        self.right_label = sub(pattern, replacement, self.right_label)
 
     def add_form_data_value(self, element_form_data: Any) -> None:
         if element_form_data:
@@ -89,7 +104,7 @@ class CxdCheckboxGroupElement(CheckboxGroupElement, _CxdFormElement):
 
 class CxdOption(Option, _CxdFormElement):
     def contextualize(self, pattern: Pattern[str], replacement: str) -> None:
-        self.label = replace(pattern, replacement, self.label)
+        self.label = sub(pattern, replacement, self.label)
 
 
 class CxdRadioGroupElement(RadioGroupElement, _CxdFormElement):
@@ -107,7 +122,7 @@ class CxdRadioGroupElement(RadioGroupElement, _CxdFormElement):
         self.options = []
 
     def contextualize(self, pattern: Pattern[str], replacement: str) -> None:
-        self.label = replace(pattern, replacement, self.label)
+        self.label = sub(pattern, replacement, self.label)
         for cxd_option in self.cxd_options:
             cxd_option.contextualize(pattern, replacement)
 
@@ -134,9 +149,9 @@ class CxdSelectElement(SelectElement, _CxdFormElement):
         self.options = []
 
     def contextualize(self, pattern: Pattern[str], replacement: str) -> None:
-        self.label = replace(pattern, replacement, self.label)
+        self.label = sub(pattern, replacement, self.label)
         for cxd_option in self.cxd_options:
-            cxd_option.contextualize(pattern, replacement, )
+            cxd_option.contextualize(pattern, replacement)
 
     def add_form_data_value(self, element_form_data: Any) -> None:
         if not element_form_data:

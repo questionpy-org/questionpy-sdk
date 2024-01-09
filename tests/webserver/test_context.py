@@ -41,7 +41,7 @@ def form_elements_fixture(request: SubRequest) -> tuple[FormElement]:
     return request.param
 
 
-@pytest.fixture()
+@pytest.fixture
 def repetition_element_fixture(form_elements_fixture: tuple[FormElement]) -> RepetitionElement:
     return RepetitionElement(name="repetition", initial_repetitions=1, increment=1, elements=form_elements_fixture)
 
@@ -101,7 +101,7 @@ def test_contextualize_should_replace_identifiers(form_definition_fixture: Optio
         assert not _substring_in_cxd_element(element, "qpy:repno")
 
     # the identifier should be replaced with the running number
-    for index, repetition in enumerate(cxd_repetition.cxd_elements):
+    for index, repetition in enumerate(cxd_repetition.cxd_elements, 1):
         for element in repetition:
             assert _substring_in_cxd_element(element, str(index))
 
