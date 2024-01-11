@@ -55,9 +55,9 @@ def _contextualize_element(element: FormElement, form_data: Optional[dict[str, A
         return cxd_rep_element
 
     if type(element) not in element_mapping:
-        raise ValueError(f"No corresponding CxdFormElement found for {element.__class__}")
+        raise ValueError(f"No corresponding CxdFormElement found for {type(element)}")
 
-    cxd_element_class = element_mapping[element.__class__]
+    cxd_element_class = element_mapping[type(element)]
     cxd_element = cxd_element_class(**element.model_dump(), path=path)
     if context:
         cxd_element.contextualize(r'\{\s?qpy:repno\s?\}', str(context.get('repno')))
