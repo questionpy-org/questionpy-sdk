@@ -50,8 +50,10 @@ class CxdTextInputElement(TextInputElement, _CxdFormElement):
 
     def contextualize(self, pattern: Pattern[str], replacement: str) -> None:
         self.label = sub(pattern, replacement, self.label)
-        self.default = sub(pattern, replacement, self.default)
-        self.placeholder = sub(pattern, replacement, self.placeholder)
+        if self.default:
+            self.default = sub(pattern, replacement, self.default)
+        if self.placeholder:
+            self.placeholder = sub(pattern, replacement, self.placeholder)
 
     def add_form_data_value(self, element_form_data: Any) -> None:
         if element_form_data:
@@ -67,8 +69,10 @@ class CxdStaticTextElement(StaticTextElement, _CxdFormElement):
 
 class CxdCheckboxElement(CheckboxElement, _CxdFormElement):
     def contextualize(self, pattern: Pattern[str], replacement: str) -> None:
-        self.left_label = sub(pattern, replacement, self.left_label)
-        self.right_label = sub(pattern, replacement, self.right_label)
+        if self.left_label:
+            self.left_label = sub(pattern, replacement, self.left_label)
+        if self.right_label:
+            self.right_label = sub(pattern, replacement, self.right_label)
 
     def add_form_data_value(self, element_form_data: Any) -> None:
         if element_form_data:
