@@ -100,10 +100,9 @@ class CxdCheckboxGroupElement(CheckboxGroupElement, _CxdFormElement):
     def add_form_data_value(self, element_form_data: Any) -> None:
         if not element_form_data:
             return
-        selected_checkboxes = [chk for chk in self.cxd_checkboxes if chk.name in element_form_data]
 
         for checkbox in self.cxd_checkboxes:
-            checkbox.selected = checkbox in selected_checkboxes
+            checkbox.selected = checkbox.name in element_form_data
 
 
 class CxdOption(Option, _CxdFormElement):
@@ -160,16 +159,12 @@ class CxdSelectElement(SelectElement, _CxdFormElement):
     def add_form_data_value(self, element_form_data: Any) -> None:
         if not element_form_data:
             return
-        selected_options = [opt for opt in self.cxd_options if opt.value in element_form_data]
 
         for option in self.cxd_options:
-            option.selected = option in selected_options
+            option.selected = option.value in element_form_data
 
 
 class CxdHiddenElement(HiddenElement, _CxdFormElement):
-    def contextualize(self, pattern: Pattern[str], replacement: str) -> None:
-        pass
-
     def add_form_data_value(self, element_form_data: Any) -> None:
         if element_form_data:
             self.value = element_form_data
