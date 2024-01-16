@@ -5,7 +5,7 @@
 from re import sub, Pattern
 from typing import List, Union, Annotated, Any, Optional
 from typing_extensions import TypeAlias
-from pydantic import Field, BaseModel
+from pydantic import Field, BaseModel, computed_field
 
 from questionpy_common.elements import StaticTextElement, GroupElement, HiddenElement, RepetitionElement, \
     SelectElement, RadioGroupElement, Option, CheckboxGroupElement, CheckboxElement, TextInputElement, FormSection
@@ -15,7 +15,10 @@ from questionpy_common.elements import FormElement  # noqa: F401
 
 class _CxdFormElement(BaseModel):
     path: list[str]
-    id: str = ''
+
+    @computed_field
+    def id(self) -> str:
+        return '_'.join(self.path)
 
     def contextualize(self, pattern: Pattern[str], replacement: str) -> None:
         """
@@ -30,7 +33,6 @@ class _CxdFormElement(BaseModel):
         Returns:
             None
         """
-        pass
 
     def add_form_data_value(self, element_form_data: Any) -> None:
         """

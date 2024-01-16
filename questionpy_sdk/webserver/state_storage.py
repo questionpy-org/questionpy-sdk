@@ -15,19 +15,19 @@ def _unflatten(flat_form_data: dict[str, str]) -> dict[str, Any]:
     Additionally: Dictionaries with only numerical keys (Repetition Elements) are replaced by lists.
 
     Example:
-    This::
+        This::
 
-        {
-            'general[my_hidden]': 'foo',
-            'general[my_repetition][1][role]': 'OPT_1',
-            'general[my_repetition][1][name][first_name]': 'John '
-        }
-    becomes::
+            {
+                'general[my_hidden]': 'foo',
+                'general[my_repetition][1][role]': 'OPT_1',
+                'general[my_repetition][1][name][first_name]': 'John '
+            }
+        becomes::
 
-        {
-            'my_hidden': 'foo',
-            'my_repetition': [{'name': {'first_name': 'John '}, 'role': 'OPT_1'}],
-        }
+            {
+                'my_hidden': 'foo',
+                'my_repetition': [{'name': {'first_name': 'John '}, 'role': 'OPT_1'}],
+            }
     """
     unflattened_dict: dict[str, Any] = {}
     for key, value in flat_form_data.items():
@@ -67,14 +67,19 @@ def parse_form_data(form_data: dict) -> dict:
     The references are used to create a nested dictionary with the form data. Elements in the 'general' section are
     moved to the root of the dictionary.
     Example:
-        {'general[my_hidden]': 'foo',\n
-        'general[my_repetition][1][role]': 'OPT_1',\n
-        'general[my_repetition][1][name][first_name]': 'John '}
+        This::
 
-        becomes:
+            {
+                'general[my_hidden]': 'foo',\n
+                'general[my_repetition][1][role]': 'OPT_1',\n
+                'general[my_repetition][1][name][first_name]': 'John '
+            }
+        becomes::
 
-        {'my_hidden': 'foo',\n
-        'my_repetition': [{'name': {'first_name': 'John '}, 'role': 'OPT_1'}]}
+            {
+                'my_hidden': 'foo',\n
+                'my_repetition': [{'name': {'first_name': 'John '}, 'role': 'OPT_1'}]
+            }
     """
     unflattened_form_data = _unflatten(form_data)
     options = unflattened_form_data['general']
