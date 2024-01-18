@@ -32,14 +32,12 @@ def _unflatten(flat_form_data: dict[str, str]) -> dict[str, Any]:
             }
     """
     unflattened_dict: dict[str, Any] = {}
-    for key, value in flat_form_data.items():
-        keys = key.replace(']', '').split('[')[:-1]
+    for flat_key, value in flat_form_data.items():
+        key_path = flat_key.replace(']', '').split('[')
         current_dict = unflattened_dict
-        for k in keys:
-            if k not in current_dict:
-                current_dict[k] = {}
-            current_dict = current_dict[k]
-        current_dict[key.split('[')[-1][:-1]] = value
+        for key_part in key_path[:-1]:
+            current_dict = current_dict.setdefault(key_part, {})
+        current_dict[key_path[-1]] = value
 
     result = _convert_repetition_dict_to_list(unflattened_dict)
     if not isinstance(result, dict):
@@ -53,11 +51,12 @@ def _convert_repetition_dict_to_list(dictionary: dict[str, Any]) -> Union[dict[s
     if not isinstance(dictionary, dict):
         return dictionary
 
-    if all(key.isnumeric() for key in dictionary.keys()):
-        return list(dictionary.values())
-
     for key, value in dictionary.items():
         dictionary[key] = _convert_repetition_dict_to_list(value)
+
+    if dictionary.pop("qpy_repetition_marker", ...) is not ...:
+        # Sort by key (i.e. the index) and put the sorted values into a list.
+        return list(value for key, value in sorted(dictionary.items(), key=lambda item: item[0]))
 
     return dictionary
 
@@ -84,7 +83,7 @@ def parse_form_data(form_data: dict) -> dict:
             }
     """
     unflattened_form_data = _unflatten(form_data)
-    options = unflattened_form_data['general']
+    options = unflattened_form_data.get('general', {})
     for section_name, section in unflattened_form_data.items():
         if not section_name == 'general':
             options[section_name] = section
@@ -92,7 +91,16 @@ def parse_form_data(form_data: dict) -> dict:
 
 
 def add_repetition(form_data: dict[str, Any], reference: list, increment: int) -> dict[str, Any]:
-    """Adds repetitions of the referenced RepetitionElement to the form_data."""
+    """Adds repetitions of the referenced RepetitionElement to the form_data.
+
+    Args:
+        form_data: Current form data to which new repetitions should be added.
+        reference: Reference (list of names forming a path into `form_data`) of the repetition.
+        increment: Number of new repetitions to add.
+
+    Returns:
+        `form_data` modified in-place.
+    """
     current_element = form_data
 
     if ref := reference.pop(0) != 'general':
