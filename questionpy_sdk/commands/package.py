@@ -3,7 +3,6 @@
 #  (c) Technische Universität Berlin, innoCampus <info@isis.tu-berlin.de>
 
 import inspect
-import logging
 import subprocess
 from pathlib import Path
 from tempfile import TemporaryDirectory
@@ -11,15 +10,11 @@ from types import ModuleType
 from typing import Optional
 
 import click
-import yaml
-from pydantic import ValidationError
 from questionpy_common.manifest import Manifest
 
 import questionpy
-from questionpy_sdk.commands._helper import create_normalized_filename
+from questionpy_sdk.commands._helper import create_normalized_filename, read_yaml_manifest
 from questionpy_sdk.package import PackageBuilder
-
-log = logging.getLogger(__name__)
 
 
 def validate_out_path(context: click.Context, _parameter: click.Parameter, value: Optional[Path]) -> Optional[Path]:
@@ -36,16 +31,7 @@ def package(source: Path, manifest_path: Optional[Path], out_path: Optional[Path
     if not manifest_path:
         manifest_path = source / "qpy_manifest.yml"
 
-    if not manifest_path.is_file():
-        raise click.ClickException(f"The manifest '{manifest_path}' does not exist.")
-
-    with manifest_path.open() as manifest_f:
-        try:
-            manifest = Manifest.model_validate(yaml.safe_load(manifest_f))
-        except yaml.YAMLError as e:
-            raise click.ClickException(f"Failed to parse manifest '{manifest_path}': {e}")
-        except ValidationError as e:
-            raise click.ClickException(f"Invalid manifest '{manifest_path}': {e}")
+    manifest = read_yaml_manifest(manifest_path)
 
     if not out_path:
         out_path = Path(create_normalized_filename(manifest))

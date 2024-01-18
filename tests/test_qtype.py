@@ -10,7 +10,7 @@ import pytest
 from questionpy_common.environment import set_qpy_environment
 from questionpy_common.models import QuestionModel, ScoringMethod, AttemptModel, AttemptUi
 from questionpy_server.worker.runtime.manager import EnvironmentImpl
-from questionpy_server.worker.runtime.package import QPyMainPackage
+from questionpy_server.worker.runtime.package import ImportablePackage
 
 from questionpy import QuestionType, Question, BaseQuestionState, Attempt, BaseAttemptState, Environment, RequestUser
 from questionpy.form import FormModel, text_input
@@ -22,7 +22,7 @@ def environment() -> Generator[Environment, None, None]:
         type="test",
         limits=None,
         request_user=RequestUser(["en"]),
-        main_package=cast(QPyMainPackage, SimpleNamespace(manifest=SimpleNamespace(
+        main_package=cast(ImportablePackage, SimpleNamespace(manifest=SimpleNamespace(
             namespace="test_ns", short_name="test_package",
             version="1.2.3"
         ))),

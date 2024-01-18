@@ -2,7 +2,6 @@
 #  The QuestionPy SDK is free software released under terms of the MIT license. See LICENSE.md.
 #  (c) Technische Universität Berlin, innoCampus <info@isis.tu-berlin.de>
 
-import logging
 from pathlib import Path
 from typing import Optional
 from zipfile import ZipFile
@@ -12,8 +11,6 @@ import yaml
 from questionpy_common.manifest import ensure_is_valid_name, DEFAULT_NAMESPACE
 
 from questionpy_sdk.resources import EXAMPLE_PACKAGE
-
-log = logging.getLogger(__name__)
 
 
 def validate_name(context: click.Context, _parameter: click.Parameter, value: str) -> str:
