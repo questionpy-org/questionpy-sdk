@@ -44,7 +44,6 @@ class _CxdFormElement(BaseModel):
         Returns:
             None
         """
-        pass
 
 
 class CxdTextInputElement(TextInputElement, _CxdFormElement):

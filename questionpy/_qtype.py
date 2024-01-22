@@ -6,10 +6,10 @@ from abc import ABC
 from typing import Optional, Type, Generic, TypeVar, get_args, get_origin, Literal, Union, cast
 
 from pydantic import BaseModel, ValidationError
+from questionpy_common.environment import get_qpy_environment
 from questionpy_common.qtype import OptionsFormDefinition, BaseQuestionType, BaseQuestion, OptionsFormValidationError, \
     BaseAttempt
 
-from questionpy import get_qpy_environment
 from questionpy.form import FormModel
 
 _T = TypeVar("_T")
@@ -85,8 +85,8 @@ class Attempt(BaseAttempt, ABC, Generic[_Q, _AS]):
     def export_attempt_state(self) -> str:
         return self.state.model_dump_json()
 
-    def __init_subclass__(cls, **kwargs: object) -> None:
-        super().__init_subclass__(**kwargs)
+    def __init_subclass__(cls, *args: object, **kwargs: object) -> None:
+        super().__init_subclass__(*args, **kwargs)
         cls.state_class = _get_type_arg(cls, Attempt, 1, bound=BaseAttemptState, default=BaseAttemptState)
 
 
@@ -111,8 +111,8 @@ class Question(BaseQuestion, ABC, Generic[_QS, _A]):
     def export_question_state(self) -> str:
         return self.state.model_dump_json()
 
-    def __init_subclass__(cls, **kwargs: object) -> None:
-        super().__init_subclass__(**kwargs)
+    def __init_subclass__(cls, *args: object, **kwargs: object) -> None:
+        super().__init_subclass__(*args, **kwargs)
         cls.state_class = _get_type_arg(cls, Question, 0, bound=BaseQuestionState, default=BaseQuestionState)
         if _get_type_arg(cls, Question, 0) == BaseQuestionState:
             raise TypeError(f"{cls.state_class.__name__} must declare a specific FormModel.")
@@ -152,8 +152,8 @@ class QuestionType(BaseQuestionType, Generic[_F, _Q]):
         if question_class:
             self.question_class = question_class
 
-    def __init_subclass__(cls, **kwargs: object) -> None:
-        super().__init_subclass__(**kwargs)
+    def __init_subclass__(cls, *args: object, **kwargs: object) -> None:
+        super().__init_subclass__(*args, **kwargs)
 
         cls.options_class = _get_type_arg(cls, QuestionType, 0, bound=FormModel, default=FormModel)
         cls.question_class = _get_type_arg(cls, QuestionType, 1, bound=Question)

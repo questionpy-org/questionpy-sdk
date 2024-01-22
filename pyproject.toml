@@ -70,7 +70,7 @@ fail-under = 8
 
 [tool.pylint.BASIC]
 # Allow these well-known names despite usual naming conventions
-good-names = ["i", "j", "k", "e", "ex", "fs", "_"]
+good-names = ["i", "j", "k", "e", "ex", "fs", "_", "id"]
 # Allow any name for test methods
 function-rgx = "^test_.+|[a-z0-9_]+$"
 

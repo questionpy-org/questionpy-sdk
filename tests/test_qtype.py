@@ -117,6 +117,7 @@ def test_should_raise_with_different_form_models() -> None:
         pass
 
     with pytest.raises(TypeError, match="must have the same FormModel as"):
+        # pylint: disable=unused-variable
         class MyQType(QuestionType[SomeModel2, SomeQuestion]):
             pass
 
@@ -125,12 +126,14 @@ def test_should_raise_with_different_form_models() -> None:
             return QuestionModel(scoring_method=ScoringMethod.AUTOMATICALLY_SCORABLE)
 
     with pytest.raises(TypeError, match="must have the same FormModel as"):
+        # pylint: disable=unused-variable
         class MyQType2(QuestionType[SomeModel, SomeQuestion2]):
             pass
 
 
 def test_should_raise_with_generic_form_model() -> None:
     with pytest.raises(TypeError, match="BaseQuestionState must declare a specific FormModel."):
+        # pylint: disable=unused-variable
         class SomeQuestion2(Question[BaseQuestionState, SomeAttempt]):
             def export(self) -> QuestionModel:
                 return QuestionModel(scoring_method=ScoringMethod.AUTOMATICALLY_SCORABLE)
