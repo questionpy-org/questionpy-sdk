@@ -11,6 +11,8 @@ from pydantic import ValidationError
 from questionpy_common.manifest import Manifest
 from questionpy_server.worker.runtime.package_location import PackageLocation, DirPackageLocation, ZipPackageLocation, \
     FunctionPackageLocation
+from questionpy_sdk.constants import PACKAGE_CONFIG_FILENAME
+from questionpy_sdk.models import PackageConfig
 
 
 def create_normalized_filename(manifest: Manifest) -> str:
@@ -29,8 +31,8 @@ def create_normalized_filename(manifest: Manifest) -> str:
 def infer_package_kind(string: str) -> PackageLocation:
     path = Path(string)
     if path.is_dir():
-        manifest = read_yaml_manifest(path / "qpy_manifest.yml")
-        return DirPackageLocation(path, manifest)
+        config = read_yaml_config(path / PACKAGE_CONFIG_FILENAME)
+        return DirPackageLocation(path, config)
 
     if zipfile.is_zipfile(path):
         return ZipPackageLocation(path)
@@ -55,14 +57,14 @@ def infer_package_kind(string: str) -> PackageLocation:
     raise click.ClickException(f"'{string}' doesn't look like a QPy package zip file, directory or module")
 
 
-def read_yaml_manifest(path: Path) -> Manifest:
+def read_yaml_config(path: Path) -> PackageConfig:
     if not path.is_file():
-        raise click.ClickException(f"The manifest '{path}' does not exist.")
+        raise click.ClickException(f"The config '{path}' does not exist.")
 
-    with path.open() as manifest_f:
+    with path.open() as config_f:
         try:
-            return Manifest.model_validate(yaml.safe_load(manifest_f))
+            return PackageConfig.model_validate(yaml.safe_load(config_f))
         except yaml.YAMLError as e:
-            raise click.ClickException(f"Failed to parse manifest '{path}': {e}")
+            raise click.ClickException(f"Failed to parse config '{path}': {e}")
         except ValidationError as e:
-            raise click.ClickException(f"Invalid manifest '{path}': {e}")
+            raise click.ClickException(f"Invalid config '{path}': {e}")

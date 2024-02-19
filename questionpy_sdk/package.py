@@ -6,7 +6,8 @@ import logging
 from pathlib import Path
 from zipfile import ZipFile
 
-from questionpy_common.manifest import Manifest
+from questionpy_common.constants import MANIFEST_FILENAME
+from questionpy_sdk.models import PackageConfig
 
 
 log = logging.getLogger(__name__)
@@ -16,9 +17,9 @@ class PackageBuilder(ZipFile):
     def __init__(self, path: Path):
         super().__init__(path, "w")
 
-    def write_manifest(self, manifest: Manifest) -> None:
-        log.info("qpy_manifest.json: %s", manifest)
-        self.writestr("qpy_manifest.json", manifest.model_dump_json())
+    def write_manifest(self, config: PackageConfig) -> None:
+        log.info("%s: %s", MANIFEST_FILENAME, config)
+        self.writestr(MANIFEST_FILENAME, config.manifest.model_dump_json())
 
     def write_glob(self, source_dir: Path, glob: str, prefix: str = "") -> None:
         for source_file in source_dir.glob(glob):

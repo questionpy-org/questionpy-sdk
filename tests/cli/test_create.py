@@ -10,6 +10,7 @@ import pytest
 from click.testing import CliRunner
 
 from questionpy_sdk.commands.create import create
+from questionpy_sdk.constants import PACKAGE_CONFIG_FILENAME
 from questionpy_sdk.resources import EXAMPLE_PACKAGE
 
 
@@ -17,7 +18,7 @@ def packages_are_equal(directory_1: Path, directory_2: Path) -> bool:
     comparison = dircmp(directory_1, directory_2, ignore=[])
     if comparison.left_only or comparison.right_only or comparison.funny_files:
         return False
-    if comparison.diff_files and comparison.diff_files != ["qpy_manifest.yml"]:
+    if comparison.diff_files and comparison.diff_files != [PACKAGE_CONFIG_FILENAME]:
         return False
     for sub_comparison in comparison.subdirs.values():
         if not packages_are_equal(Path(sub_comparison.left), Path(sub_comparison.right)):

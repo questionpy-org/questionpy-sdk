@@ -8,6 +8,7 @@ from gzip import open as gzip_open
 from pathlib import Path
 from zipfile import ZipFile
 
+from questionpy_common.constants import MANIFEST_FILENAME
 from questionpy_server.misc import calculate_hash
 from questionpy_server.repository.models import RepoPackageVersions, RepoPackageVersion, RepoMeta, RepoPackageIndex
 from questionpy_server.utils.manifest import ComparableManifest
@@ -23,7 +24,7 @@ def get_manifest(path: Path) -> ComparableManifest:
         manifest of the package
     """
     with ZipFile(path) as zip_file:
-        raw_manifest = zip_file.read("qpy_manifest.json")
+        raw_manifest = zip_file.read(MANIFEST_FILENAME)
     return ComparableManifest.model_validate_json(raw_manifest)
 
 

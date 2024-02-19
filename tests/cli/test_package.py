@@ -10,30 +10,30 @@ import pytest
 import yaml
 from click.testing import CliRunner
 
-from questionpy_common.manifest import Manifest
-
 from questionpy_sdk.commands._helper import create_normalized_filename
 from questionpy_sdk.commands.package import package
+from questionpy_sdk.constants import PACKAGE_CONFIG_FILENAME
+from questionpy_sdk.models import PackageConfig
 from questionpy_sdk.resources import EXAMPLE_PACKAGE
 
 
-def create_manifest(source: Path) -> Manifest:
+def create_config(source: Path) -> PackageConfig:
     """
-    Creates a manifest in the given `source` directory.
+    Creates a config in the given `source` directory.
     """
-    manifest = Manifest(short_name="short_name", author="pytest", api_version="0.1", version="0.1.0")
-    with (source / "qpy_manifest.yml").open("w") as file:
-        yaml.dump(manifest.model_dump(exclude={"type"}), file)
-    return manifest
+    config = PackageConfig(short_name="short_name", author="pytest", api_version="0.1", version="0.1.0")
+    with (source / PACKAGE_CONFIG_FILENAME).open("w") as file:
+        yaml.dump(config.model_dump(exclude={"type"}), file)
+    return config
 
 
-def create_source_directory(root: Path, directory_name: str) -> Manifest:
+def create_source_directory(root: Path, directory_name: str) -> PackageConfig:
     """
-    Creates a source directory with a manifest in the given `root` directory.
+    Creates a source directory with a config in the given `root` directory.
     """
     source = root / directory_name
     source.mkdir()
-    return create_manifest(source)
+    return create_config(source)
 
 
 def test_package_with_example_package() -> None:
@@ -71,13 +71,13 @@ def test_package_with_file_as_source_path_raises_error() -> None:
         assert "Error: Invalid value for 'SOURCE': Directory 'source' is a file." in result.stdout
 
 
-def test_package_with_missing_manifest_raises_error() -> None:
+def test_package_with_missing_config_raises_error() -> None:
     runner = CliRunner()
     with runner.isolated_filesystem() as directory:
         Path(directory, "source").mkdir()
         result = runner.invoke(package, ["source"])
         assert result.exit_code != 0
-        assert "Error: The manifest 'source/qpy_manifest.yml' does not exist." in result.stdout
+        assert f"Error: The config 'source/{PACKAGE_CONFIG_FILENAME}' does not exist." in result.stdout
 
 
 def test_package_with_invalid_out_path_raises_error() -> None:
@@ -92,17 +92,17 @@ def test_package_with_invalid_out_path_raises_error() -> None:
 def test_package_with_only_source() -> None:
     runner = CliRunner()
     with runner.isolated_filesystem() as fs:
-        manifest = create_source_directory(Path(fs), "source")
+        config = create_source_directory(Path(fs), "source")
         result = runner.invoke(package, ["source"])
         assert result.exit_code == 0
-        assert Path(".", f"{create_normalized_filename(manifest)}").exists()
+        assert Path(".", f"{create_normalized_filename(config)}").exists()
 
 
 def test_package_creates_package_in_cwd() -> None:
     runner = CliRunner()
     with runner.isolated_filesystem() as fs:
         directory = Path(fs)
-        manifest = create_source_directory(directory, "source")
+        config = create_source_directory(directory, "source")
 
         # Change current working directory to 'cwd'.
         cwd = Path(directory, "cwd")
@@ -111,7 +111,7 @@ def test_package_creates_package_in_cwd() -> None:
 
         result = runner.invoke(package, ["../source"])
         assert result.exit_code == 0
-        assert Path(".", create_normalized_filename(manifest)).exists()
+        assert Path(".", create_normalized_filename(config)).exists()
 
 
 def test_package_with_out_path() -> None:
@@ -125,49 +125,49 @@ def test_package_with_out_path() -> None:
         assert Path(directory, "source.qpy").exists()
 
 
-def test_package_with_not_existing_manifest_as_argument_raises_error() -> None:
+def test_package_with_not_existing_config_as_argument_raises_error() -> None:
+    runner = CliRunner()
+    with runner.isolated_filesystem() as fs:
+        directory = Path(fs)
+        (directory / "config").mkdir()
+        result = runner.invoke(package, ["source", "--config", "config.yml"])
+        assert result.exit_code != 0
+        assert "Error: Invalid value for '--config' / '-c': File 'config.yml' does not exist." in result.stdout
+
+
+def test_package_with_directory_as_config_argument_raises_error() -> None:
     runner = CliRunner()
     with runner.isolated_filesystem() as fs:
         directory = Path(fs)
         (directory / "source").mkdir()
-        result = runner.invoke(package, ["source", "--manifest", "manifest.yml"])
+        (directory / "config.yml").mkdir()
+        result = runner.invoke(package, ["source", "--config", "config.yml"])
         assert result.exit_code != 0
-        assert "Error: Invalid value for '--manifest' / '-m': File 'manifest.yml' does not exist." in result.stdout
+        assert "Error: Invalid value for '--config' / '-c': File 'config.yml' is a directory." in result.stdout
 
 
-def test_package_with_directory_as_manifest_argument_raises_error() -> None:
+def test_package_with_invalid_yaml_as_config_raises_error() -> None:
     runner = CliRunner()
     with runner.isolated_filesystem() as fs:
         directory = Path(fs)
         (directory / "source").mkdir()
-        (directory / "manifest.yml").mkdir()
-        result = runner.invoke(package, ["source", "--manifest", "manifest.yml"])
+        (directory / "config.yml").write_text("{")
+
+        result = runner.invoke(package, ["source", "--config", "config.yml"])
         assert result.exit_code != 0
-        assert "Error: Invalid value for '--manifest' / '-m': File 'manifest.yml' is a directory." in result.stdout
+        assert "Error: Failed to parse config 'config.yml': " in result.stdout
 
 
-def test_package_with_invalid_yaml_as_manifest_raises_error() -> None:
+def test_package_with_invalid_config_raises_error() -> None:
     runner = CliRunner()
     with runner.isolated_filesystem() as fs:
         directory = Path(fs)
         (directory / "source").mkdir()
-        (directory / "manifest.yml").write_text("{")
+        (directory / "config.yml").write_text("invalid: config")
 
-        result = runner.invoke(package, ["source", "--manifest", "manifest.yml"])
+        result = runner.invoke(package, ["source", "--config", "config.yml"])
         assert result.exit_code != 0
-        assert "Error: Failed to parse manifest 'manifest.yml': " in result.stdout
-
-
-def test_package_with_invalid_manifest_raises_error() -> None:
-    runner = CliRunner()
-    with runner.isolated_filesystem() as fs:
-        directory = Path(fs)
-        (directory / "source").mkdir()
-        (directory / "manifest.yml").write_text("invalid: manifest")
-
-        result = runner.invoke(package, ["source", "--manifest", "manifest.yml"])
-        assert result.exit_code != 0
-        assert "Invalid manifest 'manifest.yml': " in result.stdout
+        assert "Invalid config 'config.yml': " in result.stdout
 
 
 def test_package_with_namespace_argument() -> None:
@@ -175,12 +175,12 @@ def test_package_with_namespace_argument() -> None:
     with runner.isolated_filesystem() as fs:
         directory = Path(fs)
 
-        # Create empty source directory and manifest in the root directory.
+        # Create empty source directory and config in the root directory.
         (directory / "source").mkdir()
-        manifest = create_manifest(directory)
+        config = create_config(directory)
 
-        result = runner.invoke(package, ["source", "--manifest", "qpy_manifest.yml"])
-        assert f"Successfully created '{create_normalized_filename(manifest)}'." in result.stdout
+        result = runner.invoke(package, ["source", "--config", PACKAGE_CONFIG_FILENAME])
+        assert f"Successfully created '{create_normalized_filename(config)}'." in result.stdout
         assert result.exit_code == 0
 
 

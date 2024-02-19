@@ -80,7 +80,7 @@ def test_structure_creates_only_one_package_if_identical(count: int) -> None:
         root.mkdir()
 
         for i in range(count):
-            _, manifest = create_package(root / f"{i}.qpy", "package")
+            _, config = create_package(root / f"{i}.qpy", "package")
 
         out = Path(directory, "out")
         result = runner.invoke(structure, ["root", "out"])
@@ -89,7 +89,7 @@ def test_structure_creates_only_one_package_if_identical(count: int) -> None:
         assert_same_structure(Path(directory, "out"), [
             out / "META.json",
             out / "PACKAGES.json.gz",
-            out / manifest.namespace / manifest.short_name / create_normalized_filename(manifest)
+            out / config.namespace / config.short_name / create_normalized_filename(config)
         ])
 
 
@@ -109,8 +109,8 @@ def test_structure_with_multiple_packages(package_1: tuple[str, str, str], packa
         root = Path(directory, "root")
         root.mkdir()
 
-        _, manifest_1 = create_package(root / "a.qpy", short_name_1, namespace=namespace_1, version=version_1)
-        _, manifest_2 = create_package(root / "b.qpy", short_name_2, namespace=namespace_2, version=version_2)
+        _, config_1 = create_package(root / "a.qpy", short_name_1, namespace=namespace_1, version=version_1)
+        _, config_2 = create_package(root / "b.qpy", short_name_2, namespace=namespace_2, version=version_2)
 
         out = Path(directory, "out")
         result = runner.invoke(structure, ["root", "out"])
@@ -119,6 +119,6 @@ def test_structure_with_multiple_packages(package_1: tuple[str, str, str], packa
         assert_same_structure(Path(directory, "out"), [
             out / "META.json",
             out / "PACKAGES.json.gz",
-            out / manifest_1.namespace / manifest_1.short_name / create_normalized_filename(manifest_1),
-            out / manifest_2.namespace / manifest_2.short_name / create_normalized_filename(manifest_2),
+            out / config_1.namespace / config_1.short_name / create_normalized_filename(config_1),
+            out / config_2.namespace / config_2.short_name / create_normalized_filename(config_2),
         ])

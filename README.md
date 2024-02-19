@@ -10,11 +10,13 @@ $ poetry install
 
 ## :package: Creating a QuestionPy Package
 
-At minimum, a QuestionPy package requires a manifest. The manifest is a YAML-formatted file called `qpy_manifest.yml` at
-the root of your package. See the `Manifest` class for all supported properties.
+At minimum, a QuestionPy package requires a configuration file. The
+configuration is a YAML-formatted file called `qpy_config.yml` at the root of
+your package. See the `PackageConfig` and `Manifest` class for all supported
+properties.
 
 ```yaml
-# file example/qpy_manifest.yml
+# file example/qpy_config.yml
 
 # A short, concise identifier for your package
 short_name: example
@@ -26,8 +28,9 @@ api_version: 0.1
 author: Bob Sample <bob@example.org>
 ```
 
-Once you have written your manifest, use the `package` command to create your package as follows, where `example` is
-the directory in which your manifest resides.
+Once you have written your config, use the `package` command to create your
+package as follows, where `example` is the directory in which your config
+resides.
 
 ```shell
 $ questionpy-sdk package example
@@ -38,8 +41,8 @@ ready for use.
 
 ### Including dependencies
 
-You can specify the dependencies of your project in your manifest for the QuestionPy SDK to automatically include them
-in the package.
+You can specify the dependencies of your project in your config for the
+QuestionPy SDK to automatically include them in the package.
 
 ```yaml
 requirements:
@@ -51,7 +54,7 @@ requirements:
 If you use a requirements.txt file, you can alternatively reference it to have its packages included.
 
 ```yaml
-# Path relative to your qpy_manifest.yml
+# Path relative to your qpy_config.yml
 requirements: requirements.txt
 ```
 

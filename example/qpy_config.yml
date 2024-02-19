@@ -7,3 +7,5 @@ name:
   de: Beispiel
   en: Example
 languages: [de, en]
+build_hooks:
+  pre: npm build

@@ -5,6 +5,7 @@
 from click.testing import CliRunner
 
 from questionpy_sdk.commands.run import run
+from questionpy_sdk.constants import PACKAGE_CONFIG_FILENAME
 
 
 def test_run_no_arguments() -> None:
@@ -28,8 +29,8 @@ def test_run_non_zip_file() -> None:
     assert "'README.md' doesn't look like a QPy package zip file, directory or module" in result.stdout
 
 
-def test_run_dir_without_manifest() -> None:
+def test_run_dir_without_config() -> None:
     runner = CliRunner()
     result = runner.invoke(run, ["tests"])
     assert result.exit_code != 0
-    assert "The manifest 'tests/qpy_manifest.yml' does not exist" in result.stdout
+    assert f"The config 'tests/{PACKAGE_CONFIG_FILENAME}' does not exist" in result.stdout

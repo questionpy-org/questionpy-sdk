@@ -9,6 +9,7 @@ from zipfile import ZipFile
 import click
 import yaml
 from questionpy_common.manifest import ensure_is_valid_name, DEFAULT_NAMESPACE
+from questionpy_sdk.constants import PACKAGE_CONFIG_FILENAME
 
 from questionpy_sdk.resources import EXAMPLE_PACKAGE
 
@@ -41,13 +42,13 @@ def create(short_name: str, namespace: str, out_path: Optional[Path]) -> None:
     namespace_folder = (python_folder / "local").rename(python_folder / namespace)
     (namespace_folder / "example").rename(namespace_folder / short_name)
 
-    manifest_path = out_path / "qpy_manifest.yml"
+    config_path = out_path / PACKAGE_CONFIG_FILENAME
 
-    with manifest_path.open("r") as manifest_f:
-        manifest = yaml.safe_load(manifest_f)
+    with config_path.open("r") as config_f:
+        config = yaml.safe_load(config_f)
 
-    manifest["short_name"] = short_name
-    manifest["namespace"] = namespace
+    config["short_name"] = short_name
+    config["namespace"] = namespace
 
-    with manifest_path.open("w") as manifest_f:
-        yaml.dump(manifest, manifest_f, sort_keys=False)
+    with config_path.open("w") as config_f:
+        yaml.dump(config, config_f, sort_keys=False)
