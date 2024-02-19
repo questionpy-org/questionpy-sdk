@@ -15,7 +15,7 @@ from questionpy_common.elements import OptionsFormDefinition
 from questionpy_common.environment import RequestUser
 from questionpy_server import WorkerPool
 from questionpy_server.worker.runtime.package_location import PackageLocation
-from questionpy_server.worker.exception import WorkerUnknownError
+from questionpy_server.worker.runtime.messages import WorkerUnknownError
 from questionpy_server.worker.worker import Worker
 from questionpy_server.worker.worker.thread import ThreadWorker
 
