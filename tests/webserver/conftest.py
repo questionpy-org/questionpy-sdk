@@ -14,6 +14,7 @@ from typing import Callable
 
 import pytest
 from aiohttp import web
+from lxml import etree
 from selenium import webdriver
 
 from questionpy_sdk.webserver.app import WebServer
@@ -61,3 +62,32 @@ def start_runner_thread(sdk_web_server: WebServer, port: int) -> Iterator:
     app_thread.start()
 
     yield
+
+
+def normalize_element(element: etree._Element) -> etree._Element:
+    """Recursively normalize an XML element by sorting attributes and normalizing whitespace."""
+    if element.text:
+        element.text = ' '.join(element.text.split())
+    if element.tail:
+        element.tail = ' '.join(element.tail.split())
+
+    if element.attrib:
+        attributes = sorted(element.attrib.items())
+        element.attrib.clear()
+        element.attrib.update(attributes)
+
+    for child in element:
+        normalize_element(child)
+
+    return element
+
+
+def compare_xhtml(xhtml1: str, xhtml2: str) -> bool:
+    parser = etree.XMLParser(remove_blank_text=True)
+    tree1 = etree.fromstring(xhtml1, parser)
+    tree2 = etree.fromstring(xhtml2, parser)
+
+    normalize_element(tree1)
+    normalize_element(tree2)
+
+    return etree.tostring(tree1, method="c14n") == etree.tostring(tree2, method="c14n")

@@ -27,9 +27,10 @@ aiohttp = "^3.8.1"
 pydantic = "^2.4, !=2.6.0"
 PyYAML = "^6.0"
 questionpy-common = { git = "https://github.com/questionpy-org/questionpy-common.git", rev = "cdc3bad516df137651e14d81fb6d1bfde11ceaaf" }
-questionpy-server = { git = "https://github.com/questionpy-org/questionpy-server.git", rev = "a87322bef6ee18407bd47aa1b0ccf0865a9421d0" }
+questionpy-server = { git = "https://github.com/questionpy-org/questionpy-server.git", rev = "5bfe8c357976564f404e62ef98c529bf6475e67c" }
 jinja2 = "^3.1.2"
 aiohttp-jinja2 = "^1.5"
+lxml = "^5.1.0"
 
 [tool.poetry.group.dev.dependencies]
 pylint = "^2.17.0"
@@ -126,7 +127,7 @@ env_list =
 minversion = 4.2.6
 
 [testenv]
-allowlist_externals = poetry, *
+allowlist_externals = poetry
 # tox already installs the package (und thus its main dependencies) for us, so we only install dev dependencies here.
 commands_pre =
     poetry install --no-root --without main
