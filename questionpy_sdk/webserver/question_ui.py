@@ -56,14 +56,6 @@ def int_to_roman(index: int) -> str:
 def replace_shuffled_indices(element: etree._Element, index: int) -> None:
     for index_element in element.xpath(".//qpy:shuffled-index",
                                        namespaces={'qpy': "http://questionpy.org/ns/question"}):
-        # Check if the index element is in a nested shuffle-contents
-        ancestor = index_element.getparent()
-        while ancestor is not None and ancestor.tag != '{http://questionpy.org/ns/question}shuffle-contents':
-            ancestor = ancestor.getparent()
-
-        if ancestor is not None:
-            continue  # Skip, as it's in a nested shuffle
-
         format_style = index_element.get("format", "123")
 
         if format_style == "123":
@@ -82,6 +74,10 @@ def replace_shuffled_indices(element: etree._Element, index: int) -> None:
         # Replace the index element with the new index string
         new_text_node = etree.Element("span")  # Using span to replace the custom element
         new_text_node.text = index_str
+
+        if index_element.tail:
+            new_text_node.tail = index_element.tail
+
         index_element.getparent().replace(index_element, new_text_node)
 
 
@@ -91,7 +87,8 @@ class QuestionUIRenderer:
     question: etree._Element
     placeholders: dict[str, str]
 
-    def __init__(self, xml: str, placeholders: dict[str, str]) -> None:
+    def __init__(self, xml: str, placeholders: dict[str, str], seed: Optional[int] = None) -> None:
+        self.seed = seed
         self.xml = xml
         self.placeholders = placeholders
         self.question = etree.fromstring(xml.encode())
@@ -201,10 +198,9 @@ class QuestionUIRenderer:
             None
         """
         for p_instruction in xpath("//processing-instruction('p')"):
-            if p_instruction.text:
-                parts = p_instruction.text.strip().split()
-            else:
+            if not p_instruction.text:
                 continue
+            parts = p_instruction.text.strip().split()
             key = parts[0]
             clean_option = parts[1] if len(parts) > 1 else "clean"
 
@@ -232,12 +228,13 @@ class QuestionUIRenderer:
                     content += cleaned_value.text
                 for child in cleaned_value:
                     content += etree.tostring(child, encoding="unicode", with_tail=True)
-                fragment = etree.fromstring(f"<root>{content}</root>")
+                fragment = etree.fromstring(f"<string>{content}</string>")
+                replacement = content
             else:
-                fragment = etree.fromstring(f"<root>{raw_value}</root>")
+                fragment = etree.fromstring(f"<string>{raw_value}</string>")
+                replacement = raw_value
 
-            for child in reversed(fragment):
-                p_instruction.addnext(child)
+            p_instruction.addnext(etree.fromstring(f"<string>{replacement}</string>"))
 
             p_instruction.getparent().remove(p_instruction)
 
@@ -292,7 +289,6 @@ class QuestionUIRenderer:
         Returns:
             None
         """
-        # Define the query to find relevant elements, considering XHTML namespace is already registered
         elements_query = xpath("//xhtml:button | //xhtml:input | //xhtml:select | //xhtml:textarea")
 
         for element in elements_query:
@@ -350,33 +346,33 @@ class QuestionUIRenderer:
 
         # Handle 'required' attribute for <input>, <select>, <textarea> elements
         for element in xpath("(.//xhtml:input | .//xhtml:select | .//xhtml:textarea)[@required]"):
-            element.attrib.pop("required", None)  # Remove the attribute
+            element.attrib.pop("required")
             element.set("data-qpy_required", "true")
             element.set("aria-required", "true")
 
         # Handle 'minlength' attribute for <input>, <textarea> elements
         for element in xpath("(.//xhtml:input | .//xhtml:textarea)[@minlength]"):
             minlength = element.get("minlength")
-            element.attrib.pop("minlength", None)  # Remove the attribute
+            element.attrib.pop("minlength")  # Remove the attribute
             element.set("data-qpy_minlength", minlength)
 
         # Handle 'maxlength' attribute for <input>, <textarea> elements
         for element in xpath("(.//xhtml:input | .//xhtml:textarea)[@maxlength]"):
             maxlength = element.get("maxlength")
-            element.attrib.pop("maxlength", None)  # Remove the attribute
+            element.attrib.pop("maxlength")
             element.set("data-qpy_maxlength", maxlength)
 
         # Handle 'min' attribute for <input> elements
         for element in xpath(".//xhtml:input[@min]"):
             min_value = element.get("min")
-            element.attrib.pop("min", None)  # Remove the attribute
+            element.attrib.pop("min")
             element.set("data-qpy_min", min_value)
             element.set("aria-valuemin", min_value)
 
         # Handle 'max' attribute for <input> elements
         for element in xpath(".//xhtml:input[@max]"):
             max_value = element.get("max")
-            element.attrib.pop("max", None)  # Remove the attribute
+            element.attrib.pop("max")
             element.set("data-qpy_max", max_value)
             element.set("aria-valuemax", max_value)
 
@@ -403,18 +399,21 @@ class QuestionUIRenderer:
         Returns:
             None
         """
+        if self.seed:
+            random.seed(self.seed)
+
         for element in xpath("//*[@qpy:shuffle-contents]"):
             # Collect child elements to shuffle them
             child_elements = [child for child in element if isinstance(child, etree._Element)]
             random.shuffle(child_elements)
 
+            element.attrib.pop("{%s}shuffle-contents" % self.QPY_NAMESPACE)
+
             # Reinsert shuffled elements, preserving non-element nodes
-            element_children = list(element)
-            for i, child in enumerate(element_children):
-                if child in child_elements:
-                    new_position = child_elements.index(child)
-                    element.replace(child, child_elements[new_position])
-                    replace_shuffled_indices(child, new_position + 1)
+            for i, child in enumerate(child_elements):
+                replace_shuffled_indices(child, i + 1)
+                # Move each child element back to its parent at the correct position
+                element.append(child)
 
     def clean_up(self, xpath: etree.XPathDocumentEvaluator) -> None:
         """Removes remaining QuestionPy elements and attributes as well as comments and xmlns declarations.

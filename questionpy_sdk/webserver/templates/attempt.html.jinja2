@@ -1,0 +1,47 @@
+{% extends "page.html.jinja2" %}
+{% import "macros.jinja2" as macros %}
+
+{% block title %}Question Preview{%  endblock %}
+{% block header %}
+    <h1>Question Preview</h1>
+{% endblock %}
+
+{% block content %}
+    <div class="container-question-preview">
+        <form id="question-preview" action="/submit" data-route="/attempt"  data-success-action="reload">
+            {{ question_html|safe }}
+            <button type="submit" {% if form_disabled %}disabled{% endif %}>Submit</button>
+        </form>
+    </div>
+
+    <div class="container-display-options">
+        <form id="question-display-options" action="/submit" data-route="/attempt/display-options" data-success-action="reload">
+            <h2>Display Options</h2>
+            <table>
+                <tbody>
+                    {% for field_name, initial_value in options.items() %}
+                    <tr>
+                        <td>{{ field_name.replace('_', ' ') | capitalize }}:</td>
+                        <td>
+                            <select name="{{ field_name }}">
+                                <option value="true" {% if initial_value %}selected{% endif %}>True</option>
+                                <option value="false" {% if not initial_value %}selected{% endif %}>False</option>
+                            </select>
+                        </td>
+                    </tr>
+                    {% endfor %}
+                    <tr>
+                        <td></td>
+                        <td><button type="submit">Update display options</button></td>
+                    </tr>
+                </tbody>
+            </table>
+        </form>
+    </div>
+
+    {# TODO: More Preview Settings #}
+    {# TODO: Feedback options #}
+    {# TODO: Role selection (admin, teacher, student, ...) #}
+    {# TODO: Locale selection #}
+
+{% endblock %}

@@ -12,7 +12,7 @@
         <p class="manifest-apiversion">API Version: {{ manifest.api_version }}</p>
     </div>
 
-    <form action="/submit" id="options_form">
+    <form action="/submit" id="options_form" data-route="/submit" data-success-action="success-info">
         {{ macros.create_section("general", "General", options.general) }}
         {% for section in options.sections %}
             {{ macros.create_section(section.name, section.header, section.elements) }}

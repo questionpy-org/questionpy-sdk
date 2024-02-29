@@ -31,16 +31,18 @@ def test_should_resolve_placeholders() -> None:
     placeholder_path = Path(__file__).parent / 'question_uis/placeholder.xhtml'
     with placeholder_path.open() as xml:
         renderer = QuestionUIRenderer(xml=xml.read(), placeholders={
-            "param": "Value of param <b>one</b>.<script>'Oh no, danger!'</script>"})
+            "param": "Value of param <b>one</b>.<script>'Oh no, danger!'</script>",
+            "description": "My simple description."})
         result = renderer.render_formulation()
 
     # TODO: <string> um CDATA herum eventuell entfernen
     expected = """
-    <div xmlns="http://www.w3.org/1999/xhtml"><span>By default cleaned parameter: <b>one</b>.</span>
-        <span>Explicitly cleaned parameter: <b>one</b>.</span>
-        <span>Noclean parameter: <b>one</b>.<script>'Oh no, danger!'</script></span>
-        <span>Plain parameter: <string><![CDATA[Value of param <b>one</b>.<script>'Oh no, danger!'</script>]]></string>
-        </span>
+    <div xmlns="http://www.w3.org/1999/xhtml">
+        <div><string>My simple description.</string></div>
+        <span>By default cleaned parameter: <string>Value of param <b>one</b>.</string></span>
+        <span>Explicitly cleaned parameter: <string>Value of param <b>one</b>.</string></span>
+        <span>Noclean parameter: <string>Value of param <b>one</b>.<script>'Oh no, danger!'</script></string></span>
+        <span>Plain parameter: <string><![CDATA[Value of param <b>one</b>.<script>'Oh no, danger!'</script>]]></string></span>
     </div>
     """
 
@@ -182,12 +184,40 @@ def test_should_shuffle_the_same_way_in_same_attempt() -> None:
     with feedback_path.open() as xml:
         input_xml = xml.read()
 
-    renderer = QuestionUIRenderer(xml=input_xml, placeholders={})
+    renderer = QuestionUIRenderer(xml=input_xml, placeholders={}, seed=42)
     first_result = renderer.render_formulation()
     for _ in range(10):
-        renderer = QuestionUIRenderer(xml=input_xml, placeholders={})
+        renderer = QuestionUIRenderer(xml=input_xml, placeholders={}, seed=42)
         result = renderer.render_formulation()
         assert first_result == result, "Shuffled order should remain consistent across renderings with the same seed"
+
+
+def test_should_replace_shuffled_index() -> None:
+    feedback_path = Path(__file__).parent / 'question_uis/shuffled-index.xhtml'
+    with feedback_path.open() as xml:
+        input_xml = xml.read()
+
+    renderer = QuestionUIRenderer(xml=input_xml, placeholders={}, seed=42)
+    result = renderer.render_formulation()
+
+    expected = """
+        <div xmlns="http://www.w3.org/1999/xhtml"><fieldset>
+            <label>
+                <input type="radio" name="choice" value="B"/>
+                <span>i</span>. B
+            </label>
+            <label>
+                <input type="radio" name="choice" value="A"/>
+                <span>ii</span>. A
+            </label>
+            <label>
+                <input type="radio" name="choice" value="C"/>
+                <span>iii</span>. C
+            </label>
+        </fieldset>
+    </div>
+        """
+    assert compare_xhtml(result, expected)
 
 
 def test_clean_up() -> None:

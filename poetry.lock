@@ -1590,8 +1590,8 @@ watchdog = "^3.0.0"
 [package.source]
 type = "git"
 url = "https://github.com/questionpy-org/questionpy-server.git"
-reference = "5bfe8c357976564f404e62ef98c529bf6475e67c"
-resolved_reference = "5bfe8c357976564f404e62ef98c529bf6475e67c"
+reference = "3ee63d752667eda33157305f7815a096d79daf81"
+resolved_reference = "3ee63d752667eda33157305f7815a096d79daf81"
 
 [[package]]
 name = "selenium"
@@ -2058,4 +2058,4 @@ multidict = ">=4.0"
 [metadata]
 lock-version = "2.0"
 python-versions = "^3.9"
-content-hash = "4fa720e709fecb7db0794ca70652048a44f59e89487892bd307fc2fcc56eebbf"
+content-hash = "9e173f2f5907001db90fb09996eb46cb546bc2ac0ceb70f5df61b32a5b8df318"

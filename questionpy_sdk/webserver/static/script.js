@@ -246,11 +246,18 @@ async function handle_submit(event) {
     // prevent reload on submit
     event.preventDefault();
 
+    const route = event.target.getAttribute('data-route');
+    const successAction = event.target.getAttribute('data-success-action')
     const json_form_data = create_json_form_data(event.target);
     const headers = {'Content-Type': 'application/json'}
-    const response = await post_http_request('/submit', headers, json_form_data);
-    if (response.status == 200) {
-        document.getElementById('submit_success_info').hidden = null;
+    const response = await post_http_request(route, headers, json_form_data);
+    if (response.status >= 200 && response.status < 300) {
+        if (successAction === "success-info") {
+            document.getElementById('submit_success_info').hidden = false;
+            window.location.href = '/attempt';
+        } else if (successAction === "reload") {
+            window.location.reload();
+        }
     } else {
         alert('An error occured.');
     }
@@ -341,8 +348,8 @@ document.addEventListener("DOMContentLoaded", function () {
     // check conditions manually. without the change event
     check_all_element_conditions(elements);
 
-    const form = document.querySelector('form');
-    form.addEventListener('submit', handle_submit);
+    const forms = document.querySelectorAll('form');
+    Array.from(forms).forEach(form => form.addEventListener('submit', handle_submit));
 
     const repetition_buttons = document.getElementsByClassName("repetition-button");
     Array.from(repetition_buttons).forEach(button => button.addEventListener("click", add_repetition_element));
