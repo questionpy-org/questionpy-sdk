@@ -17,9 +17,10 @@ def test_should_extract_correct_metadata() -> None:
 
         expected_metadata = QuestionMetadata()
         expected_metadata.correct_response = {"my_number": "42", "my_select": "1", "my_radio": "2",
-            "my_text": "Lorem ipsum dolor sit amet."}
+                                              "my_text": "Lorem ipsum dolor sit amet."}
         expected_metadata.expected_data = {"my_number": "Any", "my_select": "Any", "my_radio": "Any", "my_text": "Any",
-            "my_button": "Any", "only_lowercase_letters": "Any", "between_5_and_10_chars": "Any"}
+                                           "my_button": "Any", "only_lowercase_letters": "Any",
+                                           "between_5_and_10_chars": "Any"}
         expected_metadata.required_fields = ["my_number"]
 
         assert question_metadata.correct_response == expected_metadata.correct_response
@@ -42,7 +43,9 @@ def test_should_resolve_placeholders() -> None:
         <span>By default cleaned parameter: <string>Value of param <b>one</b>.</string></span>
         <span>Explicitly cleaned parameter: <string>Value of param <b>one</b>.</string></span>
         <span>Noclean parameter: <string>Value of param <b>one</b>.<script>'Oh no, danger!'</script></string></span>
-        <span>Plain parameter: <string><![CDATA[Value of param <b>one</b>.<script>'Oh no, danger!'</script>]]></string></span>
+        <span>Plain parameter:
+            <string><![CDATA[Value of param <b>one</b>.<script>'Oh no, danger!'</script>]]></string>
+        </span>
     </div>
     """
 
@@ -124,8 +127,8 @@ def test_should_soften_validations():
         <input data-qpy_minlength="10"/>
         <input data-qpy_min="17" aria-valuemin="17"/>
         <input data-qpy_max="42" aria-valuemax="42"/>
-        <input data-qpy_pattern="^[a-z]+$" data-qpy_required="true" aria-required="true" 
-               data-qpy_minlength="5" data-qpy_maxlength="10" data-qpy_min="17" 
+        <input data-qpy_pattern="^[a-z]+$" data-qpy_required="true" aria-required="true"
+               data-qpy_minlength="5" data-qpy_maxlength="10" data-qpy_min="17"
                aria-valuemin="17" data-qpy_max="42" aria-valuemax="42"/>
     </div>
     """
@@ -155,7 +158,7 @@ def test_should_defuse_buttons() -> None:
     assert compare_xhtml(result, expected)
 
 
-@pytest.mark.skip("""1. The text directly in the root of <qpy:formulation> is not copied in render_part. 
+@pytest.mark.skip("""1. The text directly in the root of <qpy:formulation> is not copied in render_part.
                     2. format_floats adds decimal 0 to numbers without decimal part""")
 def test_should_format_floats_in_en() -> None:
     options = QuestionDisplayOptions()

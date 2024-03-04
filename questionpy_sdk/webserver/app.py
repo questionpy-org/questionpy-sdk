@@ -5,7 +5,6 @@
 import json
 import random
 from pathlib import Path
-from typing import Optional
 
 import aiohttp_jinja2
 from aiohttp import web
@@ -15,7 +14,6 @@ from questionpy_common.constants import MiB
 from questionpy_common.elements import OptionsFormDefinition
 from questionpy_common.environment import RequestUser
 from questionpy_server import WorkerPool
-from questionpy_server.api.models import AttemptStarted
 from questionpy_server.worker.runtime.package_location import PackageLocation
 from questionpy_server.worker.runtime.messages import WorkerUnknownError
 from questionpy_server.worker.worker import Worker

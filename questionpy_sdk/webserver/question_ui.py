@@ -228,17 +228,16 @@ class QuestionUIRenderer:
                     content += cleaned_value.text
                 for child in cleaned_value:
                     content += etree.tostring(child, encoding="unicode", with_tail=True)
-                fragment = etree.fromstring(f"<string>{content}</string>")
                 replacement = content
             else:
-                fragment = etree.fromstring(f"<string>{raw_value}</string>")
                 replacement = raw_value
 
             p_instruction.addnext(etree.fromstring(f"<string>{replacement}</string>"))
 
             p_instruction.getparent().remove(p_instruction)
 
-    def hide_unwanted_feedback(self, xpath: etree.XPathDocumentEvaluator, options: QuestionDisplayOptions = None) -> None:
+    def hide_unwanted_feedback(self, xpath: etree.XPathDocumentEvaluator, options: QuestionDisplayOptions = None) \
+            -> None:
         """Hides elements marked with `qpy:feedback` if the type of feedback is disabled in ``options``
 
         Args:
@@ -532,4 +531,3 @@ class QuestionUIRenderer:
 
             parent.insert(parent.index(element), new_text)
             parent.remove(element)
-

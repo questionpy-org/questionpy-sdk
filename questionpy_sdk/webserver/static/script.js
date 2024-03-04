@@ -254,7 +254,6 @@ async function handle_submit(event) {
     if (response.status >= 200 && response.status < 300) {
         if (successAction === "success-info") {
             document.getElementById('submit_success_info').hidden = false;
-            window.location.href = '/attempt';
         } else if (successAction === "reload") {
             window.location.reload();
         }
