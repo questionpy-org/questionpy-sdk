@@ -10,9 +10,31 @@
     <div class="container-question-preview">
         <form id="question-preview" action="/submit" data-route="/attempt"  data-success-action="reload">
             {{ question_html|safe }}
-            <button type="submit" {% if form_disabled %}disabled{% endif %}>Submit</button>
+            <button id="submit-attempt-button" type="submit" {% if form_disabled %}disabled{% endif %}>Submit</button>
         </form>
     </div>
+
+    {% if general_feedback or specific_feedback or right_answer %}
+        <div class="container-feedback">
+            {% if general_feedback %}
+                <div class="container-general-feedback">
+                    {{ general_feedback|safe }}
+                </div>
+            {% endif %}
+
+            {% if specific_feedback %}
+                <div class="container-specific-feedback">
+                    {{ specific_feedback|safe }}
+                </div>
+            {% endif %}
+
+            {% if right_answer %}
+                <div class="container-right-answer">
+                    {{ right_answer|safe }}
+                </div>
+            {% endif %}
+        </div>
+    {% endif %}
 
     <div class="container-display-options">
         <form id="question-display-options" action="/submit" data-route="/attempt/display-options" data-success-action="reload">
@@ -40,7 +62,6 @@
     </div>
 
     {# TODO: More Preview Settings #}
-    {# TODO: Feedback options #}
     {# TODO: Role selection (admin, teacher, student, ...) #}
     {# TODO: Locale selection #}
 

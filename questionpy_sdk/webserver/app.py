@@ -159,12 +159,23 @@ async def scored_attempt(webserver: WebServer) -> dict:
     renderer = QuestionUIRenderer(xml=webserver.attempt_scored.ui.content,
                                   placeholders=webserver.attempt_scored.ui.placeholders,
                                   seed=webserver.attempt_seed)
-    return {
+    context = {
         'question_html': renderer.render_formulation(attempt=webserver.last_attempt_data,
                                                      options=webserver.display_options),
         'options': webserver.display_options.model_dump(exclude={'context', 'readonly'}),
         'form_disabled': True
     }
+
+    if webserver.display_options.general_feedback:
+        context['general_feedback'] = renderer.render_general_feedback(attempt=webserver.last_attempt_data,
+                                                                       options=webserver.display_options)
+    if webserver.display_options.feedback:
+        context['specific_feedback'] = renderer.render_specific_feedback(attempt=webserver.last_attempt_data,
+                                                                         options=webserver.display_options)
+    if webserver.display_options.right_answer:
+        context['right_answer'] = renderer.render_right_answer(attempt=webserver.last_attempt_data,
+                                                               options=webserver.display_options)
+    return context
 
 
 @routes.get('/attempt')

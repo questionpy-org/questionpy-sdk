@@ -167,3 +167,33 @@ fieldset {
        Margin-left 24px (16px for icon + 8px margin) */
     margin: auto 20% auto 24px;
 }
+
+/* Question Preview Styles */
+
+/* The first child of the question preview is the div containing the question created from the qpy:formulation */
+#question-preview > div {
+	background: rgb(242, 250, 255);
+	border-radius: 0.4rem;
+	padding: 0.5rem 1rem;
+    margin-top: 1rem;
+}
+
+#submit-attempt-button {
+    margin-top: 0.5rem;
+}
+
+.container-feedback {
+    background: rgb(255, 251, 218);
+	border-radius: 0.4rem;
+	padding: 0.1rem 1rem;
+	margin-top: 1rem;
+}
+
+.container-display-options {
+	margin-top: 1rem;
+}
+
+#question-display-options table {
+    padding: 0.1rem 1rem;
+    width: 100%;
+}
