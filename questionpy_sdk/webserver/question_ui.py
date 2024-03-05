@@ -9,6 +9,27 @@ from lxml.html.clean import Cleaner
 from pydantic import BaseModel
 
 
+def is_iterable(query: Any) -> list:
+    """Checks if the XPath query result is iterable.
+
+    - If it is, returns the iterable.
+    - Otherwise, raises an error.
+
+    Args:
+        query: The result of an XPath query.
+
+    Returns:
+        query: The iterable object.
+
+    Raises:
+        TypeError: If the result is not iterable.
+    """
+    if not isinstance(query, list):
+        raise TypeError("XPath query result is not iterable.")
+
+    return query
+
+
 class QuestionMetadata:
     def __init__(self) -> None:
         self.correct_response: dict[str, str] = {}
@@ -54,8 +75,8 @@ def int_to_roman(index: int) -> str:
 
 
 def replace_shuffled_indices(element: etree._Element, index: int) -> None:
-    for index_element in element.xpath(".//qpy:shuffled-index",
-                                       namespaces={'qpy': "http://questionpy.org/ns/question"}):
+    for index_element in is_iterable(element.xpath(".//qpy:shuffled-index",
+                                                   namespaces={'qpy': "http://questionpy.org/ns/question"})):
         format_style = index_element.get("format", "123")
 
         if format_style == "123":
@@ -133,34 +154,44 @@ class QuestionUIRenderer:
 
         return question_metadata
 
-    def render_general_feedback(self, attempt: Any = None, options: QuestionDisplayOptions = None) -> Optional[str]:
-        elements = self.question.xpath(".//qpy:general-feedback", namespaces={'qpy': self.QPY_NAMESPACE})
-        if not elements:
+    def render_general_feedback(self, attempt: Any = None, options: Optional[QuestionDisplayOptions] = None)\
+            -> Optional[str]:
+        try:
+            elements = is_iterable(
+                self.question.xpath(".//qpy:general-feedback", namespaces={'qpy': self.QPY_NAMESPACE}))
+        except TypeError:
             return None
         return self.render_part(elements[0], attempt, options)
 
-    def render_specific_feedback(self, attempt: Any = None, options: QuestionDisplayOptions = None) -> Optional[str]:
-        elements = self.question.xpath(".//qpy:specific-feedback", namespaces={'qpy': self.QPY_NAMESPACE})
-        if not elements:
+    def render_specific_feedback(self, attempt: Any = None, options: Optional[QuestionDisplayOptions] = None)\
+            -> Optional[str]:
+        try:
+            elements = is_iterable(
+                self.question.xpath(".//qpy:specific-feedback", namespaces={'qpy': self.QPY_NAMESPACE}))
+        except TypeError:
             return None
         return self.render_part(elements[0], attempt, options)
 
-    def render_right_answer(self, attempt: Any = None, options: QuestionDisplayOptions = None) -> Optional[str]:
-        elements = self.question.xpath(".//qpy:right-answer", namespaces={'qpy': self.QPY_NAMESPACE})
-        if not elements:
+    def render_right_answer(self, attempt: Any = None, options: Optional[QuestionDisplayOptions] = None) \
+            -> Optional[str]:
+        try:
+            elements = is_iterable(
+                self.question.xpath(".//qpy:right-answer", namespaces={'qpy': self.QPY_NAMESPACE}))
+        except TypeError:
             return None
         return self.render_part(elements[0], attempt, options)
 
-    def render_formulation(self, attempt: Any = None, options: QuestionDisplayOptions = None) -> str:
+    def render_formulation(self, attempt: Any = None, options: Optional[QuestionDisplayOptions] = None) -> str:
         formulations = self.question.findall(f".//{{{self.QPY_NAMESPACE}}}formulation")
 
         if not formulations:
-            raise Exception("Question UI XML contains no 'qpy:formulation' element")
+            raise FormulationElementMissingError("Question UI XML contains no 'qpy:formulation' element")
 
         return self.render_part(formulations[0], attempt, options)
 
-    def render_part(self, part, attempt: Any = None, options: QuestionDisplayOptions = None) -> str:
-        newdoc = etree.ElementTree(etree.Element("div", nsmap={None: self.XHTML_NAMESPACE}))
+    def render_part(self, part: etree._Element, attempt: Any = None, options: Optional[QuestionDisplayOptions] = None) \
+            -> str:
+        newdoc = etree.ElementTree(etree.Element("div", nsmap={None: self.XHTML_NAMESPACE}))  # type: ignore
         div = newdoc.getroot()
 
         # TODO: This only appends child nodes. Any text directly in the part is not copied but should be.
@@ -197,7 +228,7 @@ class QuestionUIRenderer:
         Returns:
             None
         """
-        for p_instruction in xpath("//processing-instruction('p')"):
+        for p_instruction in is_iterable(xpath("//processing-instruction('p')")):
             if not p_instruction.text:
                 continue
             parts = p_instruction.text.strip().split()
@@ -236,8 +267,8 @@ class QuestionUIRenderer:
 
             p_instruction.getparent().remove(p_instruction)
 
-    def hide_unwanted_feedback(self, xpath: etree.XPathDocumentEvaluator, options: QuestionDisplayOptions = None) \
-            -> None:
+    def hide_unwanted_feedback(self, xpath: etree.XPathDocumentEvaluator,
+                               options: Optional[QuestionDisplayOptions] = None) -> None:
         """Hides elements marked with `qpy:feedback` if the type of feedback is disabled in ``options``
 
         Args:
@@ -247,7 +278,10 @@ class QuestionUIRenderer:
         Returns:
             None
         """
-        for element in xpath("//*[@qpy:feedback]"):
+        if not options:
+            return
+
+        for element in is_iterable(xpath("//*[@qpy:feedback]")):
             feedback_type = element.get(f"{{{self.QPY_NAMESPACE}}}feedback")
 
             # Check conditions to remove the element
@@ -255,7 +289,8 @@ class QuestionUIRenderer:
                     feedback_type == "specific" and not options.feedback)):
                 element.getparent().remove(element)
 
-    def hide_if_role(self, xpath: etree.XPathDocumentEvaluator, options: QuestionDisplayOptions = None) -> None:
+    def hide_if_role(self, xpath: etree.XPathDocumentEvaluator, options: Optional[QuestionDisplayOptions] = None) \
+            -> None:
         """Removes elements with `qpy:if-role` attributes if the user matches none of the given roles in this context.
 
         Args:
@@ -265,14 +300,14 @@ class QuestionUIRenderer:
         if not options or options.context.get('role') == 'admin':
             return
 
-        for attr in xpath("//@qpy:if-role"):
+        for attr in is_iterable(xpath("//@qpy:if-role")):
             allowed_roles = attr.split()
 
             if options.context.get('role') not in allowed_roles:
                 attr.getparent().getparent().remove(attr.getparent())
 
     def set_input_values_and_readonly(self, xpath: etree.XPathDocumentEvaluator, attempt: Any,
-                                      options: QuestionDisplayOptions) -> None:
+                                      options: Optional[QuestionDisplayOptions] = None) -> None:
         """Transforms input(-like) elements.
 
         - If ``options`` is set, the input is disabled.
@@ -288,11 +323,9 @@ class QuestionUIRenderer:
         Returns:
             None
         """
-        elements_query = xpath("//xhtml:button | //xhtml:input | //xhtml:select | //xhtml:textarea")
-
-        for element in elements_query:
+        for element in is_iterable(xpath("//xhtml:button | //xhtml:input | //xhtml:select | //xhtml:textarea")):
             # Disable the element if options specify readonly
-            if options.readonly:
+            if options and options.readonly:
                 element.set("disabled", "disabled")
 
             name = element.get("name")
@@ -302,7 +335,8 @@ class QuestionUIRenderer:
             if element.tag.endswith("}input"):
                 type_attr = element.get("type", "text")
             else:
-                type_attr = etree.QName(element).localname.split("}")[-1]  # Extract local name without namespace
+                local_name = str(etree.QName(element).localname)  # Extract the local name
+                type_attr = local_name.split("}")[-1]
 
             if not attempt:
                 continue
@@ -316,8 +350,7 @@ class QuestionUIRenderer:
                         element.set("checked", "checked")
                 elif type_attr == "select":
                     # Iterate over child <option> elements to set 'selected' attribute
-                    options_query = xpath(f".//xhtml:option[parent::xhtml:select[@name='{name}']]")
-                    for option in options_query:
+                    for option in is_iterable(xpath(f".//xhtml:option[parent::xhtml:select[@name='{name}']]")):
                         opt_value = option.get("value") if option.get("value") is not None else option.text
                         if opt_value == last_value:
                             option.set("selected", "selected")
@@ -338,38 +371,38 @@ class QuestionUIRenderer:
             None
         """
         # Handle 'pattern' attribute for <input> elements
-        for element in xpath(".//xhtml:input[@pattern]"):
+        for element in is_iterable(xpath(".//xhtml:input[@pattern]")):
             pattern = element.get("pattern")
             element.attrib.pop("pattern", None)  # Remove the attribute
             element.set("data-qpy_pattern", pattern)
 
         # Handle 'required' attribute for <input>, <select>, <textarea> elements
-        for element in xpath("(.//xhtml:input | .//xhtml:select | .//xhtml:textarea)[@required]"):
+        for element in is_iterable(xpath("(.//xhtml:input | .//xhtml:select | .//xhtml:textarea)[@required]")):
             element.attrib.pop("required")
             element.set("data-qpy_required", "true")
             element.set("aria-required", "true")
 
         # Handle 'minlength' attribute for <input>, <textarea> elements
-        for element in xpath("(.//xhtml:input | .//xhtml:textarea)[@minlength]"):
+        for element in is_iterable(xpath("(.//xhtml:input | .//xhtml:textarea)[@minlength]")):
             minlength = element.get("minlength")
             element.attrib.pop("minlength")  # Remove the attribute
             element.set("data-qpy_minlength", minlength)
 
         # Handle 'maxlength' attribute for <input>, <textarea> elements
-        for element in xpath("(.//xhtml:input | .//xhtml:textarea)[@maxlength]"):
+        for element in is_iterable(xpath("(.//xhtml:input | .//xhtml:textarea)[@maxlength]")):
             maxlength = element.get("maxlength")
             element.attrib.pop("maxlength")
             element.set("data-qpy_maxlength", maxlength)
 
         # Handle 'min' attribute for <input> elements
-        for element in xpath(".//xhtml:input[@min]"):
+        for element in is_iterable(xpath(".//xhtml:input[@min]")):
             min_value = element.get("min")
             element.attrib.pop("min")
             element.set("data-qpy_min", min_value)
             element.set("aria-valuemin", min_value)
 
         # Handle 'max' attribute for <input> elements
-        for element in xpath(".//xhtml:input[@max]"):
+        for element in is_iterable(xpath(".//xhtml:input[@max]")):
             max_value = element.get("max")
             element.attrib.pop("max")
             element.set("data-qpy_max", max_value)
@@ -384,7 +417,7 @@ class QuestionUIRenderer:
         Returns:
             None
         """
-        for element in xpath("(//xhtml:input | //xhtml:button)[@type = 'submit' or @type = 'reset']"):
+        for element in is_iterable(xpath("(//xhtml:input | //xhtml:button)[@type = 'submit' or @type = 'reset']")):
             element.set("type", "button")
 
     def shuffle_contents(self, xpath: etree.XPathDocumentEvaluator) -> None:
@@ -401,9 +434,11 @@ class QuestionUIRenderer:
         if self.seed:
             random.seed(self.seed)
 
-        for element in xpath("//*[@qpy:shuffle-contents]"):
+        for element in is_iterable(xpath("//*[@qpy:shuffle-contents]")):
             # Collect child elements to shuffle them
-            child_elements = [child for child in element if isinstance(child, etree._Element)]
+            child_elements = [
+                child for child in element if isinstance(child, etree._Element)
+            ]  # pylint: disable=protected-access
             random.shuffle(child_elements)
 
             element.attrib.pop("{%s}shuffle-contents" % self.QPY_NAMESPACE)
@@ -423,26 +458,22 @@ class QuestionUIRenderer:
         Returns:
             None
         """
-        # Remove QuestionPy elements
-        qpy_elements = xpath("//qpy:*")
-        for element in qpy_elements:
+        for element in is_iterable(xpath("//qpy:*")):
             element.getparent().remove(element)
 
         # Remove attributes in the QuestionPy namespace
-        elements = xpath("//*")
-        for element in elements:
+        for element in is_iterable(xpath("//*")):
             qpy_attributes = [attr for attr in element.attrib.keys() if
                               attr.startswith('{http://questionpy.org/ns/question}')]
             for attr in qpy_attributes:
                 del element.attrib[attr]
 
         # Remove comments
-        comments = xpath("//comment()")
-        for comment in comments:
+        for comment in is_iterable(xpath("//comment()")):
             comment.getparent().remove(comment)
 
         # Remove the 'qpy' namespace URI from the element
-        for element in xpath("//*"):
+        for element in is_iterable(xpath("//*")):
             if element.tag.startswith('{'):
                 element.tag = etree.QName(element).localname
             for name_space in list(element.nsmap.keys()):
@@ -459,7 +490,6 @@ class QuestionUIRenderer:
         Returns:
 
         """
-        """Adds the specified class names to the element if not already present."""
         existing_classes = element.get('class', '').split()
         for class_name in class_names:
             if class_name not in existing_classes:
@@ -476,30 +506,29 @@ class QuestionUIRenderer:
             None
         """
         # First group: input (not checkbox, radio, button, submit, reset), select, textarea
-        for element in xpath("""
+        for element in is_iterable(xpath("""
                 //xhtml:input[@type != 'checkbox' and @type != 'radio' and
                               @type != 'button' and @type != 'submit' and @type != 'reset']
                 | //xhtml:select | //xhtml:textarea
-                """):
+                """)):
             self.add_class_names(element, "form-control", "qpy-input")
 
         # Second group: input (button, submit, reset), button
-        for element in xpath("""
+        for element in is_iterable(xpath("""
                 //xhtml:input[@type = 'button' or @type = 'submit' or @type = 'reset']
                 | //xhtml:button
-                """):
+                """)):
             self.add_class_names(element, "btn", "btn-primary", "qpy-input")
 
         # Third group: input (checkbox, radio)
-        for element in xpath("//xhtml:input[@type = 'checkbox' or @type = 'radio']"):
+        for element in is_iterable(xpath("//xhtml:input[@type = 'checkbox' or @type = 'radio']")):
             self.add_class_names(element, "qpy-input")
 
     def format_floats(self, xpath: etree.XPathDocumentEvaluator) -> None:
         thousands_sep = ","  # Placeholder for thousands separator
         decimal_sep = "."  # Placeholder for decimal separator
 
-        elements = xpath("//qpy:format-float")
-        for element in elements:
+        for element in is_iterable(xpath("//qpy:format-float")):
             float_val = float(element.text)
             precision = int(element.get("precision", -1))
             strip_zeroes = "strip-zeros" in element.attrib
@@ -529,5 +558,10 @@ class QuestionUIRenderer:
 
             new_text.tail = element.tail
 
+            assert isinstance(element, etree._Element)  # pylint: disable=protected-access
             parent.insert(parent.index(element), new_text)
             parent.remove(element)
+
+
+class FormulationElementMissingError(Exception):
+    """Exception raised when a 'qpy:formulation' element is missing from the XML."""

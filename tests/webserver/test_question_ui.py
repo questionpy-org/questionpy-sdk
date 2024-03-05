@@ -36,7 +36,7 @@ def test_should_resolve_placeholders() -> None:
             "description": "My simple description."})
         result = renderer.render_formulation()
 
-    # TODO: <string> um CDATA herum eventuell entfernen
+    # TODO: remove <string> surrounding the resolved placeholder
     expected = """
     <div xmlns="http://www.w3.org/1999/xhtml">
         <div><string>My simple description.</string></div>
@@ -111,7 +111,7 @@ def test_element_visibility_based_on_role(user_context: str, expected: str) -> N
     assert compare_xhtml(result, expected)
 
 
-def test_should_soften_validations():
+def test_should_soften_validations() -> None:
     options = QuestionDisplayOptions()
 
     validation_path = Path(__file__).parent / 'question_uis/validations.xhtml'

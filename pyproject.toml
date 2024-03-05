@@ -44,6 +44,7 @@ types-PyYAML = "^6.0.11"
 coverage = { extras = ["toml"], version = "^7.2.1" }
 tox = "^4.2.6"
 selenium = "^4.11.2"
+lxml-stubs = "^0.5.1"
 
 [tool.poetry.scripts]
 questionpy-sdk = 'questionpy_sdk.__main__:cli'
@@ -64,7 +65,7 @@ source = ["questionpy", "questionpy_sdk"]
 [tool.pylint]
 
 [tool.pylint.MAIN]
-extension-pkg-allow-list = "pydantic"
+extension-pkg-allow-list = ["pydantic", "lxml"]
 # pylint_pytest removes some false positives when checking tests
 load-plugins = "pylint_pytest"
 fail-on = ["E", "F"]

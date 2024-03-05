@@ -5,15 +5,18 @@
 import json
 import random
 from pathlib import Path
+from typing import Optional
 
 import aiohttp_jinja2
 from aiohttp import web
 from aiohttp.web_exceptions import HTTPBadRequest
 from jinja2 import FileSystemLoader
+from questionpy_common.api.attempt import AttemptScoredModel
 from questionpy_common.constants import MiB
 from questionpy_common.elements import OptionsFormDefinition
 from questionpy_common.environment import RequestUser
 from questionpy_server import WorkerPool
+from questionpy_server.api.models import AttemptStarted
 from questionpy_server.worker.runtime.package_location import PackageLocation
 from questionpy_server.worker.runtime.messages import WorkerUnknownError
 from questionpy_server.worker.worker import Worker
@@ -45,10 +48,10 @@ class WebServer:
                              extensions=jinja2_extensions)
         self.worker_pool = WorkerPool(1, 500 * MiB, worker_type=ThreadWorker)
 
-        self.attempt_state = None
-        self.attempt_started = None
-        self.attempt_scored = None
-        self.attempt_seed = random.randint(0, 10)
+        self.attempt_state: Optional[str] = None
+        self.attempt_started: Optional[AttemptStarted] = None
+        self.attempt_scored: Optional[AttemptScoredModel] = None
+        self.attempt_seed: int = random.randint(0, 10)
         self.display_options = QuestionDisplayOptions(general_feedback=True, feedback=True)
 
     def start_server(self) -> None:
@@ -89,8 +92,8 @@ async def submit_form(request: web.Request) -> web.Response:
         try:
             question = await worker.create_question_from_options(RequestUser(["de", "en"]), old_state,
                                                                  form_data=parsed_form_data)
-        except WorkerUnknownError:
-            raise HTTPBadRequest()
+        except WorkerUnknownError as exc:
+            raise HTTPBadRequest() from exc
 
     new_state = question.question_state
     webserver.state_storage.insert(webserver.package_location, json.loads(new_state))
@@ -115,8 +118,8 @@ async def repeat_element(request: web.Request) -> web.Response:
         try:
             question = await worker.create_question_from_options(RequestUser(["de", "en"]), old_state,
                                                                  form_data=old_form_data)
-        except WorkerUnknownError:
-            raise HTTPBadRequest()
+        except WorkerUnknownError as exc:
+            raise HTTPBadRequest() from exc
 
         new_state = question.question_state
         webserver.state_storage.insert(webserver.package_location, json.loads(new_state))
@@ -136,8 +139,8 @@ async def started_attempt(webserver: WebServer, question_state: str) -> dict:
     async with webserver.worker_pool.get_worker(webserver.package_location, 0, None) as worker:
         try:
             webserver.attempt_started = await worker.start_attempt(RequestUser(["de", "en"]), question_state, 1)
-        except WorkerUnknownError:
-            raise HTTPBadRequest()
+        except WorkerUnknownError as exc:
+            raise HTTPBadRequest() from exc
 
     renderer = QuestionUIRenderer(xml=webserver.attempt_started.ui.content,
                                   placeholders=webserver.attempt_started.ui.placeholders,
@@ -151,6 +154,7 @@ async def started_attempt(webserver: WebServer, question_state: str) -> dict:
 
 
 async def scored_attempt(webserver: WebServer) -> dict:
+    assert webserver.attempt_scored
     renderer = QuestionUIRenderer(xml=webserver.attempt_scored.ui.content,
                                   placeholders=webserver.attempt_scored.ui.placeholders,
                                   seed=webserver.attempt_seed)
@@ -168,7 +172,7 @@ async def get_attempt(request: web.Request) -> web.Response:
     question_state = json.dumps(stored_state) if stored_state else None
 
     if not question_state:
-        return web.HTTPNotFound()
+        return web.HTTPNotFound(reason="No question state found.")
 
     if webserver.attempt_started and webserver.attempt_scored:
         context = await scored_attempt(webserver)
@@ -182,14 +186,17 @@ async def get_attempt(request: web.Request) -> web.Response:
 async def submit_attempt(request: web.Request) -> web.Response:
     webserver: 'WebServer' = request.app['sdk_webserver_app']
     stored_state = webserver.state_storage.get(webserver.package_location)
-    question_state = json.dumps(stored_state) if stored_state else None
+    if stored_state:
+        question_state = json.dumps(stored_state)
+    else:
+        return web.HTTPNotFound(reason="No question state found.")
 
     webserver.display_options.readonly = True
 
     data = await request.json()
 
     if not webserver.attempt_started:
-        return web.HTTPNotFound()
+        return web.HTTPNotFound(reason="Attempt has to be started before being submitted.")
 
     worker: Worker
     async with webserver.worker_pool.get_worker(webserver.package_location, 0, None) as worker:
