@@ -51,6 +51,7 @@ class WebServer:
         self.attempt_state: Optional[str] = None
         self.attempt_started: Optional[AttemptStarted] = None
         self.attempt_scored: Optional[AttemptScoredModel] = None
+        self.last_attempt_data: Optional[dict] = None
         self.attempt_seed: int = random.randint(0, 10)
         self.display_options = QuestionDisplayOptions(general_feedback=True, feedback=True)
 
@@ -159,7 +160,8 @@ async def scored_attempt(webserver: WebServer) -> dict:
                                   placeholders=webserver.attempt_scored.ui.placeholders,
                                   seed=webserver.attempt_seed)
     return {
-        'question_html': renderer.render_formulation(options=webserver.display_options),
+        'question_html': renderer.render_formulation(attempt=webserver.last_attempt_data,
+                                                     options=webserver.display_options),
         'options': webserver.display_options.model_dump(exclude={'context', 'readonly'}),
         'form_disabled': True
     }
@@ -193,17 +195,20 @@ async def submit_attempt(request: web.Request) -> web.Response:
 
     webserver.display_options.readonly = True
 
-    data = await request.json()
+    webserver.last_attempt_data = await request.json()
 
     if not webserver.attempt_started:
         return web.HTTPNotFound(reason="Attempt has to be started before being submitted.")
+
+    if not webserver.last_attempt_data:
+        return web.HTTPBadRequest()
 
     worker: Worker
     async with webserver.worker_pool.get_worker(webserver.package_location, 0, None) as worker:
         webserver.attempt_scored = await worker.score_attempt(
             request_user=RequestUser(["de", "en"]),
             question_state=question_state, attempt_state=webserver.attempt_started.attempt_state,
-            response=data,
+            response=webserver.last_attempt_data,
         )
 
     return web.json_response(status=201, text='Attempt submitted.')

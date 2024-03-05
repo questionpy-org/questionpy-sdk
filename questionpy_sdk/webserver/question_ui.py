@@ -154,8 +154,17 @@ class QuestionUIRenderer:
 
         return question_metadata
 
-    def render_general_feedback(self, attempt: Any = None, options: Optional[QuestionDisplayOptions] = None)\
-            -> Optional[str]:
+    def render_general_feedback(self, attempt: Optional[dict] = None,
+                                options: Optional[QuestionDisplayOptions] = None) -> Optional[str]:
+        """Renders the contents of the `qpy:general-feedback` element or returns `None` if there is none.
+
+        Args:
+            attempt: Optional[dict]
+            options: Optional[QuestionDisplayOptions]
+
+        Returns:
+            Optional[str]
+        """
         try:
             elements = is_iterable(
                 self.question.xpath(".//qpy:general-feedback", namespaces={'qpy': self.QPY_NAMESPACE}))
@@ -163,8 +172,17 @@ class QuestionUIRenderer:
             return None
         return self.render_part(elements[0], attempt, options)
 
-    def render_specific_feedback(self, attempt: Any = None, options: Optional[QuestionDisplayOptions] = None)\
-            -> Optional[str]:
+    def render_specific_feedback(self, attempt: Optional[dict] = None,
+                                 options: Optional[QuestionDisplayOptions] = None) -> Optional[str]:
+        """Renders the contents of the `qpy:specific-feedback` element or returns `None` if there is none.
+
+        Args:
+            attempt: Optional[dict]
+            options: Optional[QuestionDisplayOptions]
+
+        Returns:
+            Optional[str]
+        """
         try:
             elements = is_iterable(
                 self.question.xpath(".//qpy:specific-feedback", namespaces={'qpy': self.QPY_NAMESPACE}))
@@ -172,8 +190,17 @@ class QuestionUIRenderer:
             return None
         return self.render_part(elements[0], attempt, options)
 
-    def render_right_answer(self, attempt: Any = None, options: Optional[QuestionDisplayOptions] = None) \
-            -> Optional[str]:
+    def render_right_answer(self, attempt: Optional[dict] = None,
+                            options: Optional[QuestionDisplayOptions] = None) -> Optional[str]:
+        """Renders the contents of the `qpy:right-answer` element or returns `None` if there is none.
+
+        Args:
+            attempt: Optional[dict]
+            options: Optional[QuestionDisplayOptions]
+
+        Returns:
+            Optional[str]
+        """
         try:
             elements = is_iterable(
                 self.question.xpath(".//qpy:right-answer", namespaces={'qpy': self.QPY_NAMESPACE}))
@@ -181,7 +208,20 @@ class QuestionUIRenderer:
             return None
         return self.render_part(elements[0], attempt, options)
 
-    def render_formulation(self, attempt: Any = None, options: Optional[QuestionDisplayOptions] = None) -> str:
+    def render_formulation(self, attempt: Optional[dict] = None,
+                           options: Optional[QuestionDisplayOptions] = None) -> str:
+        """Renders the contents of the `qpy:formulation` element. Raises an exception if there is none.
+
+        Args:
+            attempt: Optional[dict]
+            options: Optional[QuestionDisplayOptions]
+
+        Returns:
+            str
+
+        Raises:
+            FormulationElementMissingError
+        """
         formulations = self.question.findall(f".//{{{self.QPY_NAMESPACE}}}formulation")
 
         if not formulations:
@@ -189,8 +229,18 @@ class QuestionUIRenderer:
 
         return self.render_part(formulations[0], attempt, options)
 
-    def render_part(self, part: etree._Element, attempt: Any = None, options: Optional[QuestionDisplayOptions] = None) \
-            -> str:
+    def render_part(self, part: etree._Element, attempt: Optional[dict] = None,
+                    options: Optional[QuestionDisplayOptions] = None) -> str:
+        """Applies transformations to the descendants of a given node and returns the resulting HTML.
+
+        Args:
+            part: etree._Element
+            attempt: Optional[dict]
+            options: Optional[QuestionDisplayOptions]
+
+        Returns:
+            str
+        """
         newdoc = etree.ElementTree(etree.Element("div", nsmap={None: self.XHTML_NAMESPACE}))  # type: ignore
         div = newdoc.getroot()
 
@@ -306,7 +356,7 @@ class QuestionUIRenderer:
             if options.context.get('role') not in allowed_roles:
                 attr.getparent().getparent().remove(attr.getparent())
 
-    def set_input_values_and_readonly(self, xpath: etree.XPathDocumentEvaluator, attempt: Any,
+    def set_input_values_and_readonly(self, xpath: etree.XPathDocumentEvaluator, attempt: Optional[dict],
                                       options: Optional[QuestionDisplayOptions] = None) -> None:
         """Transforms input(-like) elements.
 
@@ -317,7 +367,7 @@ class QuestionUIRenderer:
 
         Args:
             xpath: etree.XPathEvaluator
-            attempt: Any
+            attempt: Optional[dict]
             options: QuestionDisplayOptions
 
         Returns:
@@ -336,14 +386,12 @@ class QuestionUIRenderer:
                 type_attr = element.get("type", "text")
             else:
                 local_name = str(etree.QName(element).localname)  # Extract the local name
-                type_attr = local_name.split("}")[-1]
+                type_attr = local_name.rsplit('}', maxsplit=1)[-1]
 
             if not attempt:
                 continue
 
-            # TODO: 'attempt' provides a method to get the last saved value for the element
-            last_value = attempt.get_last_saved_value(name)
-
+            last_value = attempt.get(name)
             if last_value is not None:
                 if type_attr in ["checkbox", "radio"]:
                     if element.get("value") == last_value:
@@ -437,8 +485,8 @@ class QuestionUIRenderer:
         for element in is_iterable(xpath("//*[@qpy:shuffle-contents]")):
             # Collect child elements to shuffle them
             child_elements = [
-                child for child in element if isinstance(child, etree._Element)
-            ]  # pylint: disable=protected-access
+                child for child in element if isinstance(child, etree._Element)  # pylint: disable=protected-access
+            ]
             random.shuffle(child_elements)
 
             element.attrib.pop("{%s}shuffle-contents" % self.QPY_NAMESPACE)
@@ -525,6 +573,14 @@ class QuestionUIRenderer:
             self.add_class_names(element, "qpy-input")
 
     def format_floats(self, xpath: etree.XPathDocumentEvaluator) -> None:
+        """Handles `qpy:format-float`. Uses `format_float` and optionally adds thousands separators.
+
+        Args:
+            xpath: etree.XPathEvaluator
+
+        Returns:
+            None
+        """
         thousands_sep = ","  # Placeholder for thousands separator
         decimal_sep = "."  # Placeholder for decimal separator
 
@@ -558,7 +614,6 @@ class QuestionUIRenderer:
 
             new_text.tail = element.tail
 
-            assert isinstance(element, etree._Element)  # pylint: disable=protected-access
             parent.insert(parent.index(element), new_text)
             parent.remove(element)
 
