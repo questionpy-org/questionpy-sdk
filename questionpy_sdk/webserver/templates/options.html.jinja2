@@ -12,12 +12,12 @@
         <p class="manifest-apiversion">API Version: {{ manifest.api_version }}</p>
     </div>
 
-    <form action="/submit" id="options_form" data-route="/submit" data-success-action="success-info">
+    <form id="options_form" data-success-action="success-info">
         {{ macros.create_section("general", "General", options.general) }}
         {% for section in options.sections %}
             {{ macros.create_section(section.name, section.header, section.elements) }}
         {% endfor %}
-        <input type="submit" value="Save changes">
         <a hidden="true" id="submit_success_info">Saved!</a>
     </form>
+    <button id="submit-options-button" type="submit" data-route="/submit" form="options_form">Save changes</button>
 {% endblock %}

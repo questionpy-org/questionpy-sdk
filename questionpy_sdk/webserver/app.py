@@ -29,6 +29,11 @@ from questionpy_sdk.webserver.state_storage import QuestionStateStorage, add_rep
 routes = web.RouteTableDef()
 
 
+def set_cookie(response: web.Response, name: str, value: str, max_age: Optional[int] = 3600,
+               same_site: Optional[str] = 'Strict') -> None:
+    response.set_cookie(name=name, value=value, max_age=max_age, samesite=same_site)
+
+
 class WebServer:
     def __init__(self, package_location: PackageLocation,
                  state_storage_path: Path = Path(__file__).parent / 'question_state_storage'):
@@ -52,8 +57,7 @@ class WebServer:
         self.attempt_started: Optional[AttemptStarted] = None
         self.attempt_scored: Optional[AttemptScoredModel] = None
         self.last_attempt_data: Optional[dict] = None
-        self.attempt_seed: int = random.randint(0, 10)
-        self.display_options = QuestionDisplayOptions(general_feedback=True, feedback=True)
+        self.attempt_seed: int = -1
 
     def start_server(self) -> None:
         web.run_app(self.web_app)
@@ -135,7 +139,8 @@ async def repeat_element(request: web.Request) -> web.Response:
     return aiohttp_jinja2.render_template('options.html.jinja2', request, context)
 
 
-async def started_attempt(webserver: WebServer, question_state: str) -> dict:
+async def get_attempt_started_context(webserver: WebServer, question_state: str,
+                                      display_options: QuestionDisplayOptions) -> dict:
     worker: Worker
     async with webserver.worker_pool.get_worker(webserver.package_location, 0, None) as worker:
         try:
@@ -148,33 +153,34 @@ async def started_attempt(webserver: WebServer, question_state: str) -> dict:
                                   seed=webserver.attempt_seed)
     return {
         'question_html': renderer.render_formulation(
+            attempt=webserver.last_attempt_data,
             options=QuestionDisplayOptions(general_feedback=False, feedback=False)),
-        'options': webserver.display_options.model_dump(exclude={'context', 'readonly'}),
+        'options': display_options.model_dump(exclude={'context', 'readonly'}),
         'form_disabled': False
     }
 
 
-async def scored_attempt(webserver: WebServer) -> dict:
+async def get_attempt_scored_context(webserver: WebServer, display_options: QuestionDisplayOptions) -> dict:
     assert webserver.attempt_scored
     renderer = QuestionUIRenderer(xml=webserver.attempt_scored.ui.content,
                                   placeholders=webserver.attempt_scored.ui.placeholders,
                                   seed=webserver.attempt_seed)
     context = {
         'question_html': renderer.render_formulation(attempt=webserver.last_attempt_data,
-                                                     options=webserver.display_options),
-        'options': webserver.display_options.model_dump(exclude={'context', 'readonly'}),
+                                                     options=display_options),
+        'options': display_options.model_dump(exclude={'context', 'readonly'}),
         'form_disabled': True
     }
 
-    if webserver.display_options.general_feedback:
+    if display_options.general_feedback:
         context['general_feedback'] = renderer.render_general_feedback(attempt=webserver.last_attempt_data,
-                                                                       options=webserver.display_options)
-    if webserver.display_options.feedback:
+                                                                       options=display_options)
+    if display_options.feedback:
         context['specific_feedback'] = renderer.render_specific_feedback(attempt=webserver.last_attempt_data,
-                                                                         options=webserver.display_options)
-    if webserver.display_options.right_answer:
+                                                                         options=display_options)
+    if display_options.right_answer:
         context['right_answer'] = renderer.render_right_answer(attempt=webserver.last_attempt_data,
-                                                               options=webserver.display_options)
+                                                               options=display_options)
     return context
 
 
@@ -183,33 +189,48 @@ async def get_attempt(request: web.Request) -> web.Response:
     webserver: 'WebServer' = request.app['sdk_webserver_app']
     stored_state = webserver.state_storage.get(webserver.package_location)
     question_state = json.dumps(stored_state) if stored_state else None
+    display_options = QuestionDisplayOptions(**json.loads(request.cookies.get('display_options', '{}')))
+    attempt_started_dict = json.loads(request.cookies.get('attempt_started', '{}'))
+    attempt_scored_dict = json.loads(request.cookies.get('attempt_scored', '{}'))
+    webserver.last_attempt_data = json.loads(request.cookies.get('last_attempt_data', '{}'))
+    webserver.attempt_seed = int(request.cookies.get('attempt_seed', -1))
 
     if not question_state:
         return web.HTTPNotFound(reason="No question state found.")
 
-    if webserver.attempt_started and webserver.attempt_scored:
-        context = await scored_attempt(webserver)
-    else:
-        context = await started_attempt(webserver, question_state)
+    if webserver.attempt_seed < 0:
+        webserver.attempt_seed = random.randint(0, 10)
 
-    return aiohttp_jinja2.render_template('attempt.html.jinja2', request, context)
+    if attempt_started_dict and attempt_scored_dict:
+        webserver.attempt_started = AttemptStarted(**attempt_started_dict)
+        webserver.attempt_scored = AttemptScoredModel(**attempt_scored_dict)
+        context = await get_attempt_scored_context(webserver, display_options)
+    else:
+        context = await get_attempt_started_context(webserver, question_state, display_options)
+        assert webserver.attempt_started
+
+    response = aiohttp_jinja2.render_template('attempt.html.jinja2', request, context)
+    set_cookie(response, 'attempt_started', webserver.attempt_started.model_dump_json())
+    set_cookie(response, 'attempt_seed', str(webserver.attempt_seed))
+    return response
 
 
 @routes.post('/attempt')
 async def submit_attempt(request: web.Request) -> web.Response:
     webserver: 'WebServer' = request.app['sdk_webserver_app']
     stored_state = webserver.state_storage.get(webserver.package_location)
-    if stored_state:
-        question_state = json.dumps(stored_state)
-    else:
+    if not stored_state:
         return web.HTTPNotFound(reason="No question state found.")
 
-    webserver.display_options.readonly = True
+    question_state = json.dumps(stored_state)
+
+    display_options = QuestionDisplayOptions(**json.loads(request.cookies.get('display_options', '{}')))
+    display_options.readonly = True
 
     webserver.last_attempt_data = await request.json()
 
     if not webserver.attempt_started:
-        return web.HTTPNotFound(reason="Attempt has to be started before being submitted.")
+        return web.HTTPNotFound(reason="Attempt has to be started before being submitted. Try reloading the page.")
 
     if not webserver.last_attempt_data:
         return web.HTTPBadRequest()
@@ -222,18 +243,34 @@ async def submit_attempt(request: web.Request) -> web.Response:
             response=webserver.last_attempt_data,
         )
 
-    return web.json_response(status=201, text='Attempt submitted.')
+    response = web.json_response(status=201, text='Attempt submitted.')
+    set_cookie(response, 'display_options', display_options.model_dump_json())
+    set_cookie(response, 'attempt_scored', webserver.attempt_scored.model_dump_json())
+    set_cookie(response, 'last_attempt_data', json.dumps(webserver.last_attempt_data))
+    return response
 
 
 @routes.post('/attempt/display-options')
 async def submit_display_options(request: web.Request) -> web.Response:
-    webserver: 'WebServer' = request.app['sdk_webserver_app']
     try:
         data = await request.json()
-        display_options_dict = webserver.display_options.model_dump()
+        display_options_dict = json.loads(request.cookies.get('display_options', '{}'))
         display_options_dict.update(data)
-        webserver.display_options = QuestionDisplayOptions(**display_options_dict)
+        display_options = QuestionDisplayOptions(**display_options_dict)
+        response = web.json_response(status=201, text='Options updated.')
+        set_cookie(response, 'display_options', display_options.model_dump_json())
+        return response
     except Exception as e:
         raise web.HTTPBadRequest() from e
 
-    return web.json_response(status=201, text='Options updated.')
+
+@routes.post('/attempt/restart')
+async def restart_attempt(request: web.Request) -> web.Response:
+    webserver: 'WebServer' = request.app['sdk_webserver_app']
+    webserver.attempt_scored = None
+    webserver.attempt_seed = random.randint(0, 10)
+
+    response = web.json_response(status=201, text='Attempt restarted.')
+    set_cookie(response, 'attempt_scored', '{}')
+    set_cookie(response, 'attempt_seed', str(webserver.attempt_seed))
+    return response

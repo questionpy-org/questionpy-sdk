@@ -81,14 +81,14 @@ class TestTemplates:
     @use_package(package_1_init)
     def test_form_without_required_fields_should_submit(self, driver: webdriver.Chrome, url: str) -> None:
         driver.get(url)
-        driver.find_element(By.ID, 'options_form').submit()
+        driver.find_element(By.ID, 'submit-options-button').click()
 
         assert driver.find_element(By.ID, 'submit_success_info').is_displayed()
 
     @use_package(package_2_init)
     def test_form_with_required_fields_should_not_submit(self, driver: webdriver.Chrome, url: str) -> None:
         driver.get(url)
-        driver.find_element(By.ID, 'options_form').submit()
+        driver.find_element(By.ID, 'submit-options-button').click()
 
         WebDriverWait(driver, 1).until(expected_conditions.alert_is_present())
         assert driver.switch_to.alert

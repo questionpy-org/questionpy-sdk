@@ -8,10 +8,11 @@
 
 {% block content %}
     <div class="container-question-preview">
-        <form id="question-preview" action="/submit" data-route="/attempt"  data-success-action="reload">
+        <form id="question-preview" action="/submit" data-success-action="reload">
             {{ question_html|safe }}
-            <button id="submit-attempt-button" type="submit" {% if form_disabled %}disabled{% endif %}>Submit</button>
         </form>
+        <button id="submit-attempt-button" type="submit" data-route="/attempt" form="question-preview" {% if form_disabled %}disabled{% endif %}>Submit and finish</button>
+        <button id="restart-attempt-button" data-route="/attempt/restart" >Start again</button>
     </div>
 
     {% if general_feedback or specific_feedback or right_answer %}
@@ -37,7 +38,7 @@
     {% endif %}
 
     <div class="container-display-options">
-        <form id="question-display-options" action="/submit" data-route="/attempt/display-options" data-success-action="reload">
+        <form id="question-display-options" action="/submit" data-success-action="reload">
             <h2>Display Options</h2>
             <table>
                 <tbody>
@@ -54,7 +55,7 @@
                     {% endfor %}
                     <tr>
                         <td></td>
-                        <td><button type="submit">Update display options</button></td>
+                        <td><button type="submit" form="question-display-options" data-route="/attempt/display-options">Update display options</button></td>
                     </tr>
                 </tbody>
             </table>
