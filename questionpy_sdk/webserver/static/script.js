@@ -382,4 +382,9 @@ document.addEventListener("DOMContentLoaded", function () {
     if (restart_button) {
         restart_button.addEventListener('click', restart_attempt)
     }
+
+    const edit_button = document.getElementById("edit-attempt-button")
+    if (edit_button) {
+        edit_button.addEventListener('click', restart_attempt)
+    }
 })

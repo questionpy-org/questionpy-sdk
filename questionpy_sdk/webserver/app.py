@@ -268,9 +268,21 @@ async def submit_display_options(request: web.Request) -> web.Response:
 async def restart_attempt(request: web.Request) -> web.Response:
     webserver: 'WebServer' = request.app['sdk_webserver_app']
     webserver.attempt_scored = None
+    webserver.last_attempt_data = None
     webserver.attempt_seed = random.randint(0, 10)
 
     response = web.json_response(status=201, text='Attempt restarted.')
-    set_cookie(response, 'attempt_scored', '{}')
+    response.del_cookie('attempt_scored')
+    response.del_cookie('last_attempt_data')
     set_cookie(response, 'attempt_seed', str(webserver.attempt_seed))
+    return response
+
+
+@routes.post('/attempt/edit')
+async def edit_last_attempt(request: web.Request) -> web.Response:
+    webserver: 'WebServer' = request.app['sdk_webserver_app']
+    webserver.attempt_scored = None
+
+    response = web.json_response(status=201, text='Attempt restarted.')
+    response.del_cookie('attempt_scored')
     return response
