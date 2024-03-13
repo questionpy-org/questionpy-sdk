@@ -189,7 +189,7 @@ async def get_attempt(request: web.Request) -> web.Response:
     webserver: 'WebServer' = request.app['sdk_webserver_app']
     stored_state = webserver.state_storage.get(webserver.package_location)
     question_state = json.dumps(stored_state) if stored_state else None
-    display_options = QuestionDisplayOptions(**json.loads(request.cookies.get('display_options', '{}')))
+    display_options = QuestionDisplayOptions.model_validate_json(request.cookies.get('display_options', '{}'))
     attempt_started_dict = json.loads(request.cookies.get('attempt_started', '{}'))
     attempt_scored_dict = json.loads(request.cookies.get('attempt_scored', '{}'))
     webserver.last_attempt_data = json.loads(request.cookies.get('last_attempt_data', '{}'))
@@ -202,8 +202,8 @@ async def get_attempt(request: web.Request) -> web.Response:
         webserver.attempt_seed = random.randint(0, 10)
 
     if attempt_started_dict and attempt_scored_dict:
-        webserver.attempt_started = AttemptStarted(**attempt_started_dict)
-        webserver.attempt_scored = AttemptScoredModel(**attempt_scored_dict)
+        webserver.attempt_started = AttemptStarted.model_validate(attempt_started_dict)
+        webserver.attempt_scored = AttemptScoredModel.model_validate(attempt_scored_dict)
         context = await get_attempt_scored_context(webserver, display_options)
     else:
         context = await get_attempt_started_context(webserver, question_state, display_options)
@@ -224,7 +224,7 @@ async def submit_attempt(request: web.Request) -> web.Response:
 
     question_state = json.dumps(stored_state)
 
-    display_options = QuestionDisplayOptions(**json.loads(request.cookies.get('display_options', '{}')))
+    display_options = QuestionDisplayOptions.model_validate_json(request.cookies.get('display_options', '{}'))
     display_options.readonly = True
 
     webserver.last_attempt_data = await request.json()
@@ -256,7 +256,7 @@ async def submit_display_options(request: web.Request) -> web.Response:
         data = await request.json()
         display_options_dict = json.loads(request.cookies.get('display_options', '{}'))
         display_options_dict.update(data)
-        display_options = QuestionDisplayOptions(**display_options_dict)
+        display_options = QuestionDisplayOptions.model_validate(display_options_dict)
         response = web.json_response(status=201, text='Options updated.')
         set_cookie(response, 'display_options', display_options.model_dump_json())
         return response
