@@ -236,3 +236,14 @@ async def edit_last_attempt(request: web.Request) -> web.Response:
     response = web.Response(status=201)
     response.del_cookie('attempt_scored')
     return response
+
+
+@routes.post('/attempt/save')
+async def save_attempt(request: web.Request) -> web.Response:
+    last_attempt_data = await request.json()
+    if not last_attempt_data:
+        return web.HTTPBadRequest()
+
+    response = web.Response(status=201)
+    set_cookie(response, 'last_attempt_data', json.dumps(last_attempt_data))
+    return response
