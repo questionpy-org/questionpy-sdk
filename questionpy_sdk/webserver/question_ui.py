@@ -27,7 +27,7 @@ def assert_element_list(query: Any) -> list[etree._Element]:
     if not isinstance(query, list):
         raise TypeError("XPath query result is not a list.")
 
-    return list[etree._Element](query)
+    return query
 
 
 class QuestionMetadata:
@@ -76,7 +76,7 @@ def int_to_roman(index: int) -> str:
 
 def replace_shuffled_indices(element: etree._Element, index: int) -> None:
     for index_element in assert_element_list(element.xpath(".//qpy:shuffled-index",
-                                                           namespaces={'qpy': "http://questionpy.org/ns/question"})):
+                                                           namespaces={'qpy': QuestionUIRenderer.QPY_NAMESPACE})):
         format_style = index_element.get("format", "123")
 
         if format_style == "123":
@@ -295,7 +295,7 @@ class QuestionUIRenderer:
             return
 
         for element in assert_element_list(xpath("//*[@qpy:if-role]")):
-            attr = element.attrib.get('{http://questionpy.org/ns/question}if-role')
+            attr = element.attrib.get(f'{{{self.QPY_NAMESPACE}}}if-role')
             if attr is None:
                 continue
             allowed_roles = attr.split()
@@ -435,7 +435,7 @@ class QuestionUIRenderer:
         # Remove attributes in the QuestionPy namespace
         for element in assert_element_list(xpath("//*")):
             qpy_attributes = [attr for attr in element.attrib.keys() if
-                              attr.startswith('{http://questionpy.org/ns/question}')]  # type: ignore[arg-type]
+                              attr.startswith(f'{{{self.QPY_NAMESPACE}}}')]  # type: ignore[arg-type]
             for attr in qpy_attributes:
                 del element.attrib[attr]
 
