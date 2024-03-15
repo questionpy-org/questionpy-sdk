@@ -22,8 +22,9 @@ from questionpy_server.worker.runtime.messages import WorkerUnknownError
 from questionpy_server.worker.worker import Worker
 from questionpy_server.worker.worker.thread import ThreadWorker
 
+from questionpy_sdk.webserver.attempt import get_attempt_scored_context, get_attempt_started_context
 from questionpy_sdk.webserver.context import contextualize
-from questionpy_sdk.webserver.question_ui import QuestionUIRenderer, QuestionDisplayOptions
+from questionpy_sdk.webserver.question_ui import QuestionDisplayOptions
 from questionpy_sdk.webserver.state_storage import QuestionStateStorage, add_repetition, parse_form_data
 
 routes = web.RouteTableDef()
@@ -52,12 +53,6 @@ class WebServer:
                              loader=FileSystemLoader(self.template_folder),
                              extensions=jinja2_extensions)
         self.worker_pool = WorkerPool(1, 500 * MiB, worker_type=ThreadWorker)
-
-        self.attempt_state: Optional[str] = None
-        self.attempt_started: Optional[AttemptStarted] = None
-        self.attempt_scored: Optional[AttemptScoredModel] = None
-        self.last_attempt_data: Optional[dict] = None
-        self.attempt_seed: int = -1
 
     def start_server(self) -> None:
         web.run_app(self.web_app)
@@ -139,79 +134,41 @@ async def repeat_element(request: web.Request) -> web.Response:
     return aiohttp_jinja2.render_template('options.html.jinja2', request, context)
 
 
-async def get_attempt_started_context(webserver: WebServer, question_state: str,
-                                      display_options: QuestionDisplayOptions) -> dict:
-    worker: Worker
-    async with webserver.worker_pool.get_worker(webserver.package_location, 0, None) as worker:
-        try:
-            webserver.attempt_started = await worker.start_attempt(RequestUser(["de", "en"]), question_state, 1)
-        except WorkerUnknownError as exc:
-            raise HTTPBadRequest() from exc
-
-    renderer = QuestionUIRenderer(xml=webserver.attempt_started.ui.content,
-                                  placeholders=webserver.attempt_started.ui.placeholders,
-                                  seed=webserver.attempt_seed)
-    return {
-        'question_html': renderer.render_formulation(
-            attempt=webserver.last_attempt_data,
-            options=QuestionDisplayOptions(general_feedback=False, feedback=False)),
-        'options': display_options.model_dump(exclude={'context', 'readonly'}),
-        'form_disabled': False
-    }
-
-
-async def get_attempt_scored_context(webserver: WebServer, display_options: QuestionDisplayOptions) -> dict:
-    assert webserver.attempt_scored
-    renderer = QuestionUIRenderer(xml=webserver.attempt_scored.ui.content,
-                                  placeholders=webserver.attempt_scored.ui.placeholders,
-                                  seed=webserver.attempt_seed)
-    context = {
-        'question_html': renderer.render_formulation(attempt=webserver.last_attempt_data,
-                                                     options=display_options),
-        'options': display_options.model_dump(exclude={'context', 'readonly'}),
-        'form_disabled': True
-    }
-
-    if display_options.general_feedback:
-        context['general_feedback'] = renderer.render_general_feedback(attempt=webserver.last_attempt_data,
-                                                                       options=display_options)
-    if display_options.feedback:
-        context['specific_feedback'] = renderer.render_specific_feedback(attempt=webserver.last_attempt_data,
-                                                                         options=display_options)
-    if display_options.right_answer:
-        context['right_answer'] = renderer.render_right_answer(attempt=webserver.last_attempt_data,
-                                                               options=display_options)
-    return context
-
-
 @routes.get('/attempt')
 async def get_attempt(request: web.Request) -> web.Response:
     webserver: 'WebServer' = request.app['sdk_webserver_app']
     stored_state = webserver.state_storage.get(webserver.package_location)
-    question_state = json.dumps(stored_state) if stored_state else None
-    display_options = QuestionDisplayOptions.model_validate_json(request.cookies.get('display_options', '{}'))
-    attempt_started_dict = json.loads(request.cookies.get('attempt_started', '{}'))
-    attempt_scored_dict = json.loads(request.cookies.get('attempt_scored', '{}'))
-    webserver.last_attempt_data = json.loads(request.cookies.get('last_attempt_data', '{}'))
-    webserver.attempt_seed = int(request.cookies.get('attempt_seed', -1))
-
-    if not question_state:
+    if not stored_state:
         return web.HTTPNotFound(reason="No question state found.")
+    question_state = json.dumps(stored_state)
 
-    if webserver.attempt_seed < 0:
-        webserver.attempt_seed = random.randint(0, 10)
+    display_options = QuestionDisplayOptions.model_validate_json(request.cookies.get('display_options', '{}'))
+    seed = int(request.cookies.get('attempt_seed', -1))
 
-    if attempt_started_dict and attempt_scored_dict:
-        webserver.attempt_started = AttemptStarted.model_validate(attempt_started_dict)
-        webserver.attempt_scored = AttemptScoredModel.model_validate(attempt_scored_dict)
-        context = await get_attempt_scored_context(webserver, display_options)
+    if seed < 0:
+        seed = random.randint(0, 10)
+
+    attempt_started_cookie = request.cookies.get('attempt_started')
+    attempt_scored_cookie = request.cookies.get('attempt_scored')
+    last_attempt_data = json.loads(request.cookies.get('last_attempt_data', '{}'))
+
+    if attempt_started_cookie and attempt_scored_cookie:
+        attempt_started = AttemptStarted.model_validate_json(attempt_started_cookie)
+        attempt_scored = AttemptScoredModel.model_validate_json(attempt_scored_cookie)
+        context = get_attempt_scored_context(attempt_scored, last_attempt_data, display_options, seed)
     else:
-        context = await get_attempt_started_context(webserver, question_state, display_options)
-        assert webserver.attempt_started
+        worker: Worker
+        async with webserver.worker_pool.get_worker(webserver.package_location, 0, None) as worker:
+            try:
+                attempt_started = await worker.start_attempt(RequestUser(["de", "en"]), question_state, 1)
+            except WorkerUnknownError as exc:
+                raise HTTPBadRequest() from exc
+
+        context = get_attempt_started_context(attempt_started, last_attempt_data, display_options, seed)
 
     response = aiohttp_jinja2.render_template('attempt.html.jinja2', request, context)
-    set_cookie(response, 'attempt_started', webserver.attempt_started.model_dump_json())
-    set_cookie(response, 'attempt_seed', str(webserver.attempt_seed))
+    set_cookie(response, 'attempt_started', attempt_started.model_dump_json())
+    set_cookie(response, 'attempt_seed', str(seed))
     return response
 
 
@@ -227,62 +184,55 @@ async def submit_attempt(request: web.Request) -> web.Response:
     display_options = QuestionDisplayOptions.model_validate_json(request.cookies.get('display_options', '{}'))
     display_options.readonly = True
 
-    webserver.last_attempt_data = await request.json()
-
-    if not webserver.attempt_started:
+    attempt_started_cookie = request.cookies.get('attempt_started')
+    if not attempt_started_cookie:
         return web.HTTPNotFound(reason="Attempt has to be started before being submitted. Try reloading the page.")
+    attempt_started = AttemptStarted.model_validate_json(attempt_started_cookie)
 
-    if not webserver.last_attempt_data:
+    last_attempt_data = await request.json()
+    if not last_attempt_data:
         return web.HTTPBadRequest()
 
     worker: Worker
     async with webserver.worker_pool.get_worker(webserver.package_location, 0, None) as worker:
-        webserver.attempt_scored = await worker.score_attempt(
+        attempt_scored = await worker.score_attempt(
             request_user=RequestUser(["de", "en"]),
-            question_state=question_state, attempt_state=webserver.attempt_started.attempt_state,
-            response=webserver.last_attempt_data,
+            question_state=question_state, attempt_state=attempt_started.attempt_state,
+            response=last_attempt_data,
         )
 
-    response = web.json_response(status=201, text='Attempt submitted.')
+    response = web.Response(status=201)
     set_cookie(response, 'display_options', display_options.model_dump_json())
-    set_cookie(response, 'attempt_scored', webserver.attempt_scored.model_dump_json())
-    set_cookie(response, 'last_attempt_data', json.dumps(webserver.last_attempt_data))
+    set_cookie(response, 'attempt_scored', attempt_scored.model_dump_json())
+    set_cookie(response, 'last_attempt_data', json.dumps(last_attempt_data))
     return response
 
 
 @routes.post('/attempt/display-options')
 async def submit_display_options(request: web.Request) -> web.Response:
-    try:
-        data = await request.json()
-        display_options_dict = json.loads(request.cookies.get('display_options', '{}'))
-        display_options_dict.update(data)
-        display_options = QuestionDisplayOptions.model_validate(display_options_dict)
-        response = web.json_response(status=201, text='Options updated.')
-        set_cookie(response, 'display_options', display_options.model_dump_json())
-        return response
-    except Exception as e:
-        raise web.HTTPBadRequest() from e
+    data = await request.json()
+    display_options_dict = json.loads(request.cookies.get('display_options', '{}'))
+    display_options_dict.update(data)
+    display_options = QuestionDisplayOptions.model_validate(display_options_dict)
+
+    response = web.Response(status=201)
+    set_cookie(response, 'display_options', display_options.model_dump_json())
+    return response
 
 
 @routes.post('/attempt/restart')
 async def restart_attempt(request: web.Request) -> web.Response:
-    webserver: 'WebServer' = request.app['sdk_webserver_app']
-    webserver.attempt_scored = None
-    webserver.last_attempt_data = None
-    webserver.attempt_seed = random.randint(0, 10)
-
-    response = web.json_response(status=201, text='Attempt restarted.')
+    """Restarts the attempt by deleting the attempt scored state and last attempt data and by resetting the seed."""
+    response = web.Response(status=201)
     response.del_cookie('attempt_scored')
     response.del_cookie('last_attempt_data')
-    set_cookie(response, 'attempt_seed', str(webserver.attempt_seed))
+    set_cookie(response, 'attempt_seed', str(random.randint(0, 10)))
     return response
 
 
 @routes.post('/attempt/edit')
 async def edit_last_attempt(request: web.Request) -> web.Response:
-    webserver: 'WebServer' = request.app['sdk_webserver_app']
-    webserver.attempt_scored = None
-
-    response = web.json_response(status=201, text='Attempt restarted.')
+    """Removes the attempt scored state."""
+    response = web.Response(status=201)
     response.del_cookie('attempt_scored')
     return response
