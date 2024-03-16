@@ -11,12 +11,10 @@ import aiohttp_jinja2
 from aiohttp import web
 from aiohttp.web_exceptions import HTTPBadRequest
 from jinja2 import FileSystemLoader
-from questionpy_common.api.attempt import AttemptScoredModel
 from questionpy_common.constants import MiB
 from questionpy_common.elements import OptionsFormDefinition
 from questionpy_common.environment import RequestUser
 from questionpy_server import WorkerPool
-from questionpy_server.api.models import AttemptStarted
 from questionpy_server.worker.runtime.package_location import PackageLocation
 from questionpy_server.worker.runtime.messages import WorkerUnknownError
 from questionpy_server.worker.worker import Worker
@@ -148,26 +146,39 @@ async def get_attempt(request: web.Request) -> web.Response:
     if seed < 0:
         seed = random.randint(0, 10)
 
-    attempt_started_cookie = request.cookies.get('attempt_started')
-    attempt_scored_cookie = request.cookies.get('attempt_scored')
+    attempt_state = request.cookies.get('attempt_state')
+    scoring_state = request.cookies.get('scoring_state')
     last_attempt_data = json.loads(request.cookies.get('last_attempt_data', '{}'))
 
-    if attempt_started_cookie and attempt_scored_cookie:
-        attempt_started = AttemptStarted.model_validate_json(attempt_started_cookie)
-        attempt_scored = AttemptScoredModel.model_validate_json(attempt_scored_cookie)
-        context = get_attempt_scored_context(attempt_scored, last_attempt_data, display_options, seed)
-    else:
-        worker: Worker
+    worker: Worker
+    if attempt_state:
         async with webserver.worker_pool.get_worker(webserver.package_location, 0, None) as worker:
             try:
-                attempt_started = await worker.start_attempt(RequestUser(["de", "en"]), question_state, 1)
+                attempt = await worker.get_attempt(request_user=RequestUser(["de", "en"]),
+                                                   question_state=question_state,
+                                                   attempt_state=attempt_state,
+                                                   scoring_state=scoring_state)
             except WorkerUnknownError as exc:
                 raise HTTPBadRequest() from exc
 
-        context = get_attempt_started_context(attempt_started, last_attempt_data, display_options, seed)
+        if scoring_state:
+            context = get_attempt_scored_context(attempt.ui, last_attempt_data, display_options, seed)
+        else:
+            context = get_attempt_started_context(attempt.ui, last_attempt_data, display_options, seed)
+
+    else:
+        async with webserver.worker_pool.get_worker(webserver.package_location, 0, None) as worker:
+            try:
+                attempt_started = await worker.start_attempt(request_user=RequestUser(["de", "en"]),
+                                                             question_state=question_state,
+                                                             variant=1)
+            except WorkerUnknownError as exc:
+                raise HTTPBadRequest() from exc
+        attempt_state = attempt_started.attempt_state
+        context = get_attempt_started_context(attempt_started.ui, last_attempt_data, display_options, seed)
 
     response = aiohttp_jinja2.render_template('attempt.html.jinja2', request, context)
-    set_cookie(response, 'attempt_started', attempt_started.model_dump_json())
+    set_cookie(response, 'attempt_state', attempt_state)
     set_cookie(response, 'attempt_seed', str(seed))
     return response
 
@@ -184,10 +195,9 @@ async def submit_attempt(request: web.Request) -> web.Response:
     display_options = QuestionDisplayOptions.model_validate_json(request.cookies.get('display_options', '{}'))
     display_options.readonly = True
 
-    attempt_started_cookie = request.cookies.get('attempt_started')
-    if not attempt_started_cookie:
+    attempt_state = request.cookies.get('attempt_state')
+    if not attempt_state:
         return web.HTTPNotFound(reason="Attempt has to be started before being submitted. Try reloading the page.")
-    attempt_started = AttemptStarted.model_validate_json(attempt_started_cookie)
 
     last_attempt_data = await request.json()
     if not last_attempt_data:
@@ -197,13 +207,13 @@ async def submit_attempt(request: web.Request) -> web.Response:
     async with webserver.worker_pool.get_worker(webserver.package_location, 0, None) as worker:
         attempt_scored = await worker.score_attempt(
             request_user=RequestUser(["de", "en"]),
-            question_state=question_state, attempt_state=attempt_started.attempt_state,
+            question_state=question_state, attempt_state=attempt_state,
             response=last_attempt_data,
         )
 
     response = web.Response(status=201)
     set_cookie(response, 'display_options', display_options.model_dump_json())
-    set_cookie(response, 'attempt_scored', attempt_scored.model_dump_json())
+    set_cookie(response, 'scoring_state', attempt_scored.scoring_state)
     set_cookie(response, 'last_attempt_data', json.dumps(last_attempt_data))
     return response
 
@@ -224,7 +234,7 @@ async def submit_display_options(request: web.Request) -> web.Response:
 async def restart_attempt(request: web.Request) -> web.Response:
     """Restarts the attempt by deleting the attempt scored state and last attempt data and by resetting the seed."""
     response = web.Response(status=201)
-    response.del_cookie('attempt_scored')
+    response.del_cookie('scoring_state')
     response.del_cookie('last_attempt_data')
     set_cookie(response, 'attempt_seed', str(random.randint(0, 10)))
     return response
@@ -234,7 +244,7 @@ async def restart_attempt(request: web.Request) -> web.Response:
 async def edit_last_attempt(request: web.Request) -> web.Response:
     """Removes the attempt scored state."""
     response = web.Response(status=201)
-    response.del_cookie('attempt_scored')
+    response.del_cookie('scoring_state')
     return response
 
 

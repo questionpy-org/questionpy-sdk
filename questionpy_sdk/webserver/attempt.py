@@ -2,18 +2,14 @@
 #  The QuestionPy SDK is free software released under terms of the MIT license. See LICENSE.md.
 #  (c) Technische Universität Berlin, innoCampus <info@isis.tu-berlin.de>
 
-from questionpy_common.api.attempt import AttemptScoredModel
-from questionpy_server.api.models import AttemptStarted
+from questionpy_common.api.attempt import AttemptUi
 
 from questionpy_sdk.webserver.question_ui import QuestionUIRenderer, QuestionDisplayOptions
 
 
-def get_attempt_started_context(attempt_started: AttemptStarted, last_attempt_data: dict,
+def get_attempt_started_context(ui: AttemptUi, last_attempt_data: dict,
                                 display_options: QuestionDisplayOptions, seed: int) -> dict:
-
-    renderer = QuestionUIRenderer(xml=attempt_started.ui.content,
-                                  placeholders=attempt_started.ui.placeholders,
-                                  seed=seed)
+    renderer = QuestionUIRenderer(xml=ui.content, placeholders=ui.placeholders, seed=seed)
     return {
         'question_html': renderer.render_formulation(
             attempt=last_attempt_data,
@@ -23,11 +19,9 @@ def get_attempt_started_context(attempt_started: AttemptStarted, last_attempt_da
     }
 
 
-def get_attempt_scored_context(attempt_scored: AttemptScoredModel, last_attempt_data: dict,
+def get_attempt_scored_context(ui: AttemptUi, last_attempt_data: dict,
                                display_options: QuestionDisplayOptions, seed: int) -> dict:
-    renderer = QuestionUIRenderer(xml=attempt_scored.ui.content,
-                                  placeholders=attempt_scored.ui.placeholders,
-                                  seed=seed)
+    renderer = QuestionUIRenderer(xml=ui.content, placeholders=ui.placeholders, seed=seed)
     context = {
         'question_html': renderer.render_formulation(attempt=last_attempt_data,
                                                      options=display_options),
