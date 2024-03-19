@@ -161,6 +161,10 @@ class QuestionUIRenderer:
                 self.question.xpath(".//qpy:general-feedback", namespaces={'qpy': self.QPY_NAMESPACE}))
         except TypeError:
             return None
+
+        if not elements:
+            return None
+
         return self.render_part(elements[0], attempt, options)
 
     def render_specific_feedback(self, attempt: Optional[dict] = None,
@@ -171,6 +175,10 @@ class QuestionUIRenderer:
                 self.question.xpath(".//qpy:specific-feedback", namespaces={'qpy': self.QPY_NAMESPACE}))
         except TypeError:
             return None
+
+        if not elements:
+            return None
+
         return self.render_part(elements[0], attempt, options)
 
     def render_right_answer(self, attempt: Optional[dict] = None,
@@ -181,6 +189,10 @@ class QuestionUIRenderer:
                 self.question.xpath(".//qpy:right-answer", namespaces={'qpy': self.QPY_NAMESPACE}))
         except TypeError:
             return None
+
+        if not elements:
+            return None
+
         return self.render_part(elements[0], attempt, options)
 
     def render_formulation(self, attempt: Optional[dict] = None,

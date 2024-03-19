@@ -346,6 +346,8 @@ let help_icon = null;
 
 
 async function restart_attempt(event) {
+    event.preventDefault();
+
     const button = event.currentTarget;
     const route = button.getAttribute('data-route');
     const headers = {'Content-Type': 'application/json'}
@@ -353,7 +355,7 @@ async function restart_attempt(event) {
     if (response.status >= 200 && response.status < 300) {
         window.location.reload();
     } else {
-        alert(response.text);
+        alert(response.statusText);
     }
 
 }
