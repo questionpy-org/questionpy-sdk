@@ -157,7 +157,8 @@ async def get_attempt(request: web.Request) -> web.Response:
                 attempt = await worker.get_attempt(request_user=RequestUser(["de", "en"]),
                                                    question_state=question_state,
                                                    attempt_state=attempt_state,
-                                                   scoring_state=scoring_state)
+                                                   scoring_state=scoring_state,
+                                                   response=last_attempt_data)
             except WorkerUnknownError as exc:
                 raise HTTPBadRequest() from exc
 
