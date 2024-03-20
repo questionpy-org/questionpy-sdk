@@ -29,8 +29,8 @@ aiohttp = "^3.8.1"
 # 2.6.0 breaks us because of <https://github.com/pydantic/pydantic/issues/8697>.
 pydantic = "^2.4, !=2.6.0"
 PyYAML = "^6.0"
-questionpy-common = { git = "https://github.com/questionpy-org/questionpy-common.git", rev = "cdc3bad516df137651e14d81fb6d1bfde11ceaaf" }
-questionpy-server = { git = "https://github.com/questionpy-org/questionpy-server.git", rev = "3ee63d752667eda33157305f7815a096d79daf81" }
+questionpy-common = { git = "https://github.com/questionpy-org/questionpy-common.git", rev = "e3eee74ea7b13eded95148b761ca4f2cc73656b7" }
+questionpy-server = { git = "https://github.com/questionpy-org/questionpy-server.git", rev = "38ec1cc6523336ac2f17ae5b27c9a4dbc9d2367e" }
 jinja2 = "^3.1.2"
 aiohttp-jinja2 = "^1.5"
 lxml = "^5.1.0"
