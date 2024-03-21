@@ -5,8 +5,6 @@ from pydantic import BaseModel
 
 from questionpy_common.api.attempt import AttemptScoredModel, BaseAttempt, ScoreModel
 
-from ._util import get_type_arg
-
 if TYPE_CHECKING:
     from ._qtype import Question
 
@@ -46,8 +44,3 @@ class Attempt(BaseAttempt, ABC, Generic[_Q, _AS, _SS]):
 
     def export_attempt_state(self) -> str:
         return self.attempt_state.model_dump_json()
-
-    def __init_subclass__(cls, *args: object, **kwargs: object) -> None:
-        super().__init_subclass__(*args, **kwargs)
-        cls.attempt_state_class = get_type_arg(cls, Attempt, 1, bound=BaseAttemptState, default=BaseAttemptState)
-        cls.scoring_state_class = get_type_arg(cls, Attempt, 2, bound=BaseScoringState, default=BaseScoringState)

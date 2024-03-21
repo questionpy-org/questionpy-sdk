@@ -10,7 +10,7 @@ from selenium.webdriver.common.by import By
 from selenium.webdriver.support import expected_conditions
 from selenium.webdriver.support.wait import WebDriverWait
 
-from questionpy import Attempt, BaseAttemptState, BaseQuestionState, BaseScoringState, Question, QuestionType
+from questionpy import Attempt, Question, QuestionType
 from questionpy.form import FormModel, checkbox, repeat
 from questionpy_common.api.attempt import AttemptModel, AttemptUi, ScoreModel, ScoringCode
 from questionpy_common.api.qtype import BaseQuestionType
@@ -19,36 +19,34 @@ from questionpy_common.environment import PackageInitFunction
 from questionpy_common.manifest import Manifest
 from questionpy_server.worker.runtime.package_location import FunctionPackageLocation
 
-_F = TypeVar("_F", bound=FormModel)
+
+class _NoopAttempt(Attempt):
+    def export_score(self) -> ScoreModel:
+        return ScoreModel(scoring_code=ScoringCode.NEEDS_MANUAL_SCORING, score=None)
+
+    def export(self) -> AttemptModel:
+        return AttemptModel(variant=1, ui=AttemptUi(content=""))
 
 
-def noop_question(form_model: type[_F]) -> type[Question[BaseQuestionState[_F], Any]]:
-    class Package1Attempt(Attempt["Package1Question", BaseAttemptState, BaseScoringState]):
-        def export_score(self) -> ScoreModel:
-            return ScoreModel(scoring_code=ScoringCode.NEEDS_MANUAL_SCORING, score=None)
+class _NoopQuestion(Question):
+    attempt_class = _NoopAttempt
 
-        def export(self) -> AttemptModel:
-            return AttemptModel(variant=1, ui=AttemptUi(content=""))
-
-    class Package1Question(Question[BaseQuestionState[form_model], Package1Attempt]):  # type: ignore[valid-type]
-        def export(self) -> QuestionModel:
-            return QuestionModel(scoring_method=ScoringMethod.AUTOMATICALLY_SCORABLE)
-
-    return Package1Question
+    def export(self) -> QuestionModel:
+        return QuestionModel(scoring_method=ScoringMethod.AUTOMATICALLY_SCORABLE)
 
 
 def package_1_init() -> BaseQuestionType:
     class Package1Form(FormModel):
         optional_checkbox: bool = checkbox("Optional Checkbox")
 
-    return QuestionType(Package1Form, noop_question(Package1Form))
+    return QuestionType(Package1Form, _NoopQuestion)
 
 
 def package_2_init() -> BaseQuestionType:
     class Package2Form(FormModel):
         required_checkbox: bool = checkbox("Required Checkbox", required=True)
 
-    return QuestionType(Package2Form, noop_question(Package2Form))
+    return QuestionType(Package2Form, _NoopQuestion)
 
 
 def package_3_init() -> BaseQuestionType:
@@ -58,7 +56,7 @@ def package_3_init() -> BaseQuestionType:
     class Package3Form(FormModel):
         repetition: list[SubModel] = repeat(SubModel, initial=2, increment=3)
 
-    return QuestionType(Package3Form, noop_question(Package3Form))
+    return QuestionType(Package3Form, _NoopQuestion)
 
 
 _C = TypeVar("_C", bound=Callable)
