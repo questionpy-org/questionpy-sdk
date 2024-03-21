@@ -91,7 +91,8 @@ def add_repetition(form_data: dict[str, Any], reference: list, increment: int) -
     """
     current_element = form_data
 
-    if ref := reference.pop(0) != "general":
+    ref = reference.pop(0)
+    if ref != "general":
         current_element = current_element[ref]
     while reference:
         ref = reference.pop(0)
