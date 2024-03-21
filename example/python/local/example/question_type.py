@@ -1,8 +1,5 @@
-from importlib.resources import files
-
 from questionpy import (
     Attempt,
-    AttemptModel,
     AttemptUi,
     Question,
     QuestionType,
@@ -24,13 +21,10 @@ class ExampleAttempt(Attempt):
 
         return ScoreModel(scoring_code=ScoringCode.AUTOMATICALLY_SCORED, score=0)
 
-    def export(self) -> AttemptModel:
-        return AttemptModel(
-            variant=1,
-            ui=AttemptUi(
-                content=(files(__package__) / "multiple-choice.xhtml").read_text(),
-                placeholders={"description": "Welcher ist der zweite Buchstabe im deutschen Alphabet?"},
-            ),
+    def render_formulation(self) -> AttemptUi:
+        return AttemptUi(
+            content=self.jinja2.get_template("local.example/formulation.xhtml.j2").render(),
+            placeholders={"description": "Welcher ist der zweite Buchstabe im deutschen Alphabet?"},
         )
 
 

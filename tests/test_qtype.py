@@ -18,7 +18,7 @@ from questionpy import (
     RequestUser,
 )
 from questionpy.form import FormModel, text_input
-from questionpy_common.api.attempt import AttemptModel, AttemptUi, ScoreModel, ScoringCode
+from questionpy_common.api.attempt import AttemptUi, ScoreModel, ScoringCode
 from questionpy_common.api.question import QuestionModel, ScoringMethod
 from questionpy_common.environment import set_qpy_environment
 from questionpy_server.worker.runtime.manager import EnvironmentImpl
@@ -60,8 +60,8 @@ class MyAttemptState(BaseAttemptState):
 class SomeAttempt(Attempt):
     attempt_state_class = MyAttemptState
 
-    def export(self) -> AttemptModel:
-        return AttemptModel(variant=1, ui=AttemptUi(content=""))
+    def render_formulation(self) -> AttemptUi:
+        return AttemptUi(content="")
 
     def export_score(self) -> ScoreModel:
         return ScoreModel(scoring_code=ScoringCode.AUTOMATICALLY_SCORED, score=1)

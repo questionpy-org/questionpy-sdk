@@ -1,0 +1,16 @@
+{# TODO: This should become qpy:subquestion when that is implemented. #}
+<div xmlns="http://www.w3.org/1999/xhtml" xmlns:qpy="http://questionpy.org/ns/question">
+    <div>
+        {{ formulation.content | safe }}
+    </div>
+    {% if general_feedback %}
+        <div qpy:feedback="general">
+            {{ general_feedback.content | safe }}
+        </div>
+    {% endif %}
+    {% if specific_feedback %}
+        <div qpy:feedback="specific">
+            {{ specific_feedback.content | safe }}
+        </div>
+    {% endif %}
+</div>

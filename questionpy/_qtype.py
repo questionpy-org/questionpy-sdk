@@ -31,7 +31,8 @@ class Question(BaseQuestion, ABC, Generic[_QS, _A]):
     state_class: type[BaseQuestionState] = BaseQuestionState
     attempt_class: type["Attempt"]
 
-    def __init__(self, state: _QS):
+    def __init__(self, qtype: BaseQuestionType, state: _QS) -> None:
+        self.qtype = qtype
         self.state = state
 
     def start_attempt(self, variant: int) -> BaseAttempt:
@@ -148,7 +149,7 @@ class QuestionType(BaseQuestionType, Generic[_F, _Q]):
                 options=parsed_form_data,
             )
 
-        return cast(_Q, self.question_class(state))
+        return cast(_Q, self.question_class(self, state))
 
     def create_question_from_state(self, question_state: str) -> _Q:
         state_class = self.question_class.state_class
@@ -158,4 +159,4 @@ class QuestionType(BaseQuestionType, Generic[_F, _Q]):
             state_class = state_class[self.options_class]  # type: ignore[index]
 
         parsed_state = state_class.model_validate_json(question_state)
-        return cast(_Q, self.question_class(parsed_state))
+        return cast(_Q, self.question_class(self, parsed_state))
