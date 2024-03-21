@@ -60,7 +60,7 @@ optional = true
 extend = "ruff_defaults.toml"
 
 [tool.ruff.lint.pep8-naming]
-extend-ignore-names = ["mcs"]
+extend-ignore-names = ["mcs", "test_*"]
 
 [tool.ruff.lint.pylint]
 allow-dunder-method-names = ["__get_pydantic_core_schema__"]

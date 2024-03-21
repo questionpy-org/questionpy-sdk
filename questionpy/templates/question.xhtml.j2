@@ -1,0 +1,20 @@
+<qpy:question xmlns="http://www.w3.org/1999/xhtml" xmlns:qpy="http://questionpy.org/ns/question">
+    <qpy:formulation>
+        {{ formulation.content | safe }}
+    </qpy:formulation>
+    {% if general_feedback %}
+        <qpy:general-feedback>
+            {{ general_feedback.content | safe }}
+        </qpy:general-feedback>
+    {% endif %}
+    {% if specific_feedback %}
+        <qpy:specific-feedback>
+            {{ specific_feedback.content | safe }}
+        </qpy:specific-feedback>
+    {% endif %}
+    {% if right_answer %}
+        <qpy:right-answer>
+            {{ right_answer.content | safe }}
+        </qpy:right-answer>
+    {% endif %}
+</qpy:question>

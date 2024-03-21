@@ -36,6 +36,7 @@ from questionpy_common.manifest import Manifest, PackageType
 
 from ._attempt import Attempt, BaseAttemptState, BaseScoringState
 from ._qtype import BaseQuestionState, Question, QuestionType
+from ._ui import create_jinja2_environment
 
 __all__ = [
     "Attempt",
@@ -69,6 +70,7 @@ __all__ = [
     "SubquestionModel",
     "UiFile",
     "WorkerResourceLimits",
+    "create_jinja2_environment",
     "get_qpy_environment",
     "set_qpy_environment",
 ]

@@ -12,7 +12,7 @@ from selenium.webdriver.support.wait import WebDriverWait
 
 from questionpy import Attempt, Question, QuestionType
 from questionpy.form import FormModel, checkbox, repeat
-from questionpy_common.api.attempt import AttemptModel, AttemptUi, ScoreModel, ScoringCode
+from questionpy_common.api.attempt import AttemptUi, ScoreModel, ScoringCode
 from questionpy_common.api.qtype import BaseQuestionType
 from questionpy_common.api.question import QuestionModel, ScoringMethod
 from questionpy_common.environment import PackageInitFunction
@@ -24,8 +24,8 @@ class _NoopAttempt(Attempt):
     def export_score(self) -> ScoreModel:
         return ScoreModel(scoring_code=ScoringCode.NEEDS_MANUAL_SCORING, score=None)
 
-    def export(self) -> AttemptModel:
-        return AttemptModel(variant=1, ui=AttemptUi(content=""))
+    def render_formulation(self) -> AttemptUi:
+        return AttemptUi(content="")
 
 
 class _NoopQuestion(Question):
