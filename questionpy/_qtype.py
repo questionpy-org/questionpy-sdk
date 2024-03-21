@@ -13,7 +13,6 @@ from questionpy_common.api.question import BaseQuestion
 from questionpy_common.environment import get_qpy_environment
 
 from ._attempt import Attempt
-from ._util import get_type_arg
 from .form import FormModel, OptionsFormDefinition
 
 _F = TypeVar("_F", bound=FormModel)
@@ -48,7 +47,6 @@ class Question(BaseQuestion, ABC, Generic[_QS, _A]):
         compute_score: bool = False,
         generate_hint: bool = False,
     ) -> BaseAttempt:
-        # TODO: Implement response.
         attempt_state_obj = self.attempt_class.attempt_state_class.model_validate_json(attempt_state)
         scoring_state_obj = None
         if scoring_state is not None:
@@ -60,11 +58,10 @@ class Question(BaseQuestion, ABC, Generic[_QS, _A]):
 
     def __init_subclass__(cls, *args: object, **kwargs: object) -> None:
         super().__init_subclass__(*args, **kwargs)
-        cls.state_class = get_type_arg(cls, Question, 0, bound=BaseQuestionState, default=BaseQuestionState)
-        if get_type_arg(cls, Question, 0) == BaseQuestionState:
-            msg = f"{cls.state_class.__name__} must declare a specific FormModel."
+
+        if not hasattr(cls, "attempt_class"):
+            msg = f"Missing '{cls.__name__}.attempt_class' attribute. It should point to your attempt implementation"
             raise TypeError(msg)
-        cls.attempt_class = get_type_arg(cls, Question, 1, bound=Attempt)
 
 
 class QuestionType(BaseQuestionType, Generic[_F, _Q]):
@@ -84,8 +81,11 @@ class QuestionType(BaseQuestionType, Generic[_F, _Q]):
 
         >>> class MyOptions(FormModel): ...
         >>> class MyAttempt(Attempt): ...
-        >>> class MyQuestion(Question[BaseQuestionState[MyOptions], MyAttempt]): ...
-        >>> class MyQuestionType(QuestionType[MyOptions, MyQuestion]): ...  # Your code goes here.
+        >>> class MyQuestion(Question):
+        ...     attempt_class = MyAttempt
+        >>> class MyQuestionType(QuestionType):
+        ...     question_class = MyQuestion
+        ...     # Your code goes here.
     """
 
     # We'd declare these using _F and _Q ideally, but that leads to "Access to generic instance variables via class is
@@ -97,21 +97,27 @@ class QuestionType(BaseQuestionType, Generic[_F, _Q]):
         """Initializes a new question.
 
         Args:
-            options_class: Override the [`FormModel`][questionpy.form.FormModel] for the question options.
-            question_class: Override the [`Question`][questionpy.Question] used by this type.
+            options_class: The :class:`FormModel` for the question options. Can be set as a class variable as well.
+            question_class: The :class:`Question`-class used by this type. Can be set as a class variable as well.
         """
         if options_class:
             self.options_class = options_class
         if question_class:
             self.question_class = question_class
 
-    def __init_subclass__(cls, *args: object, **kwargs: object) -> None:
-        super().__init_subclass__(*args, **kwargs)
+        if not hasattr(self, "question_class"):
+            msg = (
+                f"Missing '{type(self).__name__}.question_class' attribute. It should point to your question "
+                f"implementation"
+            )
+            raise TypeError(msg)
 
-        cls.options_class = get_type_arg(cls, QuestionType, 0, bound=FormModel, default=FormModel)
-        cls.question_class = get_type_arg(cls, QuestionType, 1, bound=Question)
-        if cls.options_class != cls.question_class.state_class.model_fields["options"].annotation:
-            msg = f"{cls.__name__} must have the same FormModel as {cls.question_class.state_class.__name__}."
+        # We handle questions using the default state separately in create_question_from_state.
+        if (
+            self.question_class.state_class is not BaseQuestionState
+            and self.options_class != self.question_class.state_class.model_fields["options"].annotation
+        ):
+            msg = f"{type(self).__name__} must have the same FormModel as {self.question_class.state_class.__name__}."
             raise TypeError(msg)
 
     def get_options_form(self, question_state: str | None) -> tuple[OptionsFormDefinition, dict[str, object]]:
@@ -145,4 +151,11 @@ class QuestionType(BaseQuestionType, Generic[_F, _Q]):
         return cast(_Q, self.question_class(state))
 
     def create_question_from_state(self, question_state: str) -> _Q:
-        return cast(_Q, self.question_class(self.question_class.state_class.model_validate_json(question_state)))
+        state_class = self.question_class.state_class
+        if state_class is BaseQuestionState:
+            # If the question is using the default question state, the "options" attribute will deserialize to an empty
+            # FormModel, but we want the correct options class.
+            state_class = state_class[self.options_class]  # type: ignore[index]
+
+        parsed_state = state_class.model_validate_json(question_state)
+        return cast(_Q, self.question_class(parsed_state))

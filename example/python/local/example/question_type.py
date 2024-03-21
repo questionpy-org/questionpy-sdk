@@ -4,9 +4,6 @@ from questionpy import (
     Attempt,
     AttemptModel,
     AttemptUi,
-    BaseAttemptState,
-    BaseQuestionState,
-    BaseScoringState,
     Question,
     QuestionType,
     ScoringCode,
@@ -17,7 +14,7 @@ from questionpy_common.api.question import QuestionModel, ScoringMethod
 from .form import MyModel
 
 
-class ExampleAttempt(Attempt["ExampleQuestion", BaseAttemptState, BaseScoringState]):
+class ExampleAttempt(Attempt):
     def export_score(self) -> ScoreModel:
         if "choice" not in self.response:
             return ScoreModel(scoring_code=ScoringCode.RESPONSE_NOT_SCORABLE, score=None)
@@ -37,10 +34,13 @@ class ExampleAttempt(Attempt["ExampleQuestion", BaseAttemptState, BaseScoringSta
         )
 
 
-class ExampleQuestion(Question[BaseQuestionState[MyModel], ExampleAttempt]):
+class ExampleQuestion(Question):
+    attempt_class = ExampleAttempt
+
     def export(self) -> QuestionModel:
         return QuestionModel(scoring_method=ScoringMethod.AUTOMATICALLY_SCORABLE)
 
 
-class ExampleQuestionType(QuestionType[MyModel, ExampleQuestion]):
-    pass
+class ExampleQuestionType(QuestionType):
+    question_class = ExampleQuestion
+    options_class = MyModel
