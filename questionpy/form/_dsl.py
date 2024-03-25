@@ -112,8 +112,8 @@ def text_input(
         default: Default value of the input when first loading the form. Part of the submitted form data.
         placeholder: Placeholder to show when no value has been entered yet. Not part of the submitted form data.
         help: Element help text.
-        disable_if: Disable this element if some condition(s) match.
-        hide_if: Hide this element if some condition(s) match.
+        disable_if (Condition | list[Condition] | None): Disable this element if some condition(s) match.
+        hide_if (Condition | list[Condition] | None): Hide this element if some condition(s) match.
 
     Returns:
         An internal object containing metadata about the field.
@@ -148,8 +148,8 @@ def static_text(
         label: Text describing the element, shown verbatim.
         text: Main text described by the label, shown verbatim.
         help: Element help text.
-        disable_if: Disable this element if some condition(s) match.
-        hide_if: Hide this element if some condition(s) match.
+        disable_if (Condition | list[Condition] | None): Disable this element if some condition(s) match.
+        hide_if (Condition | list[Condition] | None): Hide this element if some condition(s) match.
 
     Returns:
         The element.
@@ -238,8 +238,8 @@ def checkbox(
         required: Require this checkbox to be selected before the form can be submitted.
         selected: Default state of the checkbox.
         help: Element help text.
-        disable_if: Disable this element if some condition(s) match.
-        hide_if: Hide this element if some condition(s) match.
+        disable_if (Condition | list[Condition] | None): Disable this element if some condition(s) match.
+        hide_if (Condition | list[Condition] | None): Hide this element if some condition(s) match.
 
     Returns:
         An internal object containing metadata about the field.
@@ -325,11 +325,11 @@ def radio_group(
 
     Args:
         label: Text describing the element, shown verbatim.
-        enum (OptionEnum): An `OptionEnum` subclass containing the available options.
+        enum (type[OptionEnum]): An `OptionEnum` subclass containing the available options.
         required: Require one of the options to be selected before the form can be submitted.
         help: Element help text.
-        disable_if: Disable this element if some condition(s) match.
-        hide_if: Hide this element if some condition(s) match.
+        disable_if (Condition | list[Condition] | None): Disable this element if some condition(s) match.
+        hide_if (Condition | list[Condition] | None): Hide this element if some condition(s) match.
 
     Returns:
         An internal object containing metadata about the field.
@@ -435,12 +435,12 @@ def select(
 
     Args:
         label: Text describing the element, shown verbatim.
-        enum (OptionEnum): An `OptionEnum` subclass containing the available options.
+        enum (type[OptionEnum]): An `OptionEnum` subclass containing the available options.
         required: Require at least one of the options to be selected before the form can be submitted.
         multiple: Allow the selection of multiple options.
         help: Element help text.
-        disable_if: Disable this element if some condition(s) match.
-        hide_if: Hide this element if some condition(s) match.
+        disable_if (Condition | list[Condition] | None): Disable this element if some condition(s) match.
+        hide_if (Condition | list[Condition] | None): Hide this element if some condition(s) match.
 
     Returns:
         An internal object containing metadata about the field.
@@ -514,9 +514,9 @@ def hidden(value: _S, *, disable_if: _ZeroOrMoreConditions = None, hide_if: _Zer
     """Adds a hidden element with a fixed value.
 
     Args:
-        value: Fixed value.
-        disable_if: Disable this element if some condition(s) match.
-        hide_if: Hide this element if some condition(s) match.
+        value (str): Fixed value.
+        disable_if (Condition | list[Condition] | None): Disable this element if some condition(s) match.
+        hide_if (Condition | list[Condition] | None): Hide this element if some condition(s) match.
 
     Returns:
         An internal object containing metadata about the field.
@@ -538,7 +538,7 @@ def section(header: str, model: type[_F]) -> _F:
 
     Args:
         header: Header to be shown at the top of the section.
-        model (FormModel): A `FormModel` subclass containing the fields of the section.
+        model (type[FormModel]): A `FormModel` subclass containing the fields of the section.
 
     Returns:
         An internal object containing metadata about the section.
@@ -574,10 +574,10 @@ def group(
 
     Args:
         label: Label of the group.
-        model (FormModel): A `FormModel` subclass containing the fields of the group.
+        model (type[FormModel]): A `FormModel` subclass containing the fields of the group.
         help: Element help text.
-        disable_if: Disable this group if some condition(s) match.
-        hide_if: Hide this group if some condition(s) match.
+        disable_if (Condition | list[Condition] | None): Disable this group if some condition(s) match.
+        hide_if (Condition | list[Condition] | None): Hide this group if some condition(s) match.
 
     Returns:
         An internal object containing metadata about the section.
@@ -622,7 +622,7 @@ def repeat(
     """Repeats a sub-model, allowing the user to add new repetitions with the click of a button.
 
     Args:
-        model (FormModel): A `FormModel` subclass containing the fields to repeat.
+        model (type[FormModel]): A `FormModel` subclass containing the fields to repeat.
         initial: Number of repetitions to show when the form is first loaded.
         minimum: Minimum number of repetitions, at or below which removal is not possible.
         increment: Number of repetitions to add with each click of the button.
