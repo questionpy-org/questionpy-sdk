@@ -75,4 +75,5 @@ def _install_dependencies(target: PackageBuilder, config_path: Path, config: Pac
 def _copy_package(target: PackageBuilder, pkg: ModuleType) -> None:
     # inspect.getfile returns the path to the package's __init__.py
     package_dir = Path(inspect.getfile(pkg)).parent
-    target.write_glob(package_dir, "**/*.py", prefix=f"dependencies/site-packages/{pkg.__name__}")
+    # TODO: Exclude __pycache__, pyc files and the like.
+    target.write_glob(package_dir, "**/*", prefix=f"dependencies/site-packages/{pkg.__name__}")
