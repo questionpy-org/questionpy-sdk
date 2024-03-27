@@ -26,54 +26,43 @@ def packages_are_equal(directory_1: Path, directory_2: Path) -> bool:
     return True
 
 
-def test_create_no_arguments() -> None:
-    runner = CliRunner()
-    with runner.isolated_filesystem():
-        result = runner.invoke(create)
-        assert result.exit_code != 0
-        assert "Error: Missing argument 'SHORT_NAME'." in result.stdout
+def test_create_no_arguments(runner: CliRunner) -> None:
+    result = runner.invoke(create)
+    assert result.exit_code != 0
+    assert "Error: Missing argument 'SHORT_NAME'." in result.stdout
 
 
-def test_create_example_package() -> None:
-    runner = CliRunner()
-    with runner.isolated_filesystem() as fs:
-        directory = Path(fs)
-        with ZipFile(EXAMPLE_PACKAGE) as zip_file:
-            original = directory / "original"
-            original.mkdir()
-            zip_file.extractall(original / "example")
+def test_create_example_package(runner: CliRunner, cwd: Path) -> None:
+    with ZipFile(EXAMPLE_PACKAGE) as zip_file:
+        original = cwd / "original"
+        original.mkdir()
+        zip_file.extractall(original / "example")
 
-        result = runner.invoke(create, ["example"])
-        assert result.exit_code == 0
-        assert (directory / "example").exists()
-        assert packages_are_equal(directory / "example", original / "example")
+    result = runner.invoke(create, ["example"])
+    assert result.exit_code == 0
+    assert (cwd / "example").exists()
+    assert packages_are_equal(cwd / "example", original / "example")
 
 
-def test_create_with_existing_path() -> None:
-    runner = CliRunner()
-    with runner.isolated_filesystem() as directory:
-        Path(directory, "short_name").mkdir()
-        result = runner.invoke(create, ["short_name"])
-        assert result.exit_code != 0
-        assert "The path 'short_name' already exists." in result.stdout
+def test_create_with_existing_path(runner: CliRunner, cwd: Path) -> None:
+    (cwd / "short_name").mkdir()
+    result = runner.invoke(create, ["short_name"])
+    assert result.exit_code != 0
+    assert "The path 'short_name' already exists." in result.stdout
 
 
-def test_create_with_out_path() -> None:
-    runner = CliRunner()
-    with runner.isolated_filesystem() as directory:
-        out_path = Path(directory, "out")
-        result = runner.invoke(create, ["example", "--out", str(out_path)])
-        assert result.exit_code == 0
-        assert out_path.exists()
+def test_create_with_out_path(runner: CliRunner, cwd: Path) -> None:
+    out_path = cwd / "out"
+    result = runner.invoke(create, ["example", "--out", str(out_path)])
+    assert result.exit_code == 0
+    assert out_path.exists()
 
 
 @pytest.mark.parametrize("short_name", ["default", "a_name", "_name", "name_", "_name_", "_a_name_", "a" * 127])
-def test_create_with_valid_short_name(short_name: str) -> None:
-    runner = CliRunner()
-    with runner.isolated_filesystem() as directory:
-        result = runner.invoke(create, [short_name])
-        assert result.exit_code == 0
-        assert Path(directory, short_name).exists()
+def test_create_with_valid_short_name(short_name: str, runner: CliRunner, cwd: Path) -> None:
+    result = runner.invoke(create, [short_name])
+    assert result.exit_code == 0
+    assert (cwd / short_name).exists()
 
 
 @pytest.mark.parametrize(
@@ -95,21 +84,17 @@ def test_create_with_valid_short_name(short_name: str) -> None:
         "_",
     ],
 )
-def test_create_with_invalid_short_name(short_name: str) -> None:
-    runner = CliRunner()
-    with runner.isolated_filesystem():
-        result = runner.invoke(create, [short_name])
-        assert result.exit_code != 0
-        assert "Error: Invalid value for 'SHORT_NAME': " in result.stdout
+def test_create_with_invalid_short_name(short_name: str, runner: CliRunner) -> None:
+    result = runner.invoke(create, [short_name])
+    assert result.exit_code != 0
+    assert "Error: Invalid value for 'SHORT_NAME': " in result.stdout
 
 
 @pytest.mark.parametrize("namespace", ["default", "a_name", "_name", "name_", "_name_", "_a_name_", "a" * 127])
-def test_create_with_valid_namespace(namespace: str) -> None:
-    runner = CliRunner()
-    with runner.isolated_filesystem() as directory:
-        result = runner.invoke(create, ["short_name", "--namespace", namespace])
-        assert result.exit_code == 0
-        assert Path(directory, "short_name").exists()
+def test_create_with_valid_namespace(namespace: str, runner: CliRunner, cwd: Path) -> None:
+    result = runner.invoke(create, ["short_name", "--namespace", namespace])
+    assert result.exit_code == 0
+    assert (cwd / "short_name").exists()
 
 
 @pytest.mark.parametrize(
@@ -131,9 +116,7 @@ def test_create_with_valid_namespace(namespace: str) -> None:
         "_",
     ],
 )
-def test_create_with_invalid_namespace(namespace: str) -> None:
-    runner = CliRunner()
-    with runner.isolated_filesystem():
-        result = runner.invoke(create, ["short_name", "--namespace", namespace])
-        assert result.exit_code != 0
-        assert "Error: Invalid value for '--namespace' / '-n': " in result.stdout
+def test_create_with_invalid_namespace(namespace: str, runner: CliRunner) -> None:
+    result = runner.invoke(create, ["short_name", "--namespace", namespace])
+    assert result.exit_code != 0
+    assert "Error: Invalid value for '--namespace' / '-n': " in result.stdout

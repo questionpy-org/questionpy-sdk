@@ -5,18 +5,17 @@
 from pathlib import Path
 from shutil import move
 
-import pytest
 from click.testing import CliRunner
-from pydantic import ValidationError
 from yaml import safe_dump
 
 from questionpy_sdk.commands._helper import create_normalized_filename
 from questionpy_sdk.commands.package import package
 from questionpy_sdk.constants import PACKAGE_CONFIG_FILENAME
 from questionpy_sdk.models import PackageConfig
+from tests.cli.conftest import default_ctx_obj
 
 
-def assert_same_structure(directory: Path, expected: list[Path]) -> None:
+def assert_same_structure(directory: Path, expected: tuple[Path, ...]) -> None:
     """Checks if the directory has the same folder structure as `expected`.
 
     Args:
@@ -31,8 +30,6 @@ def create_package(
 ) -> tuple[Path, PackageConfig]:
     """Create a '.qpy'-package.
 
-    The test will skip if the packaging fails and xfail if the config is invalid.
-
     Args:
         path: path to the folder where the package should be created or the path to the package itself
         short_name: short name of the package
@@ -42,26 +39,24 @@ def create_package(
     Returns:
         path to the package and the config
     """
-    try:
-        config = PackageConfig(
-            short_name=short_name, namespace=namespace, version=version, api_version="0.1", author="pytest"
-        )
-    except ValidationError as e:
-        pytest.xfail(f"Invalid config while creating the package: {e}")
+    config = PackageConfig(
+        short_name=short_name, namespace=namespace, version=version, api_version="0.1", author="pytest"
+    )
 
     runner = CliRunner()
     with runner.isolated_filesystem() as fs:
-        directory = Path(fs, config.short_name)
-        directory.mkdir()
-
+        # create minimal package structure
+        directory = Path(fs) / config.short_name
+        python_path = directory / "python" / namespace / short_name
+        python_path.mkdir(parents=True)
+        (python_path / "__init__.py").touch()
         with (directory / PACKAGE_CONFIG_FILENAME).open("w") as config_file:
             safe_dump(config.model_dump(exclude={"type"}), config_file)
 
+        # build package
         package_path = Path("package.qpy")
-
-        result = runner.invoke(package, [str(directory), "-o", str(package_path)])
-        if result.exit_code != 0:
-            pytest.skip(f"Could not create the package: {result.stdout}")
+        result = runner.invoke(package, [str(directory), "-o", str(package_path)], obj=default_ctx_obj)
+        assert result.exit_code == 0
 
         new_package_path = path / create_normalized_filename(config) if path.is_dir() else path
         move(package_path, new_package_path)
