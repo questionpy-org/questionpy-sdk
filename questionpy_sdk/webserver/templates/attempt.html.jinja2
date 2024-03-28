@@ -7,37 +7,47 @@
 {% endblock %}
 
 {% block content %}
-    <div class="container-question-preview">
-        <form id="question-preview" action="/submit">
-            {{ question_html|safe }}
-        </form>
+    <div class="container-question-info">
+        <p class="score">
+            {{ ("Score: " ~ attempt.score) if attempt.score or attempt.score == 0 else " Not yet scored" }}
+        </p>
+    </div>
+
+    <div class="container-question-content">
+        <div class="container-question-preview">
+            <form id="question-preview" action="/submit">
+                {{ question_html|safe }}
+            </form>
+        </div>
+
+        {% if general_feedback or specific_feedback or right_answer %}
+            <div class="container-feedback">
+                {% if general_feedback %}
+                    <div class="container-general-feedback">
+                        {{ general_feedback|safe }}
+                    </div>
+                {% endif %}
+
+                {% if specific_feedback %}
+                    <div class="container-specific-feedback">
+                        {{ specific_feedback|safe }}
+                    </div>
+                {% endif %}
+
+                {% if right_answer %}
+                    <div class="container-right-answer">
+                        {{ right_answer|safe }}
+                    </div>
+                {% endif %}
+            </div>
+        {% endif %}
+
         <button id="save-attempt-button" type="submit" data-route="/attempt/save" data-action="reload" form="question-preview" {% if form_disabled %}disabled{% endif %}>Save</button>
         <button id="submit-attempt-button" type="submit" data-route="/attempt" data-action="reload" form="question-preview" {% if form_disabled %}disabled{% endif %}>Save and submit</button>
         <button id="restart-attempt-button" type="button" data-route="/attempt/restart" {% if not form_disabled %}disabled{% endif %}>Restart</button>
         <button id="edit-attempt-button" type="button" data-route="/attempt/edit" {% if not form_disabled %}disabled{% endif %}>Edit</button>
+
     </div>
-
-    {% if general_feedback or specific_feedback or right_answer %}
-        <div class="container-feedback">
-            {% if general_feedback %}
-                <div class="container-general-feedback">
-                    {{ general_feedback|safe }}
-                </div>
-            {% endif %}
-
-            {% if specific_feedback %}
-                <div class="container-specific-feedback">
-                    {{ specific_feedback|safe }}
-                </div>
-            {% endif %}
-
-            {% if right_answer %}
-                <div class="container-right-answer">
-                    {{ right_answer|safe }}
-                </div>
-            {% endif %}
-        </div>
-    {% endif %}
 
     <div class="container-display-options">
         <form id="question-display-options" action="/submit" data-success-action="reload">

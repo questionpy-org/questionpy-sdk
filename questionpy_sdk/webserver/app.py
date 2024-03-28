@@ -140,7 +140,7 @@ async def repeat_element(request: web.Request) -> web.Response:
     return aiohttp_jinja2.render_template("options.html.jinja2", request, context)
 
 
-@routes.get("/attempt", name="attempt")
+@routes.get("/attempt")
 async def get_attempt(request: web.Request) -> web.Response:
     webserver: "WebServer" = request.app["sdk_webserver_app"]
     stored_state = webserver.state_storage.get(webserver.package_location)
@@ -160,22 +160,31 @@ async def get_attempt(request: web.Request) -> web.Response:
 
     worker: Worker
     if attempt_state:
-        async with webserver.worker_pool.get_worker(webserver.package_location, 0, None) as worker:
-            try:
-                attempt = await worker.get_attempt(
+        if scoring_state:
+            # TODO: Besser wäre es, wenn `get_attempt()` auch ein AttemptScoredModel zurückgeben könnte.
+            async with webserver.worker_pool.get_worker(webserver.package_location, 0, None) as worker:
+                attempt_scored = await worker.score_attempt(
                     request_user=RequestUser(["de", "en"]),
                     question_state=question_state,
                     attempt_state=attempt_state,
-                    scoring_state=scoring_state,
                     response=last_attempt_data,
                 )
-            except WorkerUnknownError as exc:
-                raise HTTPBadRequest from exc
 
-        if scoring_state:
-            context = get_attempt_scored_context(attempt.ui, last_attempt_data, display_options, seed)
+            context = get_attempt_scored_context(attempt_scored, last_attempt_data, display_options, seed)
         else:
-            context = get_attempt_started_context(attempt.ui, last_attempt_data, display_options, seed)
+            async with webserver.worker_pool.get_worker(webserver.package_location, 0, None) as worker:
+                try:
+                    attempt = await worker.get_attempt(
+                        request_user=RequestUser(["de", "en"]),
+                        question_state=question_state,
+                        attempt_state=attempt_state,
+                        scoring_state=scoring_state,
+                        response=last_attempt_data,
+                    )
+                except WorkerUnknownError as exc:
+                    raise HTTPBadRequest from exc
+
+            context = get_attempt_started_context(attempt, last_attempt_data, display_options, seed)
 
     else:
         async with webserver.worker_pool.get_worker(webserver.package_location, 0, None) as worker:
@@ -186,7 +195,7 @@ async def get_attempt(request: web.Request) -> web.Response:
             except WorkerUnknownError as exc:
                 raise HTTPBadRequest from exc
         attempt_state = attempt_started.attempt_state
-        context = get_attempt_started_context(attempt_started.ui, last_attempt_data, display_options, seed)
+        context = get_attempt_started_context(attempt_started, last_attempt_data, display_options, seed)
 
     response = aiohttp_jinja2.render_template("attempt.html.jinja2", request, context)
     set_cookie(response, "attempt_state", attempt_state)

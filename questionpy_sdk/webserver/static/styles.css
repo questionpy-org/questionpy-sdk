@@ -170,6 +170,19 @@ fieldset {
 
 /* Question Preview Styles */
 
+.container-question-info {
+    float: left;
+    width: 9rem;
+    padding: 0.5rem 1rem;
+    margin-top: 1rem;
+    background-color: #f8f9fa;
+    border-radius: 0.4rem;
+}
+
+.container-question-content {
+    margin: 0 0 2rem 10.5rem;
+}
+
 /* The first child of the question preview is the div containing the question created from the qpy:formulation */
 #question-preview > div {
 	background: rgb(242, 250, 255);
