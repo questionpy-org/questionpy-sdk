@@ -12,12 +12,13 @@
         <p class="manifest-apiversion">API Version: {{ manifest.api_version }}</p>
     </div>
 
-    <form id="options_form" data-success-action="success-info">
+    <form id="options_form">
         {{ macros.create_section("general", "General", options.general) }}
         {% for section in options.sections %}
             {{ macros.create_section(section.name, section.header, section.cxd_elements) }}
         {% endfor %}
         <a hidden="true" id="submit_success_info">Saved!</a>
     </form>
-    <button id="submit-options-button" type="submit" data-route="/submit" form="options_form">Save changes</button>
+    <button id="submit-options-button" type="submit" data-route="/submit" data-action="success-info" form="options_form">Save</button>
+    <button id="submit-and-redirect-options-button" type="submit" data-route="/submit" data-action="redirect" data-redirect="/attempt" form="options_form">Save and display</button>
 {% endblock %}

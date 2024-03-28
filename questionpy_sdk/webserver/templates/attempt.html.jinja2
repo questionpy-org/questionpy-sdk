@@ -8,11 +8,11 @@
 
 {% block content %}
     <div class="container-question-preview">
-        <form id="question-preview" action="/submit" data-success-action="reload">
+        <form id="question-preview" action="/submit">
             {{ question_html|safe }}
         </form>
-        <button id="save-attempt-button" type="submit" data-route="/attempt/save" form="question-preview" {% if form_disabled %}disabled{% endif %}>Save</button>
-        <button id="submit-attempt-button" type="submit" data-route="/attempt" form="question-preview" {% if form_disabled %}disabled{% endif %}>Save and submit</button>
+        <button id="save-attempt-button" type="submit" data-route="/attempt/save" data-action="reload" form="question-preview" {% if form_disabled %}disabled{% endif %}>Save</button>
+        <button id="submit-attempt-button" type="submit" data-route="/attempt" data-action="reload" form="question-preview" {% if form_disabled %}disabled{% endif %}>Save and submit</button>
         <button id="restart-attempt-button" type="button" data-route="/attempt/restart" {% if not form_disabled %}disabled{% endif %}>Restart</button>
         <button id="edit-attempt-button" type="button" data-route="/attempt/edit" {% if not form_disabled %}disabled{% endif %}>Edit</button>
     </div>

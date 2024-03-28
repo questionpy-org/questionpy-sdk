@@ -101,7 +101,7 @@ async def submit_form(request: web.Request) -> web.Response:
     new_state = question.question_state
     webserver.state_storage.insert(webserver.package_location, json.loads(new_state))
 
-    return web.json_response(new_state)
+    return web.Response(status=201)
 
 
 @routes.post("/repeat")
@@ -140,7 +140,7 @@ async def repeat_element(request: web.Request) -> web.Response:
     return aiohttp_jinja2.render_template("options.html.jinja2", request, context)
 
 
-@routes.get("/attempt")
+@routes.get("/attempt", name="attempt")
 async def get_attempt(request: web.Request) -> web.Response:
     webserver: "WebServer" = request.app["sdk_webserver_app"]
     stored_state = webserver.state_storage.get(webserver.package_location)
