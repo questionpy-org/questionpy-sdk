@@ -1,10 +1,4 @@
-from questionpy import (
-    Attempt,
-    AttemptUi,
-    Question,
-    QuestionType,
-    ScoringCode,
-)
+from questionpy import Attempt, AttemptUi, Question, QuestionType, ScoringCode
 from questionpy_common.api.attempt import ScoreModel
 from questionpy_common.api.question import QuestionModel, ScoringMethod
 
@@ -13,7 +7,7 @@ from .form import MyModel
 
 class ExampleAttempt(Attempt):
     def export_score(self) -> ScoreModel:
-        if "choice" not in self.response:
+        if not self.response or "choice" not in self.response:
             return ScoreModel(scoring_code=ScoringCode.RESPONSE_NOT_SCORABLE, score=None)
 
         if self.response["choice"] == "B":
@@ -31,10 +25,11 @@ class ExampleAttempt(Attempt):
 class ExampleQuestion(Question):
     attempt_class = ExampleAttempt
 
+    options: MyModel
+
     def export(self) -> QuestionModel:
         return QuestionModel(scoring_method=ScoringMethod.AUTOMATICALLY_SCORABLE)
 
 
 class ExampleQuestionType(QuestionType):
     question_class = ExampleQuestion
-    options_class = MyModel

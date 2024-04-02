@@ -58,7 +58,7 @@ class MyAttemptState(BaseAttemptState):
 
 
 class SomeAttempt(Attempt):
-    attempt_state_class = MyAttemptState
+    attempt_state: MyAttemptState
 
     def render_formulation(self) -> AttemptUi:
         return AttemptUi(content="")
@@ -70,22 +70,24 @@ class SomeAttempt(Attempt):
 class QuestionUsingDefaultState(Question):
     attempt_class = SomeAttempt
 
+    options: SomeModel
+
     def export(self) -> QuestionModel:
         return QuestionModel(scoring_method=ScoringMethod.AUTOMATICALLY_SCORABLE)
 
 
 class QuestionUsingMyQuestionState(Question):
     attempt_class = SomeAttempt
-    state_class = MyQuestionState
+    state: MyQuestionState
+    options: SomeModel
 
     def export(self) -> QuestionModel:
         return QuestionModel(scoring_method=ScoringMethod.AUTOMATICALLY_SCORABLE)
 
 
-def test_should_use_init_arguments() -> None:
-    qtype = QuestionType(SomeModel, QuestionUsingDefaultState)
+def test_should_use_init_argument() -> None:
+    qtype = QuestionType(QuestionUsingDefaultState)
 
-    assert qtype.options_class is SomeModel
     assert qtype.question_class is QuestionUsingDefaultState
 
 
@@ -96,7 +98,12 @@ class SomeModel2(SomeModel):
 
 def test_should_raise_with_different_explicit_form_models() -> None:
     with pytest.raises(TypeError, match="must have the same FormModel as"):
-        QuestionType(options_class=SomeModel2, question_class=QuestionUsingMyQuestionState)
+
+        class MyQuestion(Question):
+            attempt_class = SomeAttempt
+
+            state: MyQuestionState
+            options: FormModel
 
 
 QUESTION_STATE_DICT = {
@@ -113,15 +120,15 @@ ATTEMPT_STATE_DICT = {
 
 
 def test_should_deserialize_correct_options_when_using_BaseQuestionState() -> None:
-    qtype = QuestionType(SomeModel, QuestionUsingDefaultState)
+    qtype = QuestionType(QuestionUsingDefaultState)
 
     question = qtype.create_question_from_state(json.dumps(QUESTION_STATE_DICT))
 
-    assert question.state.options == SomeModel(input="something")
+    assert question.options == SomeModel(input="something")
 
 
 def test_should_create_question_from_options() -> None:
-    qtype = QuestionType(SomeModel, QuestionUsingMyQuestionState)
+    qtype = QuestionType(QuestionUsingMyQuestionState)
     question = qtype.create_question_from_options(None, {"input": "something"})
 
     assert isinstance(question, QuestionUsingMyQuestionState)
@@ -130,7 +137,7 @@ def test_should_create_question_from_options() -> None:
 
 
 def test_should_create_question_from_state() -> None:
-    qtype = QuestionType(SomeModel, QuestionUsingMyQuestionState)
+    qtype = QuestionType(QuestionUsingMyQuestionState)
     question = qtype.create_question_from_state(json.dumps(QUESTION_STATE_DICT))
 
     assert isinstance(question, QuestionUsingMyQuestionState)
@@ -138,7 +145,7 @@ def test_should_create_question_from_state() -> None:
 
 
 def test_should_start_attempt() -> None:
-    qtype = QuestionType(SomeModel, QuestionUsingDefaultState)
+    qtype = QuestionType(QuestionUsingDefaultState)
     question = qtype.create_question_from_state(json.dumps(QUESTION_STATE_DICT))
     attempt = question.start_attempt(3)
 
@@ -147,7 +154,7 @@ def test_should_start_attempt() -> None:
 
 
 def test_should_get_attempt() -> None:
-    qtype = QuestionType(SomeModel, QuestionUsingDefaultState)
+    qtype = QuestionType(QuestionUsingDefaultState)
     question = qtype.create_question_from_state(json.dumps(QUESTION_STATE_DICT))
     attempt = question.get_attempt(json.dumps(ATTEMPT_STATE_DICT))
 

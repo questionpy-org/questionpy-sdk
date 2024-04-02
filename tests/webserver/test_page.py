@@ -39,14 +39,20 @@ def package_1_init() -> BaseQuestionType:
     class Package1Form(FormModel):
         optional_checkbox: bool = checkbox("Optional Checkbox")
 
-    return QuestionType(Package1Form, _NoopQuestion)
+    class Package1Question(_NoopQuestion):
+        options: Package1Form
+
+    return QuestionType(Package1Question)
 
 
 def package_2_init() -> BaseQuestionType:
     class Package2Form(FormModel):
         required_checkbox: bool = checkbox("Required Checkbox", required=True)
 
-    return QuestionType(Package2Form, _NoopQuestion)
+    class Package2Question(_NoopQuestion):
+        options: Package2Form
+
+    return QuestionType(Package2Question)
 
 
 def package_3_init() -> BaseQuestionType:
@@ -56,7 +62,10 @@ def package_3_init() -> BaseQuestionType:
     class Package3Form(FormModel):
         repetition: list[SubModel] = repeat(SubModel, initial=2, increment=3)
 
-    return QuestionType(Package3Form, _NoopQuestion)
+    class Package3Question(_NoopQuestion):
+        options: Package3Form
+
+    return QuestionType(Package3Question)
 
 
 _C = TypeVar("_C", bound=Callable)

@@ -1,7 +1,7 @@
 from abc import ABC, abstractmethod
 from collections.abc import Sequence
 from functools import cached_property
-from typing import TYPE_CHECKING, ClassVar, Generic, TypeVar
+from typing import TYPE_CHECKING, Generic, TypeVar
 
 import jinja2
 from pydantic import BaseModel
@@ -58,8 +58,12 @@ _Q = TypeVar("_Q", bound="Question")
 
 
 class Attempt(BaseAttempt, ABC, Generic[_Q, _AS, _SS]):
-    attempt_state_class: ClassVar[type[BaseAttemptState]] = BaseAttemptState
-    scoring_state_class: ClassVar[type[BaseScoringState]] = BaseScoringState
+    if TYPE_CHECKING:
+        attempt_state: _AS
+        scoring_state: _SS | None
+    else:
+        attempt_state: BaseAttemptState
+        scoring_state: BaseScoringState | None
 
     def __init__(
         self, question: _Q, attempt_state: _AS, response: dict | None = None, scoring_state: _SS | None = None
