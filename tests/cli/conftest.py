@@ -2,7 +2,7 @@
 #  The QuestionPy SDK is free software released under terms of the MIT license. See LICENSE.md.
 #  (c) Technische Universität Berlin, innoCampus <info@isis.tu-berlin.de>
 
-from collections.abc import Generator
+from collections.abc import Iterator
 from pathlib import Path
 from typing import Any
 
@@ -13,14 +13,14 @@ default_ctx_obj = {"no_interaction": False}
 
 
 @pytest.fixture
-def isolated_runner(monkeypatch: pytest.MonkeyPatch) -> Generator[tuple[CliRunner, Path], Any, Any]:
+def isolated_runner(monkeypatch: pytest.MonkeyPatch) -> Iterator[tuple[CliRunner, Path]]:
     """Provides Click's `CliRunner` inside an isolated filesystem.
 
     Commands in Click potentially rely on parent context to be available. In a test environment the parent context
     doesn't run and need to be mocked. This fixture provides a default value for `Context.obj` which can be overridden
     on a per-test basis using the `obj` keyword parameter on `CliRunner.invoke`.
 
-    Yields: A named tuple containing the `CliRunner` instance `runner` and the path to the temporary directory `path`.
+    Yields: A tuple containing the `CliRunner` instance `runner` and the path to the temporary directory `path`.
 
     See: https://click.palletsprojects.com/en/8.1.x/api/#click.Context.obj
     """
