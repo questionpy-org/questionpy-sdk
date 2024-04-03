@@ -1,7 +1,7 @@
 from abc import ABC, abstractmethod
 from collections.abc import Sequence
 from functools import cached_property
-from typing import TYPE_CHECKING, Generic, TypeVar
+from typing import TYPE_CHECKING
 
 import jinja2
 from pydantic import BaseModel
@@ -51,22 +51,16 @@ def _merge_uis(complete_content: str, uis: Sequence[AttemptUi | None]) -> Attemp
     )
 
 
-_AS = TypeVar("_AS", bound=BaseAttemptState)
-_SS = TypeVar("_SS", bound=BaseScoringState)
-
-_Q = TypeVar("_Q", bound="Question")
-
-
-class Attempt(BaseAttempt, ABC, Generic[_Q, _AS, _SS]):
-    if TYPE_CHECKING:
-        attempt_state: _AS
-        scoring_state: _SS | None
-    else:
-        attempt_state: BaseAttemptState
-        scoring_state: BaseScoringState | None
+class Attempt(BaseAttempt, ABC):
+    attempt_state: BaseAttemptState
+    scoring_state: BaseScoringState | None
 
     def __init__(
-        self, question: _Q, attempt_state: _AS, response: dict | None = None, scoring_state: _SS | None = None
+        self,
+        question: "Question",
+        attempt_state: BaseAttemptState,
+        response: dict | None = None,
+        scoring_state: BaseScoringState | None = None,
     ) -> None:
         self.question = question
         self.attempt_state = attempt_state

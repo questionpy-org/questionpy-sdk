@@ -2,9 +2,10 @@
 #  The QuestionPy SDK is free software released under terms of the MIT license. See LICENSE.md.
 #  (c) Technische Universität Berlin, innoCampus <info@isis.tu-berlin.de>
 from abc import ABC
-from typing import Generic, TypeVar, cast
+from typing import Generic, TypeVar
 
 from pydantic import BaseModel, ValidationError
+
 from questionpy_common.api.attempt import BaseAttempt
 from questionpy_common.api.qtype import BaseQuestionType, OptionsFormValidationError
 from questionpy_common.api.question import BaseQuestion
@@ -15,9 +16,6 @@ from ._util import get_mro_type_hint
 from .form import FormModel, OptionsFormDefinition
 
 _F = TypeVar("_F", bound=FormModel)
-_QS = TypeVar("_QS", bound="BaseQuestionState")
-_A = TypeVar("_A", bound=Attempt)
-_Q = TypeVar("_Q", bound="Question")
 
 
 class BaseQuestionState(BaseModel, Generic[_F]):
@@ -26,13 +24,13 @@ class BaseQuestionState(BaseModel, Generic[_F]):
     options: _F
 
 
-class Question(BaseQuestion, ABC, Generic[_QS, _A]):
+class Question(BaseQuestion, ABC):
     attempt_class: type["Attempt"]
 
     options: FormModel
     state: BaseQuestionState
 
-    def __init__(self, qtype: BaseQuestionType, state: _QS) -> None:
+    def __init__(self, qtype: BaseQuestionType, state: BaseQuestionState) -> None:
         self.qtype = qtype
         self.state = state
 
@@ -94,7 +92,7 @@ def _get_state_class(question_class: type[Question]) -> type[BaseQuestionState]:
     return state_class
 
 
-class QuestionType(BaseQuestionType, Generic[_Q]):
+class QuestionType(BaseQuestionType):
     """A question type.
 
     This class is intended to be used in one of two ways:
@@ -120,7 +118,7 @@ class QuestionType(BaseQuestionType, Generic[_Q]):
 
     question_class: type["Question"]
 
-    def __init__(self, question_class: type[_Q] | None = None) -> None:
+    def __init__(self, question_class: type[Question] | None = None) -> None:
         """Initializes a new question.
 
         Args:
@@ -145,7 +143,7 @@ class QuestionType(BaseQuestionType, Generic[_Q]):
 
         return (get_mro_type_hint(self.question_class, "options", FormModel).qpy_form, form_data)
 
-    def create_question_from_options(self, old_state: str | None, form_data: dict[str, object]) -> _Q:
+    def create_question_from_options(self, old_state: str | None, form_data: dict[str, object]) -> Question:
         try:
             parsed_form_data = get_mro_type_hint(self.question_class, "options", FormModel).model_validate(form_data)
         except ValidationError as e:
@@ -164,9 +162,9 @@ class QuestionType(BaseQuestionType, Generic[_Q]):
                 options=parsed_form_data,
             )
 
-        return cast(_Q, self.question_class(self, state))
+        return self.question_class(self, state)
 
-    def create_question_from_state(self, question_state: str) -> _Q:
+    def create_question_from_state(self, question_state: str) -> Question:
         state_class = _get_state_class(self.question_class)
         parsed_state = state_class.model_validate_json(question_state)
-        return cast(_Q, self.question_class(self, parsed_state))
+        return self.question_class(self, parsed_state)
