@@ -14,15 +14,16 @@ from questionpy_sdk.constants import PACKAGE_CONFIG_FILENAME
 from questionpy_sdk.resources import EXAMPLE_PACKAGE
 
 
-def packages_are_equal(directory_1: Path, directory_2: Path) -> bool:
+def assert_packages_are_equal(directory_1: Path, directory_2: Path) -> bool:
     comparison = dircmp(directory_1, directory_2, ignore=[])
-    if comparison.left_only or comparison.right_only or comparison.funny_files:
-        return False
-    if comparison.diff_files and comparison.diff_files != [PACKAGE_CONFIG_FILENAME]:
-        return False
+    assert len(comparison.left_only) == 0
+    assert len(comparison.right_only) == 0
+    assert len(comparison.funny_files) == 0
+    assert len(comparison.diff_files) == 0 or (
+        len(comparison.diff_files) == 1 and comparison.diff_files[0] == PACKAGE_CONFIG_FILENAME
+    )
     for sub_comparison in comparison.subdirs.values():
-        if not packages_are_equal(Path(sub_comparison.left), Path(sub_comparison.right)):
-            return False
+        assert_packages_are_equal(Path(sub_comparison.left), Path(sub_comparison.right))
     return True
 
 

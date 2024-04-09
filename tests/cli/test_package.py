@@ -3,17 +3,19 @@
 #  (c) Technische Universität Berlin, innoCampus <info@isis.tu-berlin.de>
 
 import os
+import subprocess
 from pathlib import Path
+from typing import Any
 from zipfile import ZipFile
 
 import pytest
 import yaml
 from click.testing import CliRunner
 
-from questionpy_sdk.commands._helper import create_normalized_filename
 from questionpy_sdk.commands.package import package
 from questionpy_sdk.constants import PACKAGE_CONFIG_FILENAME
 from questionpy_sdk.models import PackageConfig
+from questionpy_sdk.package._helper import create_normalized_filename
 from questionpy_sdk.resources import EXAMPLE_PACKAGE
 
 
@@ -150,17 +152,43 @@ def test_package_with_existing_file_and_overwriting(prompt_input: str, runner: C
     assert result.exit_code == 0
 
 
-# TODO: Implement or remove this test
-@pytest.mark.skip(reason="Not implemented yet.")
-def test_installing_requirement_fails() -> None:
-    pass
+def test_package_with_no_interaction_and_existing_file_raises(runner: CliRunner, cwd: Path) -> None:
+    create_source_directory(cwd, "source")
+    (cwd / "source.qpy").touch()
+
+    result = runner.invoke(package, ["source", "--out", "source.qpy"], obj={"no_interaction": True})
+
+    assert "Output file 'source.qpy' exists" in result.stdout
+    assert result.exit_code != 0
 
 
-@pytest.mark.skip(reason="Not implemented yet.")
-def test_no_interaction() -> None:
-    pass
+def test_package_with_force_and_existing_file(runner: CliRunner, cwd: Path) -> None:
+    create_source_directory(cwd, "source")
+    (cwd / "source.qpy").touch()
+
+    result = runner.invoke(package, ["source", "--out", "source.qpy", "--force"])
+
+    assert "Successfully created 'source.qpy'." in result.stdout
+    assert result.exit_code == 0
 
 
-@pytest.mark.skip(reason="Not implemented yet.")
-def test_force_overwrite() -> None:
-    pass
+def test_installing_requirement_fails(runner: CliRunner, cwd: Path, monkeypatch: pytest.MonkeyPatch) -> None:
+    def mock_run(*_: Any, **__: Any) -> None:
+        raise subprocess.CalledProcessError(1, "", stderr=b"some pip error")
+
+    with ZipFile(EXAMPLE_PACKAGE) as zip_file:
+        zip_file.extractall(cwd)
+
+    config_path = cwd / PACKAGE_CONFIG_FILENAME
+    with config_path.open("r") as f:
+        config = yaml.safe_load(f)
+    config["requirements"] = ["attrs==23.2.0", "pytz==2024.1"]
+    with config_path.open("w") as f:
+        yaml.dump(config, f)
+
+    with monkeypatch.context() as mp:
+        mp.setattr(subprocess, "run", mock_run)
+        result = runner.invoke(package, [str(cwd)])
+
+    assert result.exit_code != 0
+    assert "Error: Failed to build package: Failed to install requirements: some pip error" in result.stdout

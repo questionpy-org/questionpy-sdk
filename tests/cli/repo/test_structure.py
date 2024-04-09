@@ -7,8 +7,8 @@ from pathlib import Path
 import pytest
 from click.testing import CliRunner
 
-from questionpy_sdk.commands._helper import create_normalized_filename
 from questionpy_sdk.commands.repo.structure import structure
+from questionpy_sdk.package._helper import create_normalized_filename
 
 from .conftest import assert_same_structure, create_package
 
