@@ -1,0 +1,22 @@
+{
+    "name": "full_example",
+    "version": "0.1.0",
+    "description": "QuestionPy Full Example",
+    "scripts": {
+        "build": "npm run clean && npm run build:rollup",
+        "build:rollup": "rollup --config",
+        "clean": "rimraf css js"
+    },
+    "author": "innoCampus <info@isis.tu-berlin.de>",
+    "license": "MIT",
+    "private": true,
+    "devDependencies": {
+        "@rollup/plugin-terser": "^0.4.4",
+        "@rollup/plugin-typescript": "^11.1.6",
+        "rimraf": "^5.0.5",
+        "rollup": "^4.14.1",
+        "rollup-plugin-sass": "^1.12.21",
+        "tslib": "^2.6.2",
+        "typescript": "^5.4.4"
+    }
+}
