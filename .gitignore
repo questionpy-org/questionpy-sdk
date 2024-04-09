@@ -15,5 +15,5 @@ __pycache__
 /coverage.xml
 
 /example.qpy
-/questionpy_sdk/resources/example.zip
+/questionpy_sdk/resources/minimal_example.zip
 /questionpy_sdk/webserver/question_state_storage/

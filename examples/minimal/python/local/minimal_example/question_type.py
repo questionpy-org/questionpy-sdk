@@ -17,7 +17,7 @@ class ExampleAttempt(Attempt):
 
     def render_formulation(self) -> AttemptUiPart:
         return AttemptUiPart(
-            content=self.jinja2.get_template("local.example/formulation.xhtml.j2").render(),
+            content=self.jinja2.get_template("local.minimal_example/formulation.xhtml.j2").render(),
             placeholders={"description": "Welcher ist der zweite Buchstabe im deutschen Alphabet?"},
         )
 

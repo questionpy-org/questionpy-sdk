@@ -40,7 +40,7 @@ def create(short_name: str, namespace: str, out_path: Path | None) -> None:
     # Rename namespaced python folder.
     python_folder = out_path / "python"
     namespace_folder = (python_folder / "local").rename(python_folder / namespace)
-    (namespace_folder / "example").rename(namespace_folder / short_name)
+    (namespace_folder / "minimal_example").rename(namespace_folder / short_name)
 
     config_path = out_path / PACKAGE_CONFIG_FILENAME
 

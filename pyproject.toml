@@ -13,7 +13,7 @@ packages = [
     { include = "questionpy" },
     { include = "questionpy_sdk" }
 ]
-include = ["questionpy_sdk/resources/example.zip"]
+include = ["questionpy_sdk/resources/minimal_example.zip"]
 
 [tool.poetry.build]
 generate-setup-file = false
@@ -81,4 +81,4 @@ plugins = "pydantic.mypy"
 disallow_untyped_defs = true
 strict_optional = true
 show_error_codes = true
-exclude = ["^example/"]
+exclude = ["^examples/"]

@@ -1,11 +1,9 @@
-short_name: example
+short_name: minimal_example
 namespace: local
 version: 0.1.0
 api_version: "0.1"
 author: Jane Doe <jane.doe@example.org>
 name:
-  de: Beispiel
-  en: Example
+  de: Minimales Beispiel
+  en: Minimal Example
 languages: [de, en]
-build_hooks:
-  pre: npm build

@@ -38,10 +38,10 @@ def test_create_example_package(runner: CliRunner, cwd: Path) -> None:
         original.mkdir()
         zip_file.extractall(original / "example")
 
-    result = runner.invoke(create, ["example"])
+    result = runner.invoke(create, ["minimal_example"])
     assert result.exit_code == 0
-    assert (cwd / "example").exists()
-    assert packages_are_equal(cwd / "example", original / "example")
+    assert (cwd / "minimal_example").exists()
+    assert_packages_are_equal(cwd / "minimal_example", original / "example")
 
 
 def test_create_with_existing_path(runner: CliRunner, cwd: Path) -> None:
