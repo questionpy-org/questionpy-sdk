@@ -2,19 +2,17 @@
 #  The QuestionPy SDK is free software released under terms of the MIT license. See LICENSE.md.
 #  (c) Technische Universität Berlin, innoCampus <info@isis.tu-berlin.de>
 
-import inspect
-import subprocess
+import shutil
+import tempfile
+from contextlib import suppress
 from pathlib import Path
-from tempfile import TemporaryDirectory
-from types import ModuleType
 
 import click
 
-import questionpy
-from questionpy_sdk.commands._helper import create_normalized_filename, read_yaml_config
-from questionpy_sdk.constants import PACKAGE_CONFIG_FILENAME
-from questionpy_sdk.models import PackageConfig
-from questionpy_sdk.package import PackageBuilder
+from questionpy_sdk.package.builder import PackageBuilder
+from questionpy_sdk.package.errors import PackageBuildError
+
+from ._helper import confirm_overwrite, read_package_source
 
 
 def validate_out_path(context: click.Context, _parameter: click.Parameter, value: Path | None) -> Path | None:
@@ -26,54 +24,51 @@ def validate_out_path(context: click.Context, _parameter: click.Parameter, value
 
 @click.command()
 @click.argument("source", type=click.Path(exists=True, file_okay=False, path_type=Path))
-@click.option("--config", "-c", "config_path", type=click.Path(exists=True, dir_okay=False, path_type=Path))
-@click.option("--out", "-o", "out_path", callback=validate_out_path, type=click.Path(path_type=Path))
-def package(source: Path, config_path: Path | None, out_path: Path | None) -> None:
-    if not config_path:
-        config_path = source / PACKAGE_CONFIG_FILENAME
-
-    config = read_yaml_config(config_path)
+@click.option(
+    "--out",
+    "-o",
+    "out_path",
+    callback=validate_out_path,
+    type=click.Path(path_type=Path),
+    help="Output file path of QuestionPy package. [default: 'NAMESPACE-SHORT_NAME-VERSION.qpy']",
+)
+@click.option("--force", "-f", "force_overwrite", is_flag=True, help="Force overwriting of output file.")
+@click.pass_context
+def package(ctx: click.Context, source: Path, out_path: Path | None, *, force_overwrite: bool) -> None:
+    """Build package from directory SOURCE."""
+    package_source = read_package_source(source)
+    overwriting = False
 
     if not out_path:
-        out_path = Path(create_normalized_filename(config))
-    if out_path.exists() and click.confirm(
-        f"The path '{out_path}' already exists. Do you want to overwrite it?", abort=True
-    ):
-        out_path.unlink()
+        out_path = Path(package_source.normalized_filename)
+
+    if out_path.exists():
+        if force_overwrite or (not ctx.obj["no_interaction"] and confirm_overwrite(out_path)):
+            overwriting = True
+        else:
+            msg = f"Output file '{out_path}' exists"
+            raise click.ClickException(msg)
 
     try:
-        with PackageBuilder(out_path) as out_file:
-            _copy_package(out_file, questionpy)
-            _install_dependencies(out_file, config_path, config)
-            out_file.write_glob(source, "python/**/*")
-            out_file.write_glob(source, "static/**/*")
-            out_file.write_manifest(config)
-    except subprocess.CalledProcessError as e:
-        out_path.unlink(missing_ok=True)
-        msg = f"Failed to install requirements: {e.stderr.decode()}"
-        raise click.ClickException(msg) from e
+        # Use temp file, otherwise we risk overwriting `out_path` in case of a build error.
+        temp_file = tempfile.NamedTemporaryFile(delete=False)
+        temp_file_path = Path(temp_file.name)
+
+        try:
+            with PackageBuilder(temp_file, package_source) as builder:
+                builder.write_package()
+        except PackageBuildError as exc:
+            msg = f"Failed to build package: {exc}"
+            raise click.ClickException(msg) from exc
+        finally:
+            temp_file.close()
+
+        if overwriting:
+            Path(out_path).unlink()
+
+        shutil.move(temp_file_path, out_path)
+    finally:
+        with suppress(FileNotFoundError):
+            temp_file_path.unlink()
 
     click.echo(f"Successfully created '{out_path}'.")
-
-
-def _install_dependencies(target: PackageBuilder, config_path: Path, config: PackageConfig) -> None:
-    if isinstance(config.requirements, str):
-        # treat as a relative reference to a requirements.txt and read those
-        pip_args = ["-r", str(config_path.parent / config.requirements)]
-    elif isinstance(config.requirements, list):
-        # treat as individual dependency specifiers
-        pip_args = config.requirements
-    else:
-        # no dependencies specified
-        return
-
-    with TemporaryDirectory(prefix=f"qpy_{config.short_name}") as tempdir:
-        subprocess.run(["pip", "install", "--target", tempdir, *pip_args], check=True, capture_output=True)  # noqa: S603, S607
-        target.write_glob(Path(tempdir), "**/*", prefix="dependencies/site-packages")
-
-
-def _copy_package(target: PackageBuilder, pkg: ModuleType) -> None:
-    # inspect.getfile returns the path to the package's __init__.py
-    package_dir = Path(inspect.getfile(pkg)).parent
-    # TODO: Exclude __pycache__, pyc files and the like.
-    target.write_glob(package_dir, "**/*", prefix=f"dependencies/site-packages/{pkg.__name__}")

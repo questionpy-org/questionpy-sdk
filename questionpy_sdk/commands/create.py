@@ -25,9 +25,18 @@ def validate_name(context: click.Context, _parameter: click.Parameter, value: st
 
 @click.command(context_settings={"show_default": True})
 @click.argument("short_name", callback=validate_name)
-@click.option("--namespace", "-n", "namespace", callback=validate_name, default=DEFAULT_NAMESPACE)
-@click.option("--out", "-o", "out_path", type=click.Path(path_type=Path))
+@click.option(
+    "--namespace", "-n", "namespace", callback=validate_name, default=DEFAULT_NAMESPACE, help="Package namespace."
+)
+@click.option(
+    "--out",
+    "-o",
+    "out_path",
+    type=click.Path(path_type=Path),
+    help="Newly created package directory.  [default: SHORT_NAME]",
+)
 def create(short_name: str, namespace: str, out_path: Path | None) -> None:
+    """Create new package."""
     if not out_path:
         out_path = Path(short_name)
     if out_path.exists():

@@ -7,8 +7,8 @@ from shutil import copy
 
 import click
 
-from questionpy_sdk.commands._helper import create_normalized_filename
 from questionpy_sdk.commands.repo._helper import IndexCreator, get_manifest
+from questionpy_sdk.package._helper import create_normalized_filename
 
 
 @click.command()

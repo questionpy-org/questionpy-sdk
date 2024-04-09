@@ -6,12 +6,9 @@ import zipfile
 from pathlib import Path
 
 import click
-import yaml
-from pydantic import ValidationError
 
-from questionpy_common.manifest import Manifest
-from questionpy_sdk.constants import PACKAGE_CONFIG_FILENAME
-from questionpy_sdk.models import PackageConfig
+from questionpy_sdk.package.errors import PackageSourceValidationError
+from questionpy_sdk.package.source import PackageSource
 from questionpy_server.worker.runtime.package_location import (
     DirPackageLocation,
     FunctionPackageLocation,
@@ -20,23 +17,18 @@ from questionpy_server.worker.runtime.package_location import (
 )
 
 
-def create_normalized_filename(manifest: Manifest) -> str:
-    """Creates a normalized file name for the given manifest.
-
-    Args:
-        manifest: manifest of the package
-
-    Returns:
-        normalized file name
-    """
-    return f"{manifest.namespace}-{manifest.short_name}-{manifest.version}.qpy"
+def read_package_source(source_path: Path) -> PackageSource:
+    try:
+        return PackageSource(source_path)
+    except PackageSourceValidationError as exc:
+        raise click.ClickException(str(exc)) from exc
 
 
 def infer_package_kind(string: str) -> PackageLocation:
     path = Path(string)
     if path.is_dir():
-        config = read_yaml_config(path / PACKAGE_CONFIG_FILENAME)
-        return DirPackageLocation(path, config)
+        package_source = read_package_source(path)
+        return DirPackageLocation(path, package_source.config)
 
     if zipfile.is_zipfile(path):
         return ZipPackageLocation(path)
@@ -62,17 +54,5 @@ def infer_package_kind(string: str) -> PackageLocation:
     raise click.ClickException(msg)
 
 
-def read_yaml_config(path: Path) -> PackageConfig:
-    if not path.is_file():
-        msg = f"The config '{path}' does not exist."
-        raise click.ClickException(msg)
-
-    with path.open() as config_f:
-        try:
-            return PackageConfig.model_validate(yaml.safe_load(config_f))
-        except yaml.YAMLError as e:
-            msg = f"Failed to parse config '{path}': {e}"
-            raise click.ClickException(msg) from e
-        except ValidationError as e:
-            msg = f"Invalid config '{path}': {e}"
-            raise click.ClickException(msg) from e
+def confirm_overwrite(filepath: Path) -> bool:
+    return click.confirm(f"The path '{filepath}' already exists. Do you want to overwrite it?", abort=True)
