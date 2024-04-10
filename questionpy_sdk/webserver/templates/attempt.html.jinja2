@@ -74,6 +74,24 @@
         </form>
     </div>
 
+    <div class="container-question-metainfo">
+        <h2>Attempt Information</h2>
+        <table>
+            <tbody>
+                <tr>
+                    <td><b>Attempt Class:</b></td>
+                    <td>{{ attempt.__class__ }}</td>
+                </tr>
+                {% for key, value in attempt.dict().items() if key not in ['ui', 'classification'] %}
+                <tr>
+                    <td>{{ key.replace('_', ' ') | capitalize }}:</td>
+                    <td>{{ value }}</td>
+                </tr>
+                {% endfor %}
+            </tbody>
+        </table>
+    </div>
+
     {# TODO: More Preview Settings #}
     {# TODO: Role selection (admin, teacher, student, ...) #}
     {# TODO: Locale selection #}

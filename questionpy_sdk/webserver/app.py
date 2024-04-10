@@ -12,7 +12,6 @@ from aiohttp import web
 from aiohttp.web_exceptions import HTTPBadRequest
 from jinja2 import FileSystemLoader
 
-from questionpy_common.api.attempt import ScoringCode
 from questionpy_common.constants import MiB
 from questionpy_common.environment import RequestUser
 from questionpy_sdk.webserver.attempt import get_attempt_scored_context, get_attempt_started_context
@@ -229,9 +228,6 @@ async def submit_attempt(request: web.Request) -> web.Response:
             attempt_state=attempt_state,
             response=last_attempt_data,
         )
-
-    if attempt_scored.scoring_code == ScoringCode.RESPONSE_NOT_SCORABLE:
-        return web.HTTPBadRequest(reason=ScoringCode.RESPONSE_NOT_SCORABLE.value)
 
     response = web.Response(status=201)
     set_cookie(response, "display_options", display_options.model_dump_json())

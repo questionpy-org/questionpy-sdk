@@ -206,7 +206,12 @@ fieldset {
 	margin-top: 1rem;
 }
 
-#question-display-options table {
+.container-display-options table {
+    padding: 0.1rem 1rem;
+    width: 100%;
+}
+
+.container-question-metainfo table {
     padding: 0.1rem 1rem;
     width: 100%;
 }
