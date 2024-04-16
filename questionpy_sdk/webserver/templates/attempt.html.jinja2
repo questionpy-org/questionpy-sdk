@@ -9,7 +9,7 @@
 {% block content %}
     <div class="container-question-info">
         <p class="score">
-            {{ ("Score: " ~ attempt.score) if attempt.score or attempt.score == 0 else " Not yet scored" }}
+            {{ ("Score: " ~ attempt.score) if attempt.score is defined else "Not yet scored" }}
         </p>
     </div>
 
@@ -42,15 +42,18 @@
             </div>
         {% endif %}
 
-        <button id="save-attempt-button" type="submit" data-route="/attempt/save" data-action="reload" form="question-preview" {% if form_disabled %}disabled{% endif %}>Save</button>
-        <button id="submit-attempt-button" type="submit" data-route="/attempt" data-action="reload" form="question-preview" {% if form_disabled %}disabled{% endif %}>Save and submit</button>
-        <button id="restart-attempt-button" type="button" data-route="/attempt/restart" {% if not form_disabled %}disabled{% endif %}>Restart</button>
-        <button id="edit-attempt-button" type="button" data-route="/attempt/edit" {% if not form_disabled %}disabled{% endif %}>Edit</button>
+        {% set disabled_attribute = "disabled" if form_disabled else "" %}
+        <button id="save-attempt-button" type="submit" data-route="/attempt/save" data-action="reload" form="question-preview" {{ disabled_attribute }}>Save</button>
+        <button id="submit-attempt-button" type="submit" data-route="/attempt" data-action="reload" form="question-preview" {{ disabled_attribute }}>Save and submit</button>
+
+        {% set disabled_attribute = "disabled" if not form_disabled else "" %}
+        <button id="restart-attempt-button" type="button" data-route="/attempt/restart" {{ disabled_attribute }}>Restart</button>
+        <button id="edit-attempt-button" type="button" data-route="/attempt/edit" {{ disabled_attribute }}>Edit</button>
 
     </div>
 
     <div class="container-display-options">
-        <form id="question-display-options" action="/submit" data-success-action="reload">
+        <form id="question-display-options" action="/submit" data-action="reload">
             <h2>Display Options</h2>
             <table>
                 <tbody>

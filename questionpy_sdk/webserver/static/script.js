@@ -249,7 +249,7 @@ async function handle_submit(event) {
     const button = event.currentTarget;
     const form = document.getElementById(button.getAttribute('form'));
     const route = button.getAttribute('data-route');
-    const successAction = button.getAttribute('data-action');
+    const successAction = button.dataset.action;
     const json_form_data = create_json_form_data(form);
     const headers = {'Content-Type': 'application/json'};
     const response = await post_http_request(route, headers, json_form_data);
