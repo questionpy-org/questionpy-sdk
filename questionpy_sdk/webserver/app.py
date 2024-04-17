@@ -12,6 +12,7 @@ from aiohttp import web
 from aiohttp.web_exceptions import HTTPBadRequest
 from jinja2 import FileSystemLoader
 
+from questionpy_common.api.attempt import AttemptScoredModel, ScoreModel
 from questionpy_common.constants import MiB
 from questionpy_common.environment import RequestUser
 from questionpy_sdk.webserver.attempt import get_attempt_scored_context, get_attempt_started_context
@@ -155,35 +156,28 @@ async def get_attempt(request: web.Request) -> web.Response:
         seed = random.randint(0, 10)
 
     attempt_state = request.cookies.get("attempt_state")
-    scoring_state = request.cookies.get("scoring_state")
+    score_json = request.cookies.get("score")
     last_attempt_data = json.loads(request.cookies.get("last_attempt_data", "{}"))
+
+    score = None
+    if score_json:
+        score = ScoreModel.model_validate_json(score_json)
 
     worker: Worker
     if attempt_state:
-        if scoring_state:
-            # TODO: Besser wäre es, wenn `get_attempt()` auch ein AttemptScoredModel zurückgeben könnte.
-            async with webserver.worker_pool.get_worker(webserver.package_location, 0, None) as worker:
-                attempt_scored = await worker.score_attempt(
-                    request_user=RequestUser(["de", "en"]),
-                    question_state=question_state,
-                    attempt_state=attempt_state,
-                    response=last_attempt_data,
-                )
+        async with webserver.worker_pool.get_worker(webserver.package_location, 0, None) as worker:
+            attempt = await worker.get_attempt(
+                request_user=RequestUser(["de", "en"]),
+                question_state=question_state,
+                attempt_state=attempt_state,
+                scoring_state=score.scoring_state if score else None,
+                response=last_attempt_data,
+            )
 
-            context = get_attempt_scored_context(attempt_scored, last_attempt_data, display_options, seed)
+        if score:
+            scored_attempt = AttemptScoredModel(**attempt.dict(), **score.dict())
+            context = get_attempt_scored_context(scored_attempt, last_attempt_data, display_options, seed)
         else:
-            async with webserver.worker_pool.get_worker(webserver.package_location, 0, None) as worker:
-                try:
-                    attempt = await worker.get_attempt(
-                        request_user=RequestUser(["de", "en"]),
-                        question_state=question_state,
-                        attempt_state=attempt_state,
-                        scoring_state=scoring_state,
-                        response=last_attempt_data,
-                    )
-                except WorkerUnknownError as exc:
-                    raise HTTPBadRequest from exc
-
             context = get_attempt_started_context(attempt, last_attempt_data, display_options, seed)
 
     else:
@@ -228,10 +222,11 @@ async def submit_attempt(request: web.Request) -> web.Response:
             attempt_state=attempt_state,
             response=last_attempt_data,
         )
+    score = ScoreModel.parse_obj(attempt_scored)
 
     response = web.Response(status=201)
     set_cookie(response, "display_options", display_options.model_dump_json())
-    set_cookie(response, "scoring_state", attempt_scored.scoring_state)
+    set_cookie(response, "score", score.model_dump_json())
     set_cookie(response, "last_attempt_data", json.dumps(last_attempt_data))
     return response
 
@@ -252,7 +247,7 @@ async def submit_display_options(request: web.Request) -> web.Response:
 async def restart_attempt(request: web.Request) -> web.Response:
     """Restarts the attempt by deleting the attempt scored state and last attempt data and by resetting the seed."""
     response = web.Response(status=201)
-    response.del_cookie("scoring_state")
+    response.del_cookie("score")
     response.del_cookie("last_attempt_data")
     set_cookie(response, "attempt_seed", str(random.randint(0, 10)))
     return response
@@ -262,7 +257,7 @@ async def restart_attempt(request: web.Request) -> web.Response:
 async def edit_last_attempt(request: web.Request) -> web.Response:
     """Removes the attempt scored state."""
     response = web.Response(status=201)
-    response.del_cookie("scoring_state")
+    response.del_cookie("score")
     return response
 
 
