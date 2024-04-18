@@ -11,6 +11,7 @@ import aiohttp_jinja2
 from aiohttp import web
 from aiohttp.web_exceptions import HTTPBadRequest
 from jinja2 import FileSystemLoader
+from pydantic import TypeAdapter
 
 from questionpy_common.api.attempt import AttemptScoredModel, ScoreModel
 from questionpy_common.constants import MiB
@@ -222,11 +223,10 @@ async def submit_attempt(request: web.Request) -> web.Response:
             attempt_state=attempt_state,
             response=last_attempt_data,
         )
-    score = ScoreModel.parse_obj(attempt_scored)
 
     response = web.Response(status=201)
     set_cookie(response, "display_options", display_options.model_dump_json())
-    set_cookie(response, "score", score.model_dump_json())
+    set_cookie(response, "score", TypeAdapter(ScoreModel).dump_json(attempt_scored).decode())
     set_cookie(response, "last_attempt_data", json.dumps(last_attempt_data))
     return response
 
