@@ -7,6 +7,7 @@ import jinja2
 from pydantic import BaseModel
 
 from questionpy_common.api.attempt import (
+    AttemptFile,
     AttemptModel,
     AttemptScoredModel,
     AttemptUi,
@@ -29,25 +30,40 @@ class BaseScoringState(BaseModel):
     pass
 
 
-def _merge_uis(complete_content: str, uis: Sequence[AttemptUi | None]) -> AttemptUi:
-    all_placeholders = {}
-    complete_inline_css = ""
-    all_files = []
-    for partial_ui in uis:
+class AttemptUiPart(BaseModel):
+    content: str
+    placeholders: dict[str, str] = {}
+    """Names and values of the ``<?p`` placeholders that appear in content."""
+    css_files: Sequence[str] = ()
+    files: dict[str, AttemptFile] = {}
+
+
+def _merge_uis(
+    formulation: AttemptUiPart,
+    general_feedback: AttemptUiPart | None,
+    specific_feedback: AttemptUiPart | None,
+    right_answer: AttemptUiPart | None,
+    cache_control: CacheControl,
+) -> AttemptUi:
+    all_placeholders: dict[str, str] = {}
+    all_css_files: list[str] = []
+    all_files: dict[str, AttemptFile] = {}
+    for partial_ui in (formulation, general_feedback, specific_feedback, right_answer):
         if not partial_ui:
             continue
         all_placeholders.update(partial_ui.placeholders)
-        if partial_ui.include_inline_css:
-            complete_inline_css += partial_ui.include_inline_css + "\n"
-        all_files.extend(partial_ui.files)
+        all_css_files.extend(partial_ui.css_files)
+        all_files.update(partial_ui.files)
 
-    # TODO: How to merge css files and cache control?
     return AttemptUi(
-        content=complete_content,
+        formulation=formulation and formulation.content,
+        general_feedback=general_feedback and general_feedback.content,
+        specific_feedback=specific_feedback and specific_feedback.content,
+        right_answer=right_answer and right_answer.content,
         placeholders=all_placeholders,
-        include_inline_css=complete_inline_css or None,
-        cache_control=CacheControl.NO_CACHE,
+        css_files=all_css_files,
         files=all_files,
+        cache_control=cache_control,
     )
 
 
@@ -68,36 +84,31 @@ class Attempt(BaseAttempt, ABC):
         self.scoring_state = scoring_state
 
     @abstractmethod
-    def render_formulation(self) -> AttemptUi:
+    def render_formulation(self) -> AttemptUiPart:
         pass
 
-    def render_general_feedback(self) -> AttemptUi | None:
+    def render_general_feedback(self) -> AttemptUiPart | None:
         return None
 
-    def render_specific_feedback(self) -> AttemptUi | None:
+    def render_specific_feedback(self) -> AttemptUiPart | None:
         return None
 
-    def render_right_answer_description(self) -> AttemptUi | None:
+    def render_right_answer_description(self) -> AttemptUiPart | None:
         return None
 
-    def _render_all(self, template: str) -> AttemptUi:
+    def render_ui(self) -> AttemptUi:
         formulation = self.render_formulation()
         # pylint: disable=assignment-from-none
         general_feedback = self.render_general_feedback()
         specific_feedback = self.render_specific_feedback()
+        right_answer = self.render_right_answer_description()
 
-        complete_content = self.jinja2.get_template(template).render(
-            formulation=formulation,
-            general_feedback=general_feedback,
-            specific_feedback=specific_feedback,
-        )
-        return _merge_uis(complete_content, [formulation, general_feedback, specific_feedback])
+        return _merge_uis(formulation, general_feedback, specific_feedback, right_answer, self.cache_control)
 
-    def render_ui(self) -> AttemptUi:
-        return self._render_all("qpy/question.xhtml.j2")
-
-    def render_subquestion(self) -> AttemptUi:
-        return self._render_all("qpy/subquestion.xhtml.j2")
+    @property
+    def cache_control(self) -> CacheControl:
+        """Specifies if this attempt's UI may be cached and if that cache may be shared with other attempts."""
+        return CacheControl.PRIVATE_CACHE
 
     @cached_property
     def jinja2(self) -> jinja2.Environment:

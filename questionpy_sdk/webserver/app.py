@@ -16,7 +16,7 @@ from pydantic import TypeAdapter
 from questionpy_common.api.attempt import AttemptScoredModel, ScoreModel
 from questionpy_common.constants import MiB
 from questionpy_common.environment import RequestUser
-from questionpy_sdk.webserver.attempt import get_attempt_scored_context, get_attempt_started_context
+from questionpy_sdk.webserver.attempt import get_attempt_render_context
 from questionpy_sdk.webserver.context import contextualize
 from questionpy_sdk.webserver.question_ui import QuestionDisplayOptions
 from questionpy_sdk.webserver.state_storage import QuestionStateStorage, add_repetition, parse_form_data
@@ -166,6 +166,7 @@ async def get_attempt(request: web.Request) -> web.Response:
 
     worker: Worker
     if attempt_state:
+        # Display a previously started attempt.
         async with webserver.worker_pool.get_worker(webserver.package_location, 0, None) as worker:
             attempt = await worker.get_attempt(
                 request_user=RequestUser(["de", "en"]),
@@ -176,21 +177,27 @@ async def get_attempt(request: web.Request) -> web.Response:
             )
 
         if score:
-            scored_attempt = AttemptScoredModel(**attempt.dict(), **score.dict())
-            context = get_attempt_scored_context(scored_attempt, last_attempt_data, display_options, seed)
-        else:
-            context = get_attempt_started_context(attempt, last_attempt_data, display_options, seed)
-
+            attempt = AttemptScoredModel(**attempt.model_dump(), **score.model_dump())
     else:
+        # Start a new attempt.
         async with webserver.worker_pool.get_worker(webserver.package_location, 0, None) as worker:
-            try:
-                attempt_started = await worker.start_attempt(
-                    request_user=RequestUser(["de", "en"]), question_state=question_state, variant=1
-                )
-            except WorkerUnknownError as exc:
-                raise HTTPBadRequest from exc
-        attempt_state = attempt_started.attempt_state
-        context = get_attempt_started_context(attempt_started, last_attempt_data, display_options, seed)
+            attempt = await worker.start_attempt(
+                request_user=RequestUser(["de", "en"]), question_state=question_state, variant=1
+            )
+            attempt_state = attempt.attempt_state
+
+    if not score:
+        # TODO: Allow manually set display options to override this.
+        display_options.readonly = False
+        display_options.general_feedback = display_options.feedback = display_options.right_answer = False
+
+    context = get_attempt_render_context(
+        attempt,
+        last_attempt_data=last_attempt_data,
+        display_options=display_options,
+        seed=seed,
+        disabled=score is not None,
+    )
 
     response = aiohttp_jinja2.render_template("attempt.html.jinja2", request, context)
     set_cookie(response, "attempt_state", attempt_state)

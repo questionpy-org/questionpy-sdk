@@ -3,6 +3,7 @@
 #  (c) Technische Universität Berlin, innoCampus <info@isis.tu-berlin.de>
 
 import json
+import operator
 from pathlib import Path
 from typing import Any
 
@@ -50,7 +51,7 @@ def _convert_repetition_dict_to_list(dictionary: dict[str, Any]) -> dict[str, An
 
     if dictionary.pop("qpy_repetition_marker", ...) is not ...:
         # Sort by key (i.e. the index) and put the sorted values into a list.
-        return [value for key, value in sorted(dictionary.items(), key=lambda item: item[0])]
+        return [value for key, value in sorted(dictionary.items(), key=operator.itemgetter(0))]
 
     return dictionary
 

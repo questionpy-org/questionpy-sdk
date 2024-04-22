@@ -3,6 +3,7 @@
 #  (c) Technische Universität Berlin, innoCampus <info@isis.tu-berlin.de>
 
 from questionpy_common.api.attempt import (
+    AttemptFile,
     AttemptModel,
     AttemptScoredModel,
     AttemptUi,
@@ -11,7 +12,6 @@ from questionpy_common.api.attempt import (
     ClassifiedResponse,
     ScoreModel,
     ScoringCode,
-    UiFile,
 )
 from questionpy_common.api.qtype import BaseQuestionType, OptionsFormValidationError
 from questionpy_common.api.question import (
@@ -34,15 +34,17 @@ from questionpy_common.environment import (
 )
 from questionpy_common.manifest import Manifest, PackageType
 
-from ._attempt import Attempt, BaseAttemptState, BaseScoringState
+from ._attempt import Attempt, AttemptUiPart, BaseAttemptState, BaseScoringState
 from ._qtype import BaseQuestionState, Question, QuestionType
 from ._ui import create_jinja2_environment
 
 __all__ = [
     "Attempt",
+    "AttemptFile",
     "AttemptModel",
     "AttemptScoredModel",
     "AttemptUi",
+    "AttemptUiPart",
     "BaseAttempt",
     "BaseAttemptState",
     "BaseQuestion",
@@ -68,7 +70,6 @@ __all__ = [
     "ScoringCode",
     "ScoringMethod",
     "SubquestionModel",
-    "UiFile",
     "WorkerResourceLimits",
     "create_jinja2_environment",
     "get_qpy_environment",

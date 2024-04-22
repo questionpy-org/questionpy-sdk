@@ -2,7 +2,7 @@ short_name: example
 namespace: local
 version: 0.1.0
 api_version: "0.1"
-author: Maximilian Haye <m.haye@tu-berlin.de>
+author: Jane Doe <jane.doe@example.org>
 name:
   de: Beispiel
   en: Example

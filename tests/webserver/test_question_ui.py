@@ -48,11 +48,11 @@ def test_should_resolve_placeholders() -> None:
                 "description": "My simple description.",
             },
         )
-        result = renderer.render_formulation()
+        result = renderer.render()
 
     # TODO: remove <string> surrounding the resolved placeholder
     expected = """
-    <div xmlns="http://www.w3.org/1999/xhtml">
+    <div>
         <div><string>My simple description.</string></div>
         <span>By default cleaned parameter: <string>Value of param <b>one</b>.</string></span>
         <span>Explicitly cleaned parameter: <string>Value of param <b>one</b>.</string></span>
@@ -74,10 +74,10 @@ def test_should_hide_inline_feedback() -> None:
     feedback_path = Path(__file__).parent / "question_uis/feedbacks.xhtml"
     with feedback_path.open() as xml:
         renderer = QuestionUIRenderer(xml=xml.read(), placeholders={})
-        result = renderer.render_formulation(options=options)
+        result = renderer.render(options=options)
 
     expected = """
-    <div xmlns="http://www.w3.org/1999/xhtml">
+    <div>
     <span>No feedback</span>
     </div>
     """
@@ -90,10 +90,10 @@ def test_should_show_inline_feedback() -> None:
     feedback_path = Path(__file__).parent / "question_uis/feedbacks.xhtml"
     with feedback_path.open() as xml:
         renderer = QuestionUIRenderer(xml=xml.read(), placeholders={})
-        result = renderer.render_formulation(options=options)
+        result = renderer.render(options=options)
 
     expected = """
-    <div xmlns="http://www.w3.org/1999/xhtml">
+    <div>
     <span>No feedback</span>
     <span>General feedback</span>
     <span>Specific feedback</span>
@@ -108,13 +108,13 @@ def test_should_show_inline_feedback() -> None:
         (
             "guest",
             """
-     <div xmlns="http://www.w3.org/1999/xhtml"></div>
+     <div></div>
      """,
         ),
         (
             "admin",
             """
-     <div xmlns="http://www.w3.org/1999/xhtml">
+     <div>
          <div>You're a teacher!</div>
          <div>You're a developer!</div>
          <div>You're a scorer!</div>
@@ -132,7 +132,7 @@ def test_element_visibility_based_on_role(user_context: str, expected: str) -> N
     feedback_path = Path(__file__).parent / "question_uis/if-role.xhtml"
     with feedback_path.open() as xml:
         renderer = QuestionUIRenderer(xml=xml.read(), placeholders={})
-        result = renderer.render_formulation(options=options)
+        result = renderer.render(options=options)
 
     assert compare_xhtml(result, expected)
 
@@ -143,10 +143,10 @@ def test_should_soften_validations() -> None:
     validation_path = Path(__file__).parent / "question_uis/validations.xhtml"
     with validation_path.open() as xml:
         renderer = QuestionUIRenderer(xml=xml.read(), placeholders={})
-        result = renderer.render_formulation(options=options)
+        result = renderer.render(options=options)
 
     expected = """
-    <div xmlns="http://www.w3.org/1999/xhtml">
+    <div>
         <input data-qpy_required="true" aria-required="true"/>
         <input data-qpy_pattern="^[a-z]+$"/>
         <input data-qpy_minlength="5"/>
@@ -168,10 +168,10 @@ def test_should_defuse_buttons() -> None:
     feedback_path = Path(__file__).parent / "question_uis/buttons.xhtml"
     with feedback_path.open() as xml:
         renderer = QuestionUIRenderer(xml=xml.read(), placeholders={})
-        result = renderer.render_formulation(options=options)
+        result = renderer.render(options=options)
 
     expected = """
-    <div xmlns="http://www.w3.org/1999/xhtml">
+    <div>
         <button class="btn btn-primary qpy-input" type="button">Submit</button>
         <button class="btn btn-primary qpy-input" type="button">Reset</button>
         <button class="btn btn-primary qpy-input" type="button">Button</button>
@@ -192,10 +192,10 @@ def test_should_format_floats_in_en() -> None:
     feedback_path = Path(__file__).parent / "question_uis/format-floats.xhtml"
     with feedback_path.open() as xml:
         renderer = QuestionUIRenderer(xml=xml.read(), placeholders={})
-        result = renderer.render_formulation(options=options)
+        result = renderer.render(options=options)
 
     expected = """
-    <div xmlns="http://www.w3.org/1999/xhtml">
+    <div>
         Just the decsep: <span>1.23456</span>
         Thousands sep without decimals: <span>1,000,000,000</span>
         Thousands sep with decimals: <span>10,000,000,000.123</span>
@@ -214,10 +214,10 @@ def test_should_shuffle_the_same_way_in_same_attempt() -> None:
         input_xml = xml.read()
 
     renderer = QuestionUIRenderer(xml=input_xml, placeholders={}, seed=42)
-    first_result = renderer.render_formulation()
+    first_result = renderer.render()
     for _ in range(10):
         renderer = QuestionUIRenderer(xml=input_xml, placeholders={}, seed=42)
-        result = renderer.render_formulation()
+        result = renderer.render()
         assert first_result == result, "Shuffled order should remain consistent across renderings with the same seed"
 
 
@@ -227,44 +227,43 @@ def test_should_replace_shuffled_index() -> None:
         input_xml = xml.read()
 
     renderer = QuestionUIRenderer(xml=input_xml, placeholders={}, seed=42)
-    result = renderer.render_formulation()
+    result = renderer.render()
 
     expected = """
-        <div xmlns="http://www.w3.org/1999/xhtml"><fieldset>
-            <label>
-                <input type="radio" name="choice" value="B"/>
-                <span>i</span>. B
-            </label>
-            <label>
-                <input type="radio" name="choice" value="A"/>
-                <span>ii</span>. A
-            </label>
-            <label>
-                <input type="radio" name="choice" value="C"/>
-                <span>iii</span>. C
-            </label>
-        </fieldset>
-    </div>
+        <div>
+            <fieldset>
+                <label>
+                    <input type="radio" name="choice" value="B" class="qpy-input"/>
+                    <span>i</span>. B
+                </label>
+                <label>
+                    <input type="radio" name="choice" value="A" class="qpy-input"/>
+                    <span>ii</span>. A
+                </label>
+                <label>
+                    <input type="radio" name="choice" value="C" class="qpy-input"/>
+                    <span>iii</span>. C
+                </label>
+            </fieldset>
+        </div>
         """
     assert compare_xhtml(result, expected)
 
 
 def test_clean_up() -> None:
     xml_content = """
-    <qpy:question xmlns:qpy="http://questionpy.org/ns/question">
-        <qpy:formulation>
-            <qpy:element>Text</qpy:element>
-            <element qpy:attribute="value">Content</element>
-            <!-- Comment -->
-            <regular xmlns:qpy="http://questionpy.org/ns/question">Normal Content</regular>
-        </qpy:formulation>
-    </qpy:question>
+    <div xmlns:qpy="http://questionpy.org/ns/question">
+        <qpy:element>Text</qpy:element>
+        <element qpy:attribute="value">Content</element>
+        <!-- Comment -->
+        <regular xmlns:qpy="http://questionpy.org/ns/question">Normal Content</regular>
+    </div>
     """
     renderer = QuestionUIRenderer(xml=xml_content, placeholders={})
-    result = renderer.render_formulation()
+    result = renderer.render()
 
     expected = """
-    <div xmlns="http://www.w3.org/1999/xhtml">
+    <div>
         <element>Content</element>
         <regular>Normal Content</regular>
     </div>

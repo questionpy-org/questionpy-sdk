@@ -1,4 +1,4 @@
-from questionpy import Attempt, AttemptUi, Question, QuestionType, ScoringCode
+from questionpy import Attempt, AttemptUiPart, Question, QuestionType, ScoringCode
 from questionpy_common.api.attempt import ScoreModel
 from questionpy_common.api.question import QuestionModel, ScoringMethod
 
@@ -15,8 +15,8 @@ class ExampleAttempt(Attempt):
 
         return ScoreModel(scoring_code=ScoringCode.AUTOMATICALLY_SCORED, score=0)
 
-    def render_formulation(self) -> AttemptUi:
-        return AttemptUi(
+    def render_formulation(self) -> AttemptUiPart:
+        return AttemptUiPart(
             content=self.jinja2.get_template("local.example/formulation.xhtml.j2").render(),
             placeholders={"description": "Welcher ist der zweite Buchstabe im deutschen Alphabet?"},
         )

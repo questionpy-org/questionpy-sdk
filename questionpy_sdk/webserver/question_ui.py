@@ -3,6 +3,7 @@
 #  (c) Technische Universität Berlin, innoCampus <info@isis.tu-berlin.de>
 
 import random
+from copy import deepcopy
 from typing import Any
 
 from lxml import etree
@@ -100,14 +101,14 @@ def replace_shuffled_indices(element: etree._Element, index: int) -> None:
 class QuestionUIRenderer:
     XHTML_NAMESPACE: str = "http://www.w3.org/1999/xhtml"
     QPY_NAMESPACE: str = "http://questionpy.org/ns/question"
-    question: etree._Element
+    root: etree._Element
     placeholders: dict[str, str]
 
     def __init__(self, xml: str, placeholders: dict[str, str], seed: int | None = None) -> None:
         self.seed = seed
         self.xml = xml
         self.placeholders = placeholders
-        self.question = etree.fromstring(xml.encode())
+        self.root = etree.fromstring(xml.encode())
 
     def get_metadata(self) -> QuestionMetadata:
         """Extracts metadata from the question UI."""
@@ -115,7 +116,7 @@ class QuestionUIRenderer:
         namespaces: dict[str, str] = {"xhtml": self.XHTML_NAMESPACE, "qpy": self.QPY_NAMESPACE}
 
         # Extract correct responses
-        for element in self.question.findall(".//qpy:formulation//*[@qpy:correct-response]", namespaces=namespaces):
+        for element in self.root.findall(".//*[@qpy:correct-response]", namespaces=namespaces):
             name = element.get("name")
             if not name:
                 continue
@@ -132,7 +133,7 @@ class QuestionUIRenderer:
 
         # Extract other metadata
         for element_type in ["input", "select", "textarea", "button"]:
-            for element in self.question.findall(f".//qpy:formulation//xhtml:{element_type}", namespaces=namespaces):
+            for element in self.root.findall(f".//xhtml:{element_type}", namespaces=namespaces):
                 name = element.get("name")
                 if not name:
                     continue
@@ -143,77 +144,11 @@ class QuestionUIRenderer:
 
         return question_metadata
 
-    def render_general_feedback(
-        self, attempt: dict | None = None, options: QuestionDisplayOptions | None = None
-    ) -> str | None:
-        """Renders the contents of the `qpy:general-feedback` element or returns `None` if there is none."""
-        try:
-            elements = assert_element_list(
-                self.question.xpath(".//qpy:general-feedback", namespaces={"qpy": self.QPY_NAMESPACE})
-            )
-        except TypeError:
-            return None
-
-        if not elements:
-            return None
-
-        return self.render_part(elements[0], attempt, options)
-
-    def render_specific_feedback(
-        self, attempt: dict | None = None, options: QuestionDisplayOptions | None = None
-    ) -> str | None:
-        """Renders the contents of the `qpy:specific-feedback` element or returns `None` if there is none."""
-        try:
-            elements = assert_element_list(
-                self.question.xpath(".//qpy:specific-feedback", namespaces={"qpy": self.QPY_NAMESPACE})
-            )
-        except TypeError:
-            return None
-
-        if not elements:
-            return None
-
-        return self.render_part(elements[0], attempt, options)
-
-    def render_right_answer(
-        self, attempt: dict | None = None, options: QuestionDisplayOptions | None = None
-    ) -> str | None:
-        """Renders the contents of the `qpy:right-answer` element or returns `None` if there is none."""
-        try:
-            elements = assert_element_list(
-                self.question.xpath(".//qpy:right-answer", namespaces={"qpy": self.QPY_NAMESPACE})
-            )
-        except TypeError:
-            return None
-
-        if not elements:
-            return None
-
-        return self.render_part(elements[0], attempt, options)
-
-    def render_formulation(self, attempt: dict | None = None, options: QuestionDisplayOptions | None = None) -> str:
-        """Renders the contents of the `qpy:formulation` element. Raises an exception if there is none.
-
-        Raises:
-            FormulationElementMissingError
-        """
-        formulations = self.question.findall(f".//{{{self.QPY_NAMESPACE}}}formulation")
-
-        if not formulations:
-            msg = "Question UI XML contains no 'qpy:formulation' element"
-            raise FormulationElementMissingError(msg)
-
-        return self.render_part(formulations[0], attempt, options)
-
-    def render_part(
-        self, part: etree._Element, attempt: dict | None = None, options: QuestionDisplayOptions | None = None
-    ) -> str:
+    def render(self, attempt: dict | None = None, options: QuestionDisplayOptions | None = None) -> str:
         """Applies transformations to the descendants of a given node and returns the resulting HTML."""
-        newdoc = etree.ElementTree(etree.Element("div", nsmap={None: self.XHTML_NAMESPACE}))  # type: ignore[dict-item]
-        div = newdoc.getroot()
-
-        for child in part:
-            div.append(child)
+        copy = deepcopy(self.root)
+        copy.nsmap.setdefault(None, self.XHTML_NAMESPACE)  # Interpret the default namespace as XHTML.
+        newdoc = etree.ElementTree(copy)
 
         xpath = etree.XPathDocumentEvaluator(newdoc)
         xpath.register_namespace("xhtml", self.XHTML_NAMESPACE)
@@ -229,7 +164,7 @@ class QuestionUIRenderer:
         self.add_styles(xpath)
         self.format_floats(xpath)
         # TODO: mangle_ids_and_names
-        self.clean_up(xpath)
+        self.clean_up(newdoc, xpath)
 
         return etree.tostring(newdoc, pretty_print=True).decode()
 
@@ -447,7 +382,7 @@ class QuestionUIRenderer:
                 element.append(child)
 
     # TODO: refactor to reduce complexity
-    def clean_up(self, xpath: etree.XPathDocumentEvaluator) -> None:  # noqa: C901
+    def clean_up(self, doc: etree._ElementTree, xpath: etree.XPathDocumentEvaluator) -> None:
         """Removes remaining QuestionPy elements and attributes as well as comments and xmlns declarations."""
         for element in assert_element_list(xpath("//qpy:*")):
             parent = element.getparent()
@@ -466,13 +401,13 @@ class QuestionUIRenderer:
             if parent is not None:
                 parent.remove(comment)
 
-        # Remove the 'qpy' namespace URI from the element
+        # Remove namespaces from all elements. (QPy elements should all have been consumed previously anyhow.)
         for element in assert_element_list(xpath("//*")):
-            if element.tag.startswith("{"):
-                element.tag = etree.QName(element).localname
-            for name_space in list(element.nsmap.keys()):
-                if name_space is not None and name_space == "qpy":
-                    etree.cleanup_namespaces(element, keep_ns_prefixes=["xml"])
+            qname = etree.QName(element)
+            if qname.namespace == self.XHTML_NAMESPACE:
+                element.tag = qname.localname
+
+        etree.cleanup_namespaces(doc, top_nsmap={None: self.XHTML_NAMESPACE})  # type: ignore[dict-item]
 
     def add_class_names(self, element: etree._Element, *class_names: str) -> None:
         """Adds the given class names to the elements `class` attribute if not already present."""
