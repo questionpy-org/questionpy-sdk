@@ -2,14 +2,19 @@
 #  The QuestionPy SDK is free software released under terms of the MIT license. See LICENSE.md.
 #  (c) Technische Universität Berlin, innoCampus <info@isis.tu-berlin.de>
 
-from typing import TypedDict
+from typing import Literal, TypedDict
 
-from questionpy_common.api.attempt import AttemptModel, AttemptUi
+from questionpy_common.api.attempt import AttemptModel, AttemptScoredModel, AttemptUi
 from questionpy_sdk.webserver.question_ui import QuestionDisplayOptions, QuestionUIRenderer
+from questionpy_server.api.models import AttemptStarted
 
 
 class _AttemptRenderContext(TypedDict):
+    attempt_status: Literal["Started", "In progress", "Scored"]
+
     attempt: AttemptModel
+    attempt_state: str
+
     options: dict
     form_disabled: bool
 
@@ -27,6 +32,7 @@ def _render_part(
 
 def get_attempt_render_context(
     attempt: AttemptModel,
+    attempt_state: str,
     *,
     last_attempt_data: dict,
     display_options: QuestionDisplayOptions,
@@ -34,6 +40,14 @@ def get_attempt_render_context(
     disabled: bool,
 ) -> _AttemptRenderContext:
     context: _AttemptRenderContext = {
+        "attempt_status": (
+            "Started"
+            if isinstance(attempt, AttemptStarted)
+            else "Scored"
+            if isinstance(attempt, AttemptScoredModel)
+            else "In progress"
+        ),
+        "attempt_state": attempt_state,
         "options": display_options.model_dump(exclude={"context", "readonly"}),
         "form_disabled": disabled,
         "formulation": _render_part(attempt.ui, attempt.ui.formulation, last_attempt_data, display_options, seed),

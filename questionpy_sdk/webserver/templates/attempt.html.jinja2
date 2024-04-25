@@ -85,15 +85,32 @@
         <table>
             <tbody>
                 <tr>
-                    <td><b>Attempt Class:</b></td>
-                    <td>{{ attempt.__class__ }}</td>
+                    <td>Attempt status:</td>
+                    <td><b>{{ attempt_status }}</b></td>
                 </tr>
-                {% for key, value in attempt.dict().items() if key not in ['ui', 'classification'] %}
                 <tr>
-                    <td>{{ key.replace('_', ' ') | capitalize }}:</td>
-                    <td>{{ value }}</td>
+                    <td>Variant:</td>
+                    <td>{{ attempt.variant }}</td>
                 </tr>
-                {% endfor %}
+                <tr>
+                    <td>Attempt state:</td>
+                    <td>{{ attempt_state }}</td>
+                </tr>
+
+                {% if attempt.scoring_code is defined %}
+                    <tr>
+                        <td>Scoring code:</td>
+                        <td>{{ attempt.scoring_code }}</td>
+                    </tr>
+                    <tr>
+                        <td>Score (fraction):</td>
+                        <td>{{ attempt.score }}</td>
+                    </tr>
+                    <tr>
+                        <td>Scoring state:</td>
+                        <td>{{ attempt.scoring_state }}</td>
+                    </tr>
+                {% endif %}
             </tbody>
         </table>
     </div>

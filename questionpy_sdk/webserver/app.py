@@ -193,6 +193,7 @@ async def get_attempt(request: web.Request) -> web.Response:
 
     context = get_attempt_render_context(
         attempt,
+        attempt_state,
         last_attempt_data=last_attempt_data,
         display_options=display_options,
         seed=seed,
