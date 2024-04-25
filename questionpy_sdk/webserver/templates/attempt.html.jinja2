@@ -46,8 +46,9 @@
         <button id="save-attempt-button" type="submit" data-route="/attempt/save" data-action="reload" form="question-preview" {{ disabled_attribute }}>Save</button>
         <button id="submit-attempt-button" type="submit" data-route="/attempt" data-action="reload" form="question-preview" {{ disabled_attribute }}>Save and submit</button>
 
+        <button id="restart-attempt-button" type="button" data-route="/attempt/restart">Restart</button>
+
         {% set disabled_attribute = "disabled" if not form_disabled else "" %}
-        <button id="restart-attempt-button" type="button" data-route="/attempt/restart" {{ disabled_attribute }}>Restart</button>
         <button id="edit-attempt-button" type="button" data-route="/attempt/edit" {{ disabled_attribute }}>Edit</button>
 
     </div>

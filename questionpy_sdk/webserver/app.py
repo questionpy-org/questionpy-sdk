@@ -254,9 +254,10 @@ async def submit_display_options(request: web.Request) -> web.Response:
 async def restart_attempt(request: web.Request) -> web.Response:
     """Restarts the attempt by deleting the attempt scored state and last attempt data and by resetting the seed."""
     response = web.Response(status=201)
+    response.del_cookie("attempt_state")
     response.del_cookie("score")
     response.del_cookie("last_attempt_data")
-    set_cookie(response, "attempt_seed", str(random.randint(0, 10)))
+    response.del_cookie("attempt_seed")
     return response
 
 
