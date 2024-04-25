@@ -23,8 +23,7 @@ def test_run_with_not_existing_package(runner: CliRunner) -> None:
 
 
 def test_run_non_zip_file(runner: CliRunner, cwd: Path) -> None:
-    with open(cwd / "README.md", "w", encoding="utf-8") as f:
-        f.write("Foo bar")
+    (cwd / "README.md").write_text("Foo bar")
     result = runner.invoke(run, ["README.md"])
     assert result.exit_code != 0
     assert "'README.md' doesn't look like a QPy package zip file, directory or module" in result.stdout

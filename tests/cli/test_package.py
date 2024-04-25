@@ -97,7 +97,7 @@ def test_package_with_only_source(runner: CliRunner, cwd: Path) -> None:
 def test_package_creates_package_in_cwd(runner: CliRunner, cwd: Path) -> None:
     config = create_source_directory(cwd, "source")
     # Change current working directory to 'cwd'.
-    cwd = cwd / "cwd"
+    cwd /= "cwd"
     cwd.mkdir()
     os.chdir(cwd)
 

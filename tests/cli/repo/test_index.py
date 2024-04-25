@@ -60,7 +60,7 @@ def test_index_allows_packages_in_subdirectories(depth: int, runner: CliRunner, 
     # Create subdirectories.
     directory = cwd
     for _ in range(depth):
-        directory = directory / "subdirectory"
+        directory /= "subdirectory"
     directory.mkdir(parents=True)
 
     path, _ = create_package(directory, "test")
