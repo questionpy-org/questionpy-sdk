@@ -51,6 +51,8 @@
         {% set disabled_attribute = "disabled" if not form_disabled else "" %}
         <button id="edit-attempt-button" type="button" data-route="/attempt/edit" {{ disabled_attribute }}>Edit</button>
 
+        {% set disabled_attribute = "disabled" if attempt.score is undefined else "" %}
+        <button id="rescore-attempt-button" type="submit" data-route="/attempt/rescore" data-action="reload" form="question-preview" {{ disabled_attribute }}>Re-Score</button>
     </div>
 
     <div class="container-display-options">

@@ -205,13 +205,12 @@ async def get_attempt(request: web.Request) -> web.Response:
     return response
 
 
-@routes.post("/attempt")
-async def submit_attempt(request: web.Request) -> web.Response:
+async def _score_attempt(request: web.Request, data: dict) -> web.Response:
     webserver: "WebServer" = request.app["sdk_webserver_app"]
+
     stored_state = webserver.state_storage.get(webserver.package_location)
     if not stored_state:
         return web.HTTPNotFound(reason="No question state found.")
-
     question_state = json.dumps(stored_state)
 
     display_options = QuestionDisplayOptions.model_validate_json(request.cookies.get("display_options", "{}"))
@@ -221,21 +220,38 @@ async def submit_attempt(request: web.Request) -> web.Response:
     if not attempt_state:
         return web.HTTPNotFound(reason="Attempt has to be started before being submitted. Try reloading the page.")
 
-    last_attempt_data = await request.json()
+    score_json = request.cookies.get("score")
+    score = ScoreModel.model_validate_json(score_json) if score_json else None
+
     worker: Worker
     async with webserver.worker_pool.get_worker(webserver.package_location, 0, None) as worker:
         attempt_scored = await worker.score_attempt(
             request_user=RequestUser(["de", "en"]),
             question_state=question_state,
             attempt_state=attempt_state,
-            response=last_attempt_data,
+            response=data,
+            scoring_state=score.scoring_state if score else None,
         )
 
     response = web.Response(status=201)
     set_cookie(response, "display_options", display_options.model_dump_json())
     set_cookie(response, "score", TypeAdapter(ScoreModel).dump_json(attempt_scored).decode())
-    set_cookie(response, "last_attempt_data", json.dumps(last_attempt_data))
     return response
+
+
+@routes.post("/attempt")
+async def submit_attempt(request: web.Request) -> web.Response:
+    data = await request.json()
+    response = await _score_attempt(request, data)
+    set_cookie(response, "last_attempt_data", json.dumps(data))
+    return response
+
+
+@routes.post("/attempt/rescore")
+async def rescore_attempt(request: web.Request) -> web.Response:
+    data_json = request.cookies.get("last_attempt_data")
+    data = json.loads(data_json) if data_json else None
+    return await _score_attempt(request, data)
 
 
 @routes.post("/attempt/display-options")
