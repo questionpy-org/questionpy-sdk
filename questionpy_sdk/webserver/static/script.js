@@ -188,7 +188,7 @@ function check_all_element_conditions(elements) {
 /**
  * Creates JSON object from element in a form.
  * @param form
- * @return {}
+ * @return {Object}
  */
 function create_json_form_data(form) {
     const json_form_data = {};
@@ -214,26 +214,29 @@ function create_json_form_data(form) {
 
 
 /**
- *
- * @param url
- * @param headers
- * @param body
+ * @param {string} url
+ * @param {Object} body
  * @return {Promise<*>}
  */
-async function post_http_request(url, headers, body) {
-    if (!url || !headers || !body) {
-        throw new Error("One or more POST request parameters was not passed.");
-    }
+async function post_json(url, body) {
+    let response;
     try {
-        return await fetch(url, {
+        response = await fetch(url, {
             method: "POST",
-            headers: headers,
+            headers: {"Content-Type": "application/json"},
             body: JSON.stringify(body)
         });
-    } catch (err) {
-        console.error(`Error at fetch POST: ${err}`);
-        throw err;
+    } catch (error) {
+        setTimeout(() => alert("A network error occurred, couldn't reach the SDK webserver: " + error.message));
+        throw error;
     }
+
+    if (!response.ok) {
+        setTimeout(() => alert("An error occured, please check the SDK logs for details: " + response.statusText));
+        throw response;
+    }
+
+    return response;
 }
 
 
@@ -251,21 +254,15 @@ async function handle_submit(event) {
     const route = button.getAttribute('data-route');
     const successAction = button.dataset.action;
     const json_form_data = create_json_form_data(form);
-    const headers = {'Content-Type': 'application/json'};
-    const response = await post_http_request(route, headers, json_form_data);
-    if (response.status >= 200 && response.status < 300) {
-        if (successAction === "reload") {
-            window.location.reload();
-        } else if (successAction === "redirect") {
-            window.location.href = button.getAttribute('data-redirect');
-        } else if (successAction === "success-info") {
-            document.getElementById('submit_success_info').hidden = false;
-        }
-    } else {
-        alert(response.statusText);
+    await post_json(route, json_form_data);
+    if (successAction === "reload") {
+        window.location.reload();
+    } else if (successAction === "redirect") {
+        window.location.href = button.getAttribute('data-redirect');
+    } else if (successAction === "success-info") {
+        document.getElementById('submit_success_info').hidden = false;
     }
 }
-
 
 /**
  * Adds a repetition element to the repetition element parent.
@@ -274,23 +271,18 @@ async function handle_submit(event) {
  * @param event
  */
 async function add_repetition_element(event) {
-    // prevent reload on submit
     event.preventDefault();
     const form = document.getElementById('options_form');
-
+    const repetition = event.target.closest(".repetition")
     const data = {
-        'form_data': create_json_form_data(form),
-        'element-name': event.target.name,
-        'increment': event.target.dataset['repetition_increment']
+        form_data: create_json_form_data(form),
+        repetition_name: repetition.dataset.repetition_name,
+        increment: event.target.dataset.repetition_increment
     }
 
-    const headers = {'Content-Type': 'application/json'}
-    const response = await post_http_request('/repeat', headers, data);
-    if (response.status == 200) {
-        document.getElementById('submit_success_info').hidden = null;
-        window.location.reload();
-    } else {
-        alert('An error occured.');
+    const response = await post_json('/repeat', data);
+    if (response.redirected) {
+        window.location.href = response.url;
     }
 }
 
@@ -298,13 +290,20 @@ async function add_repetition_element(event) {
 /**
  * When a Delete Button is clicked, removes the corresponding repetition.
  */
-function delete_repetition_element(event) {
-    // prevent reload on click
+async function delete_repetition_element(event) {
     event.preventDefault();
-    // count current repetitions - 1 for the add-repetition button
-    const current_repetitions = event.target.parentElement.parentElement.children.length - 1;
-    if (current_repetitions > event.target.dataset['initial_repetitions']) {
-        event.target.parentElement.remove();
+    const form = document.getElementById('options_form');
+    const repetition_item = event.target.closest(".repetition-content")
+    const repetition = repetition_item.closest(".repetition")
+    const data = {
+        form_data: create_json_form_data(form),
+        repetition_name: repetition.dataset.repetition_name,
+        index: repetition_item.dataset.repetition_index
+    }
+
+    const response = await post_json('/options/remove-repetition', data);
+    if (response.redirected) {
+        window.location.href = response.url;
     }
 }
 
@@ -352,16 +351,9 @@ async function restart_attempt(event) {
 
     const button = event.currentTarget;
     const route = button.getAttribute('data-route');
-    const headers = {'Content-Type': 'application/json'}
-    const response = await post_http_request(route, headers, "{}");
-    if (response.status >= 200 && response.status < 300) {
-        window.location.reload();
-    } else {
-        alert(response.statusText);
-    }
-
+    await post_json(route, {});
+    window.location.reload();
 }
-
 
 document.addEventListener("DOMContentLoaded", function () {
     const elements = get_elements_with_conditions();

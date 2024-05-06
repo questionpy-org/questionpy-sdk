@@ -79,34 +79,18 @@ def parse_form_data(form_data: dict) -> dict:
     return options
 
 
-def add_repetition(form_data: dict[str, Any], reference: list, increment: int) -> dict[str, Any]:
-    """Adds repetitions of the referenced RepetitionElement to the form_data.
-
-    Args:
-        form_data: Current form data to which new repetitions should be added.
-        reference: Reference (list of names forming a path into `form_data`) of the repetition.
-        increment: Number of new repetitions to add.
-
-    Returns:
-        `form_data` modified in-place.
-    """
+def get_nested_form_data(form_data: dict[str, Any], reference: str) -> object:
     current_element = form_data
+    parts = reference.replace("]", "").split("[")
 
-    ref = reference.pop(0)
+    ref = parts.pop(0)
     if ref != "general":
         current_element = current_element[ref]
-    while reference:
-        ref = reference.pop(0)
+    while parts:
+        ref = parts.pop(0)
         current_element = current_element[ref]
 
-    if not isinstance(current_element, list):
-        return form_data
-
-    # Add "increment" number of repetitions.
-    for _ in range(increment):
-        current_element.append(current_element[-1])
-
-    return form_data
+    return current_element
 
 
 class QuestionStateStorage:

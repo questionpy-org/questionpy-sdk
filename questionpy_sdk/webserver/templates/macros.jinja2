@@ -14,7 +14,7 @@
         {% elif element.kind == "repetition" %}
             {{ create_repetition(element) }}
         {% else %}
-            {%  include "elements/" ~ element.kind ~ ".html.jinja2" %}
+            {% include "elements/" ~ element.kind ~ ".html.jinja2" %}
         {% endif %}
     {% endfor %}
 {% endmacro %}
@@ -22,9 +22,9 @@
 
 {% macro create_group(group_element) %}
     <div class="group" id="{{ group_element.id }}" name="{{ path_list_to_string(group_element.path) }}"
-        data-section="{{ group_element.path[0] }}"
-        {{ {'data-hide_if': group_element.hide_if|tojson|forceescape}|xmlattr if group_element.hide_if}}
-        {{ {'data-disable_if': group_element.disable_if|tojson|forceescape}|xmlattr if group_element.disable_if}}
+         data-section="{{ group_element.path[0] }}"
+        {{ {'data-hide_if': group_element.hide_if|tojson|forceescape}|xmlattr if group_element.hide_if }}
+        {{ {'data-disable_if': group_element.disable_if|tojson|forceescape}|xmlattr if group_element.disable_if }}
         {{ {'data-absolute_path': group_element.path|tojson|forceescape}|xmlattr }}>
         <h3 class="group-heading">{{ group_element.label }}</h3>
         {{ create_elements(group_element.cxd_elements) }}
@@ -37,32 +37,33 @@
 
 {% macro create_repetition(repetition_element) %}
     <div class="repetition" id="{{ repetition_element.id }}"
-         name="{{ path_list_to_string(repetition_element.path) }}" data-section="{{ repetition_element.path[0] }}">
+         data-repetition_name="{{ path_list_to_string(repetition_element.path) }}"
+         data-section="{{ repetition_element.path[0] }}">
         {# Add a hidden element marking this as a repetition, so we later know to interpret the form data as a list. #}
         <input type="hidden"
                name="{{ path_list_to_string(repetition_element.path + ['qpy_repetition_marker']) }}">
 
         {% for repetition in repetition_element.cxd_elements %}
-            <div class="repetition-content">
+            <div class="repetition-content" data-repetition_index="{{ loop.index0 }}">
                 {# Add a hidden element marking this as a repetition item, so empty repetition items don't get lost. #}
                 <input type="hidden"
                        name="{{ path_list_to_string(repetition_element.path + [loop.index, 'qpy_repetition_item_marker']) }}">
                 {{ create_elements(repetition) }}
-                <button class="repetition-button-delete" id="{{ repetition_element.id }}_delete_button"
-                    name="{{ path_list_to_string(repetition_element.path) }}"
-                    {{ {'data-initial_repetitions': repetition_element.initial_repetitions|tojson|forceescape}|xmlattr}}>
-                    Delete
-                </button>
+                {% with disabled = repetition_element.cxd_elements | length <= repetition_element.minimum_repetitions %}
+                    <button class="repetition-button-delete" id="{{ repetition_element.id }}_delete_button"
+                        {{ {'data-initial_repetitions': repetition_element.initial_repetitions|tojson|forceescape}|xmlattr }}
+                        {% if disabled %} disabled="disabled" {% endif %}>
+                        Delete
+                    </button>
+                {% endwith %}
             </div>
         {% endfor %}
 
         <button class="repetition-button" id="{{ repetition_element.id }}_button"
-            name="{{ path_list_to_string(repetition_element.path) }}"
             {{ {'data-repetition_increment': repetition_element.increment|tojson|forceescape}|xmlattr
-                if repetition_element.increment}}>
+                if repetition_element.increment }}>
             {{ repetition_element.button_label if repetition_element.button_label else 'Add Repetition' }}
         </button>
-
     </div>
 {% endmacro %}
 
