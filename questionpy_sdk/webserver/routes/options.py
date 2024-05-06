@@ -7,15 +7,13 @@ from typing import TYPE_CHECKING
 
 import aiohttp_jinja2
 from aiohttp import web
-from aiohttp.web_exceptions import HTTPBadRequest
+from aiohttp.web_exceptions import HTTPFound
 
 from questionpy_common.environment import RequestUser
 from questionpy_sdk.webserver.context import contextualize
-from questionpy_sdk.webserver.state_storage import add_repetition, parse_form_data
-from questionpy_server.worker.runtime.messages import WorkerUnknownError
+from questionpy_sdk.webserver.state_storage import get_nested_form_data, parse_form_data
 
 if TYPE_CHECKING:
-    from questionpy_common.elements import OptionsFormDefinition
     from questionpy_sdk.webserver.app import WebServer
     from questionpy_server.worker.worker import Worker
 
@@ -42,26 +40,22 @@ async def render_options(request: web.Request) -> web.Response:
     return aiohttp_jinja2.render_template("options.html.jinja2", request, context)
 
 
+async def _save_updated_form_data(form_data: dict, webserver: "WebServer") -> None:
+    stored_state = webserver.state_storage.get(webserver.package_location)
+    old_state = json.dumps(stored_state) if stored_state else None
+    worker: Worker
+    async with webserver.worker_pool.get_worker(webserver.package_location, 0, None) as worker:
+        question = await worker.create_question_from_options(RequestUser(["de", "en"]), old_state, form_data=form_data)
+
+    webserver.state_storage.insert(webserver.package_location, json.loads(question.question_state))
+
+
 @routes.post("/submit")
 async def submit_form(request: web.Request) -> web.Response:
     """Stores the form_data from the Options Form in the StateStorage."""
     webserver: "WebServer" = request.app["sdk_webserver_app"]
-    data = await request.json()
-    parsed_form_data = parse_form_data(data)
-    stored_state = webserver.state_storage.get(webserver.package_location)
-    old_state = json.dumps(stored_state) if stored_state else None
-
-    worker: Worker
-    async with webserver.worker_pool.get_worker(webserver.package_location, 0, None) as worker:
-        try:
-            question = await worker.create_question_from_options(
-                RequestUser(["de", "en"]), old_state, form_data=parsed_form_data
-            )
-        except WorkerUnknownError as exc:
-            raise HTTPBadRequest from exc
-
-    new_state = question.question_state
-    webserver.state_storage.insert(webserver.package_location, json.loads(new_state))
+    form_data = parse_form_data(await request.json())
+    await _save_updated_form_data(form_data, webserver)
 
     return web.Response(status=201)
 
@@ -71,32 +65,23 @@ async def repeat_element(request: web.Request) -> web.Response:
     """Adds Repetitions to the referenced RepetitionElement and store the form_data in the StateStorage."""
     webserver: "WebServer" = request.app["sdk_webserver_app"]
     data = await request.json()
-    old_form_data = add_repetition(
-        form_data=parse_form_data(data["form_data"]),
-        reference=data["element-name"].replace("]", "").split("["),
-        increment=int(data["increment"]),
-    )
-    stored_state = webserver.state_storage.get(webserver.package_location)
-    old_state = json.dumps(stored_state) if stored_state else None
+    question_form_data = parse_form_data(data["form_data"])
+    repetition_list = get_nested_form_data(question_form_data, data["repetition_name"])
+    if isinstance(repetition_list, list) and "increment" in data:
+        repetition_list.extend([repetition_list[-1]] * int(data["increment"]))
 
-    worker: Worker
-    async with webserver.worker_pool.get_worker(webserver.package_location, 0, None) as worker:
-        manifest = await worker.get_manifest()
-        try:
-            question = await worker.create_question_from_options(
-                RequestUser(["de", "en"]), old_state, form_data=old_form_data
-            )
-        except WorkerUnknownError as exc:
-            raise HTTPBadRequest from exc
+    await _save_updated_form_data(question_form_data, webserver)
+    return HTTPFound("/")
 
-        new_state = question.question_state
-        webserver.state_storage.insert(webserver.package_location, json.loads(new_state))
-        form_definition: OptionsFormDefinition
-        form_definition, form_data = await worker.get_options_form(RequestUser(["de", "en"]), new_state)
 
-    context = {
-        "manifest": manifest,
-        "options": contextualize(form_definition=form_definition, form_data=form_data).model_dump(),
-    }
+@routes.post("/options/remove-repetition")
+async def remove_element(request: web.Request) -> web.Response:
+    webserver: "WebServer" = request.app["sdk_webserver_app"]
+    data = await request.json()
+    question_form_data = parse_form_data(data["form_data"])
+    repetition_list = get_nested_form_data(question_form_data, data["repetition_name"])
+    if isinstance(repetition_list, list) and "index" in data:
+        del repetition_list[int(data["index"])]
 
-    return aiohttp_jinja2.render_template("options.html.jinja2", request, context)
+    await _save_updated_form_data(question_form_data, webserver)
+    return HTTPFound("/")

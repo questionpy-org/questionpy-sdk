@@ -105,14 +105,14 @@ class TestTemplates:
     def test_repeat_element_if_present(self, driver: webdriver.Chrome, url: str) -> None:
         driver.get(url)
 
-        repetition_element = driver.find_element(By.NAME, "general[repetition]")
+        repetition_element = driver.find_element(By.CLASS_NAME, "repetition")
 
         # Initially, there should be 2 reps.
         assert len(repetition_element.find_elements(By.CLASS_NAME, "repetition-content")) == 2
 
         repetition_element.find_element(By.CLASS_NAME, "repetition-button").click()
         WebDriverWait(driver, 2).until(expected_conditions.staleness_of(repetition_element))
-        repetition_element = driver.find_element(By.NAME, "general[repetition]")
+        repetition_element = driver.find_element(By.CLASS_NAME, "repetition")
 
         # After clicking increment once, there should be 5.
         assert len(repetition_element.find_elements(By.CLASS_NAME, "repetition-content")) == 5
