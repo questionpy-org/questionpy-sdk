@@ -86,6 +86,10 @@ def test_should_raise_validation_error_when_required_option_is_missing() -> None
             [form.TextInputElement(name="field", label="Label", required=True, help="Help")],
         ),
         (
+            form.text_area("Label", help="Help", default="Default"),
+            [form.TextAreaElement(name="field", label="Label", help="Help", default="Default")],
+        ),
+        (
             form.static_text("Label", "Lorem ipsum dolor sit amet.", help="Help"),
             [form.StaticTextElement(name="field", label="Label", text="Lorem ipsum dolor sit amet.", help="Help")],
         ),
@@ -153,6 +157,12 @@ def test_should_render_correct_form(initializer: object, expected_elements: list
         (str | None, form.text_input(""), "valid", "valid"),
         (str | None, form.text_input(""), None, None),
         (str | None, form.text_input(""), ..., None),
+        # text_area
+        (str, form.text_area("", required=True), "valid", "valid"),
+        (str, form.text_area("", required=True), b"coercible", "coercible"),
+        (str | None, form.text_area(""), "valid", "valid"),
+        (str | None, form.text_area(""), None, None),
+        (str | None, form.text_area(""), ..., None),
         # checkbox
         (bool, form.checkbox("", "", required=True), True, True),
         (bool, form.checkbox("", "", required=False), True, True),
@@ -218,6 +228,10 @@ def test_should_parse_correctly_when_input_is_valid(
         (str, form.text_input("", required=True), ...),
         (str, form.text_input("", required=True), None),
         (str | None, form.text_input(""), {}),
+        # text_area
+        (str, form.text_area("", required=True), ...),
+        (str, form.text_area("", required=True), None),
+        (str | None, form.text_area(""), {}),
         # checkbox
         (bool, form.checkbox("", "", required=False), 42),
         # radio_group
@@ -256,6 +270,10 @@ def test_should_raise_validation_error_when_input_is_invalid(
         (str, form.text_input("", required=False)),
         (str | None, form.text_input("", required=True)),
         (str, form.text_input("", required=True, disable_if=form.is_checked("field"))),  # Required, but conditional
+        # text_area
+        (str, form.text_area("", required=False)),
+        (str | None, form.text_area("", required=True)),
+        (str, form.text_area("", required=True, disable_if=form.is_checked("field"))),  # Required, but conditional
         # checkbox
         (str, form.checkbox("", "")),
         # radio_group

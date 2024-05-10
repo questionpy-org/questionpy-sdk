@@ -14,6 +14,7 @@ from questionpy_common.elements import (
     RepetitionElement,
     SelectElement,
     StaticTextElement,
+    TextAreaElement,
     TextInputElement,
 )
 
@@ -104,7 +105,7 @@ def text_input(
     disable_if: _ZeroOrMoreConditions = None,
     hide_if: _ZeroOrMoreConditions = None,
 ) -> Any:
-    """Adds a text input field.
+    """Adds a single-line text input field.
 
     Args:
         label: Text describing the element, shown verbatim.
@@ -120,6 +121,102 @@ def text_input(
     """
     return _FieldInfo(
         lambda name: TextInputElement(
+            name=name,
+            label=label,
+            required=required,
+            default=default,
+            placeholder=placeholder,
+            help=help,
+            disable_if=_listify(disable_if),
+            hide_if=_listify(hide_if),
+        ),
+        str | None if not required or disable_if or hide_if else str,
+        None if not required or disable_if or hide_if else ...,
+    )
+
+
+@overload
+def text_area(
+    label: str,
+    *,
+    required: Literal[False] = False,
+    default: str | None = None,
+    placeholder: str | None = None,
+    help: str | None = None,
+    disable_if: _ZeroOrMoreConditions = None,
+    hide_if: _ZeroOrMoreConditions = None,
+) -> str | None:
+    pass
+
+
+@overload
+def text_area(
+    label: str,
+    *,
+    required: Literal[True],
+    default: str | None = None,
+    placeholder: str | None = None,
+    help: str | None = None,
+    disable_if: None = None,
+    hide_if: None = None,
+) -> str:
+    pass
+
+
+@overload
+def text_area(
+    label: str,
+    *,
+    required: bool = False,
+    default: str | None = None,
+    placeholder: str | None = None,
+    help: str | None = None,
+    disable_if: _OneOrMoreConditions,
+    hide_if: _ZeroOrMoreConditions = None,
+) -> str | None:
+    pass
+
+
+@overload
+def text_area(
+    label: str,
+    *,
+    required: bool = False,
+    default: str | None = None,
+    placeholder: str | None = None,
+    help: str | None = None,
+    disable_if: _ZeroOrMoreConditions = None,
+    hide_if: _OneOrMoreConditions,
+) -> str | None:
+    pass
+
+
+def text_area(
+    label: str,
+    *,
+    required: bool = False,
+    default: str | None = None,
+    placeholder: str | None = None,
+    help: str | None = None,
+    disable_if: _ZeroOrMoreConditions = None,
+    hide_if: _ZeroOrMoreConditions = None,
+) -> Any:
+    """Adds a multi-line text area field.
+
+    Args:
+        label: Text describing the element, shown verbatim.
+        required: Require some non-empty input to be entered before the form can be submitted.
+        default: Default value of the input when first loading the form. Part of the submitted form data.
+        placeholder: Placeholder to show when no value has been entered yet. Not part of the submitted form data.
+        help: Element help text.
+        disable_if (Condition | list[Condition] | None): Disable this element if some condition(s) match.
+        hide_if (Condition | list[Condition] | None): Hide this element if some condition(s) match.
+
+    Returns:
+        An internal object containing metadata about the field.
+    """
+    return _FieldInfo(
+        lambda name: TextAreaElement(
             name=name,
             label=label,
             required=required,

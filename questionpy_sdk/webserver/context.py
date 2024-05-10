@@ -15,6 +15,7 @@ from questionpy_common.elements import (
     RepetitionElement,
     SelectElement,
     StaticTextElement,
+    TextAreaElement,
     TextInputElement,
 )
 from questionpy_sdk.webserver.elements import (
@@ -29,12 +30,14 @@ from questionpy_sdk.webserver.elements import (
     CxdRepetitionElement,
     CxdSelectElement,
     CxdStaticTextElement,
+    CxdTextAreaElement,
     CxdTextInputElement,
 )
 
 element_mapping: dict[type, type] = {
     StaticTextElement: CxdStaticTextElement,
     TextInputElement: CxdTextInputElement,
+    TextAreaElement: CxdTextAreaElement,
     CheckboxElement: CxdCheckboxElement,
     CheckboxGroupElement: CxdCheckboxGroupElement,
     RadioGroupElement: CxdRadioGroupElement,
