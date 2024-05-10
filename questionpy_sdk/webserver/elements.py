@@ -19,6 +19,7 @@ from questionpy_common.elements import (
     RepetitionElement,
     SelectElement,
     StaticTextElement,
+    TextAreaElement,
     TextInputElement,
 )
 
@@ -56,6 +57,21 @@ class _CxdFormElement(BaseModel):
 
 
 class CxdTextInputElement(TextInputElement, _CxdFormElement):
+    value: str | None = None
+
+    def contextualize(self, pattern: Pattern[str], replacement: str) -> None:
+        self.label = sub(pattern, replacement, self.label)
+        if self.default:
+            self.default = sub(pattern, replacement, self.default)
+        if self.placeholder:
+            self.placeholder = sub(pattern, replacement, self.placeholder)
+
+    def add_form_data_value(self, element_form_data: Any) -> None:
+        if element_form_data:
+            self.value = element_form_data
+
+
+class CxdTextAreaElement(TextAreaElement, _CxdFormElement):
     value: str | None = None
 
     def contextualize(self, pattern: Pattern[str], replacement: str) -> None:

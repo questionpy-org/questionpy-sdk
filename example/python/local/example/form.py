@@ -11,6 +11,7 @@ from questionpy.form import (
     repeat,
     select,
     static_text,
+    text_area,
     text_input,
 )
 
@@ -37,7 +38,7 @@ class MyModel(FormModel):
     nonumy eirmod tempor invidunt ut labore et dolore magna aliquyam erat, sed diam voluptua. At vero eos et accusam
     et justo duo dolores et ea rebum.""",
     )
-    input = text_input("My second Input", required=True, hide_if=[is_checked("chk")])
+    input = text_area("Multiline Text", required=True, hide_if=[is_checked("chk")])
     chk = checkbox(
         "Left label",
         None,

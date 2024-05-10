@@ -54,6 +54,7 @@ from questionpy_common.elements import (
     RepetitionElement,
     SelectElement,
     StaticTextElement,
+    TextAreaElement,
     TextInputElement,
     is_form_element,
 )
@@ -73,6 +74,7 @@ from ._dsl import (
     section,
     select,
     static_text,
+    text_area,
     text_input,
 )
 from ._model import FormModel, OptionEnum
@@ -93,6 +95,7 @@ __all__ = [
     "RepetitionElement",
     "SelectElement",
     "StaticTextElement",
+    "TextAreaElement",
     "TextInputElement",
     "checkbox",
     "does_not_equal",
@@ -109,5 +112,6 @@ __all__ = [
     "section",
     "select",
     "static_text",
+    "text_area",
     "text_input",
 ]

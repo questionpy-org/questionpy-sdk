@@ -1,0 +1,10 @@
+{% extends "elements/element.html.jinja2" %}
+
+{% block content %}
+    <span class="input-span">
+        <textarea id="{{ element.id }}" name="{{ element_reference }}"
+            {{ {'placeholder': element.placeholder}|xmlattr if element.placeholder }}
+            {{ 'required' if element.required }}
+            {{ {'data-absolute_path': element.path|tojson|forceescape}|xmlattr }}>{{ element.value if element.value else (element.default if element.default) }}</textarea>
+    </span>
+{% endblock %}
