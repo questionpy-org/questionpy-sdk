@@ -98,7 +98,6 @@ class Attempt(BaseAttempt, ABC):
 
     def render_ui(self) -> AttemptUi:
         formulation = self.render_formulation()
-        # pylint: disable=assignment-from-none
         general_feedback = self.render_general_feedback()
         specific_feedback = self.render_specific_feedback()
         right_answer = self.render_right_answer_description()
