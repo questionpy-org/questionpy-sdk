@@ -2,6 +2,7 @@
 #  The QuestionPy SDK is free software released under terms of the MIT license. See LICENSE.md.
 #  (c) Technische Universität Berlin, innoCampus <info@isis.tu-berlin.de>
 
+import compileall
 import subprocess
 from collections.abc import Iterable
 from pathlib import Path
@@ -132,3 +133,17 @@ def test_runs_build_hook_fails(hook: str, tmp_path: Path, source_path: Path) -> 
         builder.write_package()
 
     assert exc.match(rf"{hook} hook\[0\] failed")
+
+
+def test_skips_python_bytecode(tmp_path: Path, source_path: Path) -> None:
+    # ensure we have bytecode files
+    py_sources = source_path / "python" / "local" / "minimal_example"
+    compileall.compile_dir(py_sources, quiet=1)
+    assert next((py_sources / "__pycache__").glob("__init__*.pyc"))  # don't hardcode Python version
+
+    with PackageBuilder(tmp_path / "package.qpy", PackageSource(source_path)) as builder:
+        builder.write_package()
+        assert not any(
+            Path(info.filename).parts[-1] == "__pycache__" if info.is_dir() else info.filename.endswith(".pyc")
+            for info in builder.infolist()
+        )
