@@ -62,7 +62,6 @@ class PackageBuilder(ZipFile):
         """Adds the `questionpy` module to the package."""
         # getfile returns the path to the package's __init__.py
         package_dir = Path(inspect.getfile(questionpy)).parent
-        # TODO: Exclude __pycache__, pyc files and the like.
         self._write_glob(package_dir, "**/*.py", prefix=f"dependencies/site-packages/{questionpy.__name__}")
 
     def _install_requirements(self) -> None:
@@ -103,6 +102,8 @@ class PackageBuilder(ZipFile):
 
     def _write_glob(self, source_dir: Path, glob: str, prefix: str = "") -> None:
         for source_file in source_dir.glob(glob):
+            if source_file.parts[-1] == "__pycache__" or source_file.suffix == ".pyc":
+                continue  # skip Python byte-code
             path_in_pkg = prefix / source_file.relative_to(source_dir)
             log.info("%s: %s", path_in_pkg, source_file)
             self.write(source_file, path_in_pkg)
