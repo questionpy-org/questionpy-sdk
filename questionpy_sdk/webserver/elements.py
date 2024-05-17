@@ -215,6 +215,7 @@ class CxdRepetitionElement(RepetitionElement, _CxdFormElement):
 CxdFormElement: TypeAlias = Annotated[
     CxdStaticTextElement
     | CxdTextInputElement
+    | CxdTextAreaElement
     | CxdCheckboxElement
     | CxdCheckboxGroupElement
     | CxdRadioGroupElement
