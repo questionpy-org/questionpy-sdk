@@ -12,11 +12,11 @@ from pydantic import TypeAdapter
 
 from questionpy_common.api.attempt import AttemptScoredModel, ScoreModel
 from questionpy_common.environment import RequestUser
+from questionpy_sdk.webserver.app import SDK_WEBSERVER_APP_KEY
 from questionpy_sdk.webserver.attempt import get_attempt_render_context
 from questionpy_sdk.webserver.question_ui import QuestionDisplayOptions
 
 if TYPE_CHECKING:
-    from questionpy_sdk.webserver.app import WebServer
     from questionpy_server.worker.worker import Worker
 
 routes = web.RouteTableDef()
@@ -30,7 +30,7 @@ def set_cookie(
 
 @routes.get("/attempt")
 async def get_attempt(request: web.Request) -> web.Response:
-    webserver: "WebServer" = request.app["sdk_webserver_app"]
+    webserver = request.app[SDK_WEBSERVER_APP_KEY]
     stored_state = webserver.state_storage.get(webserver.package_location)
     if not stored_state:
         return web.HTTPNotFound(reason="No question state found.")
@@ -93,7 +93,7 @@ async def get_attempt(request: web.Request) -> web.Response:
 
 
 async def _score_attempt(request: web.Request, data: dict) -> web.Response:
-    webserver: "WebServer" = request.app["sdk_webserver_app"]
+    webserver = request.app[SDK_WEBSERVER_APP_KEY]
 
     stored_state = webserver.state_storage.get(webserver.package_location)
     if not stored_state:
