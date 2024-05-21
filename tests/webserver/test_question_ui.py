@@ -1,55 +1,89 @@
 #  This file is part of the QuestionPy SDK. (https://questionpy.org)
 #  The QuestionPy SDK is free software released under terms of the MIT license. See LICENSE.md.
 #  (c) Technische Universität Berlin, innoCampus <info@isis.tu-berlin.de>
-from pathlib import Path
+from contextlib import suppress
+from importlib import resources
+from typing import Any
 
 import pytest
 
 from questionpy_sdk.webserver.question_ui import QuestionDisplayOptions, QuestionMetadata, QuestionUIRenderer
-from tests.webserver.conftest import compare_xhtml
+from tests.webserver.conftest import assert_xhtml_is_equal
 
 
-def test_should_extract_correct_metadata() -> None:
-    metadata_path = Path(__file__).parent / "question_uis/metadata.xhtml"
-    with metadata_path.open() as xml:
-        ui_renderer = QuestionUIRenderer(xml.read(), {})
-        question_metadata = ui_renderer.get_metadata()
+@pytest.fixture
+def xml_content(request: pytest.FixtureRequest) -> str | None:
+    marker = request.node.get_closest_marker("ui_file")
 
-        expected_metadata = QuestionMetadata()
-        expected_metadata.correct_response = {
-            "my_number": "42",
-            "my_select": "1",
-            "my_radio": "2",
-            "my_text": "Lorem ipsum dolor sit amet.",
+    if marker is None:
+        return None
+
+    filename = f"{marker.args[0]}.xhtml"
+    ui_files = resources.files("tests.webserver.question_uis")
+
+    try:
+        return next(path for path in ui_files.iterdir() if path.name == filename).read_text()
+    except StopIteration as err:
+        raise FileNotFoundError(ui_files / filename) from err
+
+
+@pytest.fixture
+def result(request: pytest.FixtureRequest, xml_content: str | None) -> str:
+    renderer_kwargs: dict[str, Any] = {"placeholders": {}, "xml": xml_content}
+    display_options: dict[str, Any] = {}
+    attempt = None
+
+    marker = request.node.get_closest_marker("render_params")
+    if marker is not None:
+        with suppress(KeyError):
+            renderer_kwargs |= marker.kwargs["renderer_kwargs"]
+        with suppress(KeyError):
+            display_options |= marker.kwargs["display_options"]
+        with suppress(KeyError):
+            attempt = marker.kwargs["attempt"]
+
+    renderer = QuestionUIRenderer(**renderer_kwargs)
+    return renderer.render(options=QuestionDisplayOptions(**display_options), attempt=attempt)
+
+
+@pytest.mark.ui_file("metadata")
+def test_should_extract_correct_metadata(xml_content: str) -> None:
+    ui_renderer = QuestionUIRenderer(xml_content, {})
+    question_metadata = ui_renderer.get_metadata()
+
+    expected_metadata = QuestionMetadata()
+    expected_metadata.correct_response = {
+        "my_number": "42",
+        "my_select": "1",
+        "my_radio": "2",
+        "my_text": "Lorem ipsum dolor sit amet.",
+    }
+    expected_metadata.expected_data = {
+        "my_number": "Any",
+        "my_select": "Any",
+        "my_radio": "Any",
+        "my_text": "Any",
+        "my_button": "Any",
+        "only_lowercase_letters": "Any",
+        "between_5_and_10_chars": "Any",
+    }
+    expected_metadata.required_fields = ["my_number"]
+
+    assert question_metadata.correct_response == expected_metadata.correct_response
+    assert question_metadata.expected_data == expected_metadata.expected_data
+    assert question_metadata.required_fields == expected_metadata.required_fields
+
+
+@pytest.mark.ui_file("placeholder")
+@pytest.mark.render_params(
+    renderer_kwargs={
+        "placeholders": {
+            "param": "Value of param <b>one</b>.<script>'Oh no, danger!'</script>",
+            "description": "My simple description.",
         }
-        expected_metadata.expected_data = {
-            "my_number": "Any",
-            "my_select": "Any",
-            "my_radio": "Any",
-            "my_text": "Any",
-            "my_button": "Any",
-            "only_lowercase_letters": "Any",
-            "between_5_and_10_chars": "Any",
-        }
-        expected_metadata.required_fields = ["my_number"]
-
-        assert question_metadata.correct_response == expected_metadata.correct_response
-        assert question_metadata.expected_data == expected_metadata.expected_data
-        assert question_metadata.required_fields == expected_metadata.required_fields
-
-
-def test_should_resolve_placeholders() -> None:
-    placeholder_path = Path(__file__).parent / "question_uis/placeholder.xhtml"
-    with placeholder_path.open() as xml:
-        renderer = QuestionUIRenderer(
-            xml=xml.read(),
-            placeholders={
-                "param": "Value of param <b>one</b>.<script>'Oh no, danger!'</script>",
-                "description": "My simple description.",
-            },
-        )
-        result = renderer.render()
-
+    },
+)
+def test_should_resolve_placeholders(result: str) -> None:
     # TODO: remove <string> surrounding the resolved placeholder
     expected = """
     <div>
@@ -63,43 +97,30 @@ def test_should_resolve_placeholders() -> None:
     </div>
     """
 
-    assert compare_xhtml(result, expected)
+    assert_xhtml_is_equal(result, expected)
 
 
-def test_should_hide_inline_feedback() -> None:
-    options = QuestionDisplayOptions()
-    options.general_feedback = False
-    options.feedback = False
-
-    feedback_path = Path(__file__).parent / "question_uis/feedbacks.xhtml"
-    with feedback_path.open() as xml:
-        renderer = QuestionUIRenderer(xml=xml.read(), placeholders={})
-        result = renderer.render(options=options)
-
+@pytest.mark.ui_file("feedbacks")
+@pytest.mark.render_params(display_options={"general_feedback": False, "feedback": False})
+def test_should_hide_inline_feedback(result: str) -> None:
     expected = """
-    <div>
-    <span>No feedback</span>
-    </div>
+        <div>
+            <span>No feedback</span>
+        </div>
     """
-    assert compare_xhtml(result, expected)
+    assert_xhtml_is_equal(result, expected)
 
 
-def test_should_show_inline_feedback() -> None:
-    options = QuestionDisplayOptions()
-
-    feedback_path = Path(__file__).parent / "question_uis/feedbacks.xhtml"
-    with feedback_path.open() as xml:
-        renderer = QuestionUIRenderer(xml=xml.read(), placeholders={})
-        result = renderer.render(options=options)
-
+@pytest.mark.ui_file("feedbacks")
+def test_should_show_inline_feedback(result: str) -> None:
     expected = """
-    <div>
-    <span>No feedback</span>
-    <span>General feedback</span>
-    <span>Specific feedback</span>
-    </div>
+        <div>
+            <span>No feedback</span>
+            <span>General feedback</span>
+            <span>Specific feedback</span>
+        </div>
     """
-    assert compare_xhtml(result, expected)
+    assert_xhtml_is_equal(result, expected)
 
 
 @pytest.mark.parametrize(
@@ -107,128 +128,148 @@ def test_should_show_inline_feedback() -> None:
     [
         (
             "guest",
-            """
-     <div></div>
-     """,
+            "<div></div>",
         ),
         (
             "admin",
             """
-     <div>
-         <div>You're a teacher!</div>
-         <div>You're a developer!</div>
-         <div>You're a scorer!</div>
-         <div>You're a proctor!</div>
-         <div>You're any of the above!</div>
-     </div>
-     """,
+                <div>
+                    <div>You're a teacher!</div>
+                    <div>You're a developer!</div>
+                    <div>You're a scorer!</div>
+                    <div>You're a proctor!</div>
+                    <div>You're any of the above!</div>
+                </div>
+            """,
         ),
     ],
 )
-def test_element_visibility_based_on_role(user_context: str, expected: str) -> None:
+@pytest.mark.ui_file("if-role")
+def test_element_visibility_based_on_role(user_context: str, expected: str, xml_content: str) -> None:
     options = QuestionDisplayOptions()
     options.context["role"] = user_context
 
-    feedback_path = Path(__file__).parent / "question_uis/if-role.xhtml"
-    with feedback_path.open() as xml:
-        renderer = QuestionUIRenderer(xml=xml.read(), placeholders={})
-        result = renderer.render(options=options)
+    renderer = QuestionUIRenderer(xml_content, placeholders={})
+    result = renderer.render(options=options)
 
-    assert compare_xhtml(result, expected)
+    assert_xhtml_is_equal(result, expected)
 
 
-def test_should_soften_validations() -> None:
-    options = QuestionDisplayOptions()
-
-    validation_path = Path(__file__).parent / "question_uis/validations.xhtml"
-    with validation_path.open() as xml:
-        renderer = QuestionUIRenderer(xml=xml.read(), placeholders={})
-        result = renderer.render(options=options)
-
+@pytest.mark.ui_file("inputs")
+@pytest.mark.render_params(
+    attempt={
+        "my_text": "text user input",
+        "my_select": "2",
+        "my_textarea": "textarea user input",
+        "my_checkbox": "checkbox_value",
+        "my_radio": "radio_value_2",
+    }
+)
+def test_should_set_input_values(result: str) -> None:
     expected = """
-    <div>
-        <input data-qpy_required="true" aria-required="true"/>
-        <input data-qpy_pattern="^[a-z]+$"/>
-        <input data-qpy_minlength="5"/>
-        <input data-qpy_minlength="10"/>
-        <input data-qpy_min="17" aria-valuemin="17"/>
-        <input data-qpy_max="42" aria-valuemax="42"/>
-        <input data-qpy_pattern="^[a-z]+$" data-qpy_required="true" aria-required="true"
-               data-qpy_minlength="5" data-qpy_maxlength="10" data-qpy_min="17"
-               aria-valuemin="17" data-qpy_max="42" aria-valuemax="42"/>
-    </div>
+        <div>
+            <button name="my_button" type="button" class="btn btn-primary qpy-input">Button</button>
+            <input type="button" value="Submit" class="btn btn-primary qpy-input"/>
+            <input name="my_text" type="text" value="text user input" class="form-control qpy-input"/>
+            <select name="my_select" class="form-control qpy-input">
+                <option value="1">One</option>
+                <option value="2" selected="selected">Two</option>
+            </select>
+            <textarea name="my_textarea" class="form-control qpy-input">textarea user input</textarea>
+            <input name="my_checkbox" type="checkbox" value="checkbox_value" class="qpy-input" checked="checked"/>
+            <input name="my_radio" type="radio" value="radio_value_1" class="qpy-input"/>
+            <input name="my_radio" type="radio" value="radio_value_2" class="qpy-input" checked="checked"/>
+        </div>
+    """
+    assert_xhtml_is_equal(result, expected)
+
+
+@pytest.mark.ui_file("inputs")
+@pytest.mark.render_params(display_options={"readonly": True})
+def test_should_disable_inputs(result: str) -> None:
+    expected = """
+        <div>
+            <button name="my_button" type="button" disabled="disabled" class="btn btn-primary qpy-input">Button</button>
+            <input type="button" value="Submit" disabled="disabled" class="btn btn-primary qpy-input"/>
+            <input name="my_text" type="text" value="some_value" disabled="disabled" class="form-control qpy-input"/>
+            <select name="my_select" disabled="disabled" class="form-control qpy-input">
+                <option value="1">One</option>
+                <option value="2">Two</option>
+            </select>
+            <textarea name="my_textarea" disabled="disabled" class="form-control qpy-input"/>
+            <input name="my_checkbox" type="checkbox" value="checkbox_value" disabled="disabled" class="qpy-input"/>
+            <input name="my_radio" type="radio" value="radio_value_1" disabled="disabled" class="qpy-input"/>
+            <input name="my_radio" type="radio" value="radio_value_2" disabled="disabled" class="qpy-input"/>
+        </div>
+    """
+    assert_xhtml_is_equal(result, expected)
+
+
+@pytest.mark.ui_file("validations")
+def test_should_soften_validations(result: str) -> None:
+    expected = """
+        <div>
+            <input data-qpy_required="true" aria-required="true"/>
+            <input data-qpy_pattern="^[a-z]+$"/>
+            <input data-qpy_minlength="5"/>
+            <input data-qpy_minlength="10"/>
+            <input data-qpy_min="17" aria-valuemin="17"/>
+            <input data-qpy_max="42" aria-valuemax="42"/>
+            <input data-qpy_pattern="^[a-z]+$" data-qpy_required="true" aria-required="true"
+                data-qpy_minlength="5" data-qpy_maxlength="10" data-qpy_min="17"
+                aria-valuemin="17" data-qpy_max="42" aria-valuemax="42"/>
+        </div>
     """
 
-    assert compare_xhtml(result, expected)
+    assert_xhtml_is_equal(result, expected)
 
 
-def test_should_defuse_buttons() -> None:
-    options = QuestionDisplayOptions()
-
-    feedback_path = Path(__file__).parent / "question_uis/buttons.xhtml"
-    with feedback_path.open() as xml:
-        renderer = QuestionUIRenderer(xml=xml.read(), placeholders={})
-        result = renderer.render(options=options)
-
+@pytest.mark.ui_file("buttons")
+def test_should_defuse_buttons(result: str) -> None:
     expected = """
-    <div>
-        <button class="btn btn-primary qpy-input" type="button">Submit</button>
-        <button class="btn btn-primary qpy-input" type="button">Reset</button>
-        <button class="btn btn-primary qpy-input" type="button">Button</button>
+        <div>
+            <button class="btn btn-primary qpy-input" type="button">Submit</button>
+            <button class="btn btn-primary qpy-input" type="button">Reset</button>
+            <button class="btn btn-primary qpy-input" type="button">Button</button>
 
-        <input class="btn btn-primary qpy-input" type="button" value="Submit"/>
-        <input class="btn btn-primary qpy-input" type="button" value="Reset"/>
-        <input class="btn btn-primary qpy-input" type="button" value="Button"/>
-    </div>
+            <input class="btn btn-primary qpy-input" type="button" value="Submit"/>
+            <input class="btn btn-primary qpy-input" type="button" value="Reset"/>
+            <input class="btn btn-primary qpy-input" type="button" value="Button"/>
+        </div>
     """
-    assert compare_xhtml(result, expected)
+    assert_xhtml_is_equal(result, expected)
 
 
 @pytest.mark.skip("""1. The text directly in the root of <qpy:formulation> is not copied in render_part.
-                    2. format_floats adds decimal 0 to numbers without decimal part""")
-def test_should_format_floats_in_en() -> None:
-    options = QuestionDisplayOptions()
-
-    feedback_path = Path(__file__).parent / "question_uis/format-floats.xhtml"
-    with feedback_path.open() as xml:
-        renderer = QuestionUIRenderer(xml=xml.read(), placeholders={})
-        result = renderer.render(options=options)
-
+                     2. format_floats adds decimal 0 to numbers without decimal part""")
+@pytest.mark.ui_file("format-floats")
+def test_should_format_floats_in_en(result: str) -> None:
     expected = """
-    <div>
-        Just the decsep: <span>1.23456</span>
-        Thousands sep without decimals: <span>1,000,000,000</span>
-        Thousands sep with decimals: <span>10,000,000,000.123</span>
-        Round down: <span>1.11</span>
-        Round up: <span>1.12</span>
-        Pad with zeros: <span>1.10000</span>
-        Strip zeros: <span>1.1</span>
-    </div>
+        <div>
+            Just the decsep: <span>1.23456</span>
+            Thousands sep without decimals: <span>1,000,000,000</span>
+            Thousands sep with decimals: <span>10,000,000,000.123</span>
+            Round down: <span>1.11</span>
+            Round up: <span>1.12</span>
+            Pad with zeros: <span>1.10000</span>
+            Strip zeros: <span>1.1</span>
+        </div>
     """
-    assert compare_xhtml(result, expected)
+    assert_xhtml_is_equal(result, expected)
 
 
-def test_should_shuffle_the_same_way_in_same_attempt() -> None:
-    feedback_path = Path(__file__).parent / "question_uis/shuffle.xhtml"
-    with feedback_path.open() as xml:
-        input_xml = xml.read()
-
-    renderer = QuestionUIRenderer(xml=input_xml, placeholders={}, seed=42)
-    first_result = renderer.render()
+@pytest.mark.ui_file("shuffle")
+@pytest.mark.render_params(renderer_kwargs={"seed": 42})
+def test_should_shuffle_the_same_way_in_same_attempt(result: str, xml_content: str) -> None:
     for _ in range(10):
-        renderer = QuestionUIRenderer(xml=input_xml, placeholders={}, seed=42)
-        result = renderer.render()
-        assert first_result == result, "Shuffled order should remain consistent across renderings with the same seed"
+        renderer = QuestionUIRenderer(xml_content, placeholders={}, seed=42)
+        other_result = renderer.render()
+        assert result == other_result, "Shuffled order should remain consistent across renderings with the same seed"
 
 
-def test_should_replace_shuffled_index() -> None:
-    feedback_path = Path(__file__).parent / "question_uis/shuffled-index.xhtml"
-    with feedback_path.open() as xml:
-        input_xml = xml.read()
-
-    renderer = QuestionUIRenderer(xml=input_xml, placeholders={}, seed=42)
-    result = renderer.render()
-
+@pytest.mark.ui_file("shuffled-index")
+@pytest.mark.render_params(renderer_kwargs={"seed": 42})
+def test_should_replace_shuffled_index(result: str) -> None:
     expected = """
         <div>
             <fieldset>
@@ -247,25 +288,26 @@ def test_should_replace_shuffled_index() -> None:
             </fieldset>
         </div>
         """
-    assert compare_xhtml(result, expected)
+    assert_xhtml_is_equal(result, expected)
 
 
-def test_clean_up() -> None:
-    xml_content = """
-    <div xmlns:qpy="http://questionpy.org/ns/question">
-        <qpy:element>Text</qpy:element>
-        <element qpy:attribute="value">Content</element>
-        <!-- Comment -->
-        <regular xmlns:qpy="http://questionpy.org/ns/question">Normal Content</regular>
-    </div>
-    """
-    renderer = QuestionUIRenderer(xml=xml_content, placeholders={})
-    result = renderer.render()
-
+@pytest.mark.render_params(
+    renderer_kwargs={
+        "xml": """
+            <div xmlns:qpy="http://questionpy.org/ns/question">
+                <qpy:element>Text</qpy:element>
+                <element qpy:attribute="value">Content</element>
+                <!-- Comment -->
+                <regular xmlns:qpy="http://questionpy.org/ns/question">Normal Content</regular>
+            </div>
+        """,
+    }
+)
+def test_clean_up(result: str) -> None:
     expected = """
-    <div>
-        <element>Content</element>
-        <regular>Normal Content</regular>
-    </div>
+        <div>
+            <element>Content</element>
+            <regular>Normal Content</regular>
+        </div>
     """
-    assert compare_xhtml(result, expected)
+    assert_xhtml_is_equal(result, expected)

@@ -68,7 +68,7 @@ allow-dunder-method-names = ["__get_pydantic_core_schema__"]
 addopts = "--doctest-modules"
 # https://github.com/pytest-dev/pytest-asyncio#auto-mode
 asyncio_mode = "auto"
-markers = ["source_pkg"]
+markers = ["render_params", "source_pkg", "ui_file"]
 
 # This section is read automatically by Coverage.py when its working directory is .
 # https://coverage.readthedocs.io/en/6.5.0/config.html#configuration-reference
