@@ -12,6 +12,7 @@ import pytest
 import yaml
 from click.testing import CliRunner
 
+from questionpy_common.constants import DIST_DIR, MANIFEST_FILENAME
 from questionpy_sdk.commands.package import package
 from questionpy_sdk.constants import PACKAGE_CONFIG_FILENAME
 from questionpy_sdk.models import PackageConfig
@@ -170,6 +171,43 @@ def test_package_with_force_and_existing_file(runner: CliRunner, cwd: Path) -> N
 
     assert "Successfully created 'source.qpy'." in result.stdout
     assert result.exit_code == 0
+
+
+def test_package_without_sources(runner: CliRunner, cwd: Path) -> None:
+    create_source_directory(cwd, "source")
+    result = runner.invoke(package, ["source", "--without-sources", "--out", "source.qpy"])
+
+    assert result.exit_code == 0
+    with ZipFile(cwd / "source.qpy") as qpy_file:
+        filenames = [zipinfo.filename for zipinfo in qpy_file.infolist()]
+        assert PACKAGE_CONFIG_FILENAME not in filenames
+        assert "python/local/short_name/__init__.py" not in filenames
+
+
+def test_package_with_dev(runner: CliRunner, cwd: Path) -> None:
+    create_source_directory(cwd, "source")
+    result = runner.invoke(package, ["source", "--dev"])
+
+    assert result.exit_code == 0
+    assert (cwd / "source" / DIST_DIR).is_dir()
+    assert (cwd / "source" / DIST_DIR / MANIFEST_FILENAME).is_file()
+    assert (cwd / "source" / DIST_DIR / "python" / "local" / "short_name" / "__init__.py").is_file()
+
+
+@pytest.mark.parametrize(
+    ("params", "expected_msg"),
+    [
+        (("--out", "source.qpy", "--dev"), "The options --out and --dev are mutually exclusive."),
+        (("--without-sources", "--dev"), "The options --without-sources and --dev are mutually exclusive."),
+        (("--force", "--dev"), "The options --force and --dev are mutually exclusive."),
+    ],
+)
+def test_mutually_exclusive_options(params: tuple[str], expected_msg: str, runner: CliRunner, cwd: Path) -> None:
+    create_source_directory(cwd, "source")
+    result = runner.invoke(package, [*params, "source"])
+
+    assert expected_msg in result.stdout
+    assert result.exit_code != 0
 
 
 def test_installing_requirement_fails(runner: CliRunner, cwd: Path, monkeypatch: pytest.MonkeyPatch) -> None:
