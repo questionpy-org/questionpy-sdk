@@ -299,6 +299,8 @@ class QuestionUIRenderer:
                         if opt_value == last_value:
                             option.set("selected", "selected")
                             break
+                elif type_attr == "textarea":
+                    element.text = last_value
                 elif type_attr not in {"button", "submit", "hidden"}:
                     element.set("value", last_value)
 
