@@ -4,28 +4,55 @@
 
 import compileall
 import subprocess
-from collections.abc import Iterable
+import sys
+from importlib import import_module
 from pathlib import Path
 from typing import Any
+from zipfile import ZipFile
 
 import pytest
 import yaml
 
+from questionpy_common.constants import DIST_DIR, MANIFEST_FILENAME
 from questionpy_sdk.constants import PACKAGE_CONFIG_FILENAME
-from questionpy_sdk.package.builder import PackageBuilder
+from questionpy_sdk.package.builder import DirPackageBuilder, ZipPackageBuilder
 from questionpy_sdk.package.errors import PackageBuildError
 from questionpy_sdk.package.source import PackageSource
 
 
 @pytest.fixture
-def builder(tmp_path: Path, source_path: Path) -> Iterable[PackageBuilder]:
-    with PackageBuilder(tmp_path / "package.qpy", PackageSource(source_path)) as builder:
+def qpy_pkg_path(tmp_path: Path, source_path: Path) -> Path:
+    qpy_path = tmp_path / "package.qpy"
+    with ZipPackageBuilder(qpy_path, PackageSource(source_path)) as builder:
         builder.write_package()
-        yield builder
+    return qpy_path
 
 
-def test_installs_questionpy(builder: PackageBuilder) -> None:
-    assert builder.getinfo("dependencies/site-packages/questionpy/__init__.py")
+def test_installs_questionpy(qpy_pkg_path: Path) -> None:
+    with ZipFile(qpy_pkg_path) as zipfile:
+        assert zipfile.getinfo(f"{DIST_DIR}/dependencies/site-packages/questionpy/__init__.py")
+
+
+# test a somewhat elusive bug that surfaces when trying to import a module from a zipfile. zipimport appears to
+# depend on the existence of explicit directory entries inside the zip file.
+def test_creates_proper_directory_entries(qpy_pkg_path: Path) -> None:
+    with ZipFile(qpy_pkg_path) as zipfile:
+        assert zipfile.getinfo(f"{DIST_DIR}/").is_dir()
+        assert zipfile.getinfo(f"{DIST_DIR}/python/").is_dir()
+        assert zipfile.getinfo(f"{DIST_DIR}/python/local/").is_dir()
+        assert zipfile.getinfo(f"{DIST_DIR}/python/local/minimal_example/").is_dir()
+        assert zipfile.getinfo(f"{DIST_DIR}/python/local/minimal_example/templates/").is_dir()
+        assert zipfile.getinfo(f"{DIST_DIR}/dependencies/").is_dir()
+        assert zipfile.getinfo(f"{DIST_DIR}/dependencies/site-packages/").is_dir()
+        assert zipfile.getinfo(f"{DIST_DIR}/dependencies/site-packages/questionpy/").is_dir()
+
+    # actually import from the zip file to make sure things work
+    try:
+        sys.path.insert(0, str(qpy_pkg_path / f"{DIST_DIR}/python"))
+        pkg_module = import_module("local.minimal_example")
+        assert callable(pkg_module.init)
+    finally:
+        sys.path.pop(0)
 
 
 def test_installs_requirements_list(tmp_path: Path, source_path: Path) -> None:
@@ -36,10 +63,13 @@ def test_installs_requirements_list(tmp_path: Path, source_path: Path) -> None:
     with config_path.open("w") as f:
         yaml.dump(config, f)
 
-    with PackageBuilder(tmp_path / "package.qpy", PackageSource(source_path)) as builder:
+    qpy_pkg_path = tmp_path / "package.qpy"
+    with ZipPackageBuilder(qpy_pkg_path, PackageSource(source_path)) as builder:
         builder.write_package()
-        assert builder.getinfo("dependencies/site-packages/attrs/__init__.py")
-        assert builder.getinfo("dependencies/site-packages/pytz/__init__.py")
+
+    with ZipFile(qpy_pkg_path) as zipfile:
+        assert zipfile.getinfo(f"{DIST_DIR}/dependencies/site-packages/attrs/__init__.py")
+        assert zipfile.getinfo(f"{DIST_DIR}/dependencies/site-packages/pytz/__init__.py")
 
 
 def test_installs_requirements_txt(tmp_path: Path, source_path: Path) -> None:
@@ -53,10 +83,13 @@ def test_installs_requirements_txt(tmp_path: Path, source_path: Path) -> None:
         f.write("attrs==23.2.0\n")
         f.write("pytz==2024.1\n")
 
-    with PackageBuilder(tmp_path / "package.qpy", PackageSource(source_path)) as builder:
+    qpy_pkg_path = tmp_path / "package.qpy"
+    with ZipPackageBuilder(qpy_pkg_path, PackageSource(source_path)) as builder:
         builder.write_package()
-        assert builder.getinfo("dependencies/site-packages/attrs/__init__.py")
-        assert builder.getinfo("dependencies/site-packages/pytz/__init__.py")
+
+    with ZipFile(qpy_pkg_path) as zipfile:
+        assert zipfile.getinfo(f"{DIST_DIR}/dependencies/site-packages/attrs/__init__.py")
+        assert zipfile.getinfo(f"{DIST_DIR}/dependencies/site-packages/pytz/__init__.py")
 
 
 def test_invalid_requirement_raises_error(source_path: Path, tmp_path: Path, monkeypatch: pytest.MonkeyPatch) -> None:
@@ -70,7 +103,7 @@ def test_invalid_requirement_raises_error(source_path: Path, tmp_path: Path, mon
         mp.setattr(subprocess, "run", mock_run)
         with (
             pytest.raises(PackageBuildError) as exc,
-            PackageBuilder(tmp_path / "package.qpy", package_source) as builder,
+            ZipPackageBuilder(tmp_path / "package.qpy", package_source) as builder,
         ):
             builder.write_package()
 
@@ -78,13 +111,15 @@ def test_invalid_requirement_raises_error(source_path: Path, tmp_path: Path, mon
 
 
 @pytest.mark.source_pkg("javascript")
-def test_writes_package_files(builder: PackageBuilder) -> None:
-    assert builder.getinfo("python/local/js_example/__init__.py")
-    assert builder.getinfo("js/test.js")
+def test_writes_package_files(qpy_pkg_path: Path) -> None:
+    with ZipFile(qpy_pkg_path) as zipfile:
+        assert zipfile.getinfo(f"{DIST_DIR}/python/local/js_example/__init__.py")
+        assert zipfile.getinfo(f"{DIST_DIR}/js/test.js")
 
 
-def test_writes_manifest(builder: PackageBuilder) -> None:
-    assert builder.getinfo("qpy_manifest.json")
+def test_writes_manifest(qpy_pkg_path: Path) -> None:
+    with ZipFile(qpy_pkg_path) as zipfile:
+        assert zipfile.getinfo(f"{DIST_DIR}/{MANIFEST_FILENAME}")
 
 
 def test_runs_pre_build_hook(tmp_path: Path, source_path: Path) -> None:
@@ -97,9 +132,12 @@ def test_runs_pre_build_hook(tmp_path: Path, source_path: Path) -> None:
     with config_path.open("w") as f:
         yaml.dump(config, f)
 
-    with PackageBuilder(tmp_path / "package.qpy", PackageSource(source_path)) as builder:
+    qpy_pkg_path = tmp_path / "package.qpy"
+    with ZipPackageBuilder(qpy_pkg_path, PackageSource(source_path)) as builder:
         builder.write_package()
-        assert builder.getinfo("static/my_custom_pre_build_hook")
+
+    with ZipFile(qpy_pkg_path) as zipfile:
+        assert zipfile.getinfo(f"{DIST_DIR}/static/my_custom_pre_build_hook")
 
 
 @pytest.mark.source_pkg("javascript")
@@ -111,7 +149,7 @@ def test_runs_post_build_hook(tmp_path: Path, source_path: Path) -> None:
     with config_path.open("w") as f:
         yaml.dump(config, f)
 
-    with PackageBuilder(tmp_path / "package.qpy", PackageSource(source_path)) as builder:
+    with ZipPackageBuilder(tmp_path / "package.qpy", PackageSource(source_path)) as builder:
         builder.write_package()
 
     assert not (source_path / "js" / "test.js").exists()
@@ -127,7 +165,7 @@ def test_runs_build_hook_fails(hook: str, tmp_path: Path, source_path: Path) -> 
         yaml.dump(config, f)
 
     with (
-        PackageBuilder(tmp_path / "package.qpy", PackageSource(source_path)) as builder,
+        ZipPackageBuilder(tmp_path / "package.qpy", PackageSource(source_path)) as builder,
         pytest.raises(PackageBuildError) as exc,
     ):
         builder.write_package()
@@ -141,9 +179,36 @@ def test_skips_python_bytecode(tmp_path: Path, source_path: Path) -> None:
     compileall.compile_dir(py_sources, quiet=1)
     assert next((py_sources / "__pycache__").glob("__init__*.pyc"))  # don't hardcode Python version
 
-    with PackageBuilder(tmp_path / "package.qpy", PackageSource(source_path)) as builder:
+    qpy_pkg_path = tmp_path / "package.qpy"
+    with ZipPackageBuilder(qpy_pkg_path, PackageSource(source_path)) as builder:
         builder.write_package()
+
+    with ZipFile(qpy_pkg_path) as zipfile:
         assert not any(
             Path(info.filename).parts[-1] == "__pycache__" if info.is_dir() else info.filename.endswith(".pyc")
-            for info in builder.infolist()
+            for info in zipfile.infolist()
         )
+
+
+@pytest.mark.parametrize("copy_sources", [True, False])
+def test_copy_sources(copy_sources: bool, tmp_path: Path, source_path: Path) -> None:
+    qpy_pkg_path = tmp_path / "package.qpy"
+
+    with ZipPackageBuilder(qpy_pkg_path, PackageSource(source_path), copy_sources=copy_sources) as builder:
+        builder.write_package()
+
+    with ZipFile(qpy_pkg_path) as zipfile:
+        filenames = [zipinfo.filename for zipinfo in zipfile.infolist()]
+        assert (PACKAGE_CONFIG_FILENAME in filenames) == copy_sources
+        assert (".gitignore" in filenames) == copy_sources
+        assert ("python/local/minimal_example/__init__.py" in filenames) == copy_sources
+
+
+def test_dir_package_builder(tmp_path: Path, source_path: Path) -> None:
+    with DirPackageBuilder(PackageSource(source_path)) as builder:
+        builder.write_package()
+
+    dist_dir = source_path / DIST_DIR
+    assert (dist_dir / MANIFEST_FILENAME).is_file()
+    assert (dist_dir / "python" / "local" / "minimal_example" / "__init__.py").is_file()
+    assert (dist_dir / "dependencies" / "site-packages" / "questionpy" / "__init__.py").is_file()
