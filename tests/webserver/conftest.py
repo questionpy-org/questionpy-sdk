@@ -76,7 +76,7 @@ def normalize_element(element: etree._Element) -> etree._Element:
     return element
 
 
-def compare_xhtml(xhtml1: str, xhtml2: str) -> bool:
+def assert_xhtml_is_equal(xhtml1: str, xhtml2: str) -> None:
     parser = etree.XMLParser(remove_blank_text=True)
     tree1 = etree.fromstring(xhtml1, parser)
     tree2 = etree.fromstring(xhtml2, parser)
@@ -84,4 +84,4 @@ def compare_xhtml(xhtml1: str, xhtml2: str) -> bool:
     normalize_element(tree1)
     normalize_element(tree2)
 
-    return etree.tostring(tree1, method="c14n") == etree.tostring(tree2, method="c14n")
+    assert etree.tostring(tree1, method="c14n") == etree.tostring(tree2, method="c14n")
