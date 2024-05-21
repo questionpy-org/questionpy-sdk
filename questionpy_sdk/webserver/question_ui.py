@@ -11,7 +11,7 @@ from lxml.html.clean import Cleaner
 from pydantic import BaseModel
 
 
-def assert_element_list(query: Any) -> list[etree._Element]:
+def _assert_element_list(query: Any) -> list[etree._Element]:
     """Checks if the XPath query result is a list of Elements.
 
     - If it is, returns the list.
@@ -33,42 +33,35 @@ def assert_element_list(query: Any) -> list[etree._Element]:
     return query
 
 
-class QuestionMetadata:
-    def __init__(self) -> None:
-        self.correct_response: dict[str, str] = {}
-        self.expected_data: dict[str, str] = {}
-        self.required_fields: list[str] = []
+def _set_element_value(element: etree._Element, value: str, name: str, xpath: etree.XPathDocumentEvaluator) -> None:
+    """Sets value on user input element.
+
+    Args:
+        element: XHTML element to set value on.
+        value: Value to set.
+        name: Element name.
+        xpath: XPath evaluator.
+    """
+    type_attr = element.get("type", "text") if element.tag.endswith("}input") else etree.QName(element).localname
+
+    if type_attr in {"checkbox", "radio"}:
+        if element.get("value") == value:
+            element.set("checked", "checked")
+    elif type_attr == "select":
+        # Iterate over child <option> elements to set 'selected' attribute
+        for option in _assert_element_list(xpath(f".//xhtml:option[parent::xhtml:select[@name='{name}']]")):
+            opt_value = option.get("value") if option.get("value") is not None else option.text
+            if opt_value == value:
+                option.set("selected", "selected")
+                break
+    elif type_attr == "textarea":
+        element.text = value
+    elif type_attr not in {"button", "submit", "hidden"}:
+        element.set("value", value)
 
 
-class QuestionDisplayOptions(BaseModel):
-    general_feedback: bool = True
-    feedback: bool = True
-    right_answer: bool = True
-    context: dict = {}
-    readonly: bool = False
-
-
-def int_to_letter(index: int) -> str:
-    """Converts an integer to its corresponding letter (1 -> a, 2 -> b, etc.)."""
-    return chr(ord("a") + index - 1)
-
-
-def int_to_roman(index: int) -> str:
-    """Converts an integer to its Roman numeral representation. Simplified version."""
-    val = [1000, 900, 500, 400, 100, 90, 50, 40, 10, 9, 5, 4, 1]
-    syb = ["M", "CM", "D", "CD", "C", "XC", "L", "XL", "X", "IX", "V", "IV", "I"]
-    roman_num = ""
-    i = 0
-    while index > 0:
-        for _ in range(index // val[i]):
-            roman_num += syb[i]
-            index -= val[i]
-        i += 1
-    return roman_num
-
-
-def replace_shuffled_indices(element: etree._Element, index: int) -> None:
-    for index_element in assert_element_list(
+def _replace_shuffled_indices(element: etree._Element, index: int) -> None:
+    for index_element in _assert_element_list(
         element.xpath(".//qpy:shuffled-index", namespaces={"qpy": QuestionUIRenderer.QPY_NAMESPACE})
     ):
         format_style = index_element.get("format", "123")
@@ -76,13 +69,13 @@ def replace_shuffled_indices(element: etree._Element, index: int) -> None:
         if format_style == "123":
             index_str = str(index)
         elif format_style == "abc":
-            index_str = int_to_letter(index).lower()
+            index_str = _int_to_letter(index).lower()
         elif format_style == "ABC":
-            index_str = int_to_letter(index).upper()
+            index_str = _int_to_letter(index).upper()
         elif format_style == "iii":
-            index_str = int_to_roman(index).lower()
+            index_str = _int_to_roman(index).lower()
         elif format_style == "III":
-            index_str = int_to_roman(index).upper()
+            index_str = _int_to_roman(index).upper()
         else:
             index_str = str(index)
 
@@ -96,6 +89,40 @@ def replace_shuffled_indices(element: etree._Element, index: int) -> None:
         parent = index_element.getparent()
         if parent is not None:
             parent.replace(index_element, new_text_node)
+
+
+def _int_to_letter(index: int) -> str:
+    """Converts an integer to its corresponding letter (1 -> a, 2 -> b, etc.)."""
+    return chr(ord("a") + index - 1)
+
+
+def _int_to_roman(index: int) -> str:
+    """Converts an integer to its Roman numeral representation. Simplified version."""
+    val = [1000, 900, 500, 400, 100, 90, 50, 40, 10, 9, 5, 4, 1]
+    syb = ["M", "CM", "D", "CD", "C", "XC", "L", "XL", "X", "IX", "V", "IV", "I"]
+    roman_num = ""
+    i = 0
+    while index > 0:
+        for _ in range(index // val[i]):
+            roman_num += syb[i]
+            index -= val[i]
+        i += 1
+    return roman_num
+
+
+class QuestionMetadata:
+    def __init__(self) -> None:
+        self.correct_response: dict[str, str] = {}
+        self.expected_data: dict[str, str] = {}
+        self.required_fields: list[str] = []
+
+
+class QuestionDisplayOptions(BaseModel):
+    general_feedback: bool = True
+    feedback: bool = True
+    right_answer: bool = True
+    context: dict = {}
+    readonly: bool = False
 
 
 class QuestionUIRenderer:
@@ -152,27 +179,27 @@ class QuestionUIRenderer:
         xpath.register_namespace("xhtml", self.XHTML_NAMESPACE)
         xpath.register_namespace("qpy", self.QPY_NAMESPACE)
 
-        self.resolve_placeholders(xpath)
-        self.hide_unwanted_feedback(xpath, options)
-        self.hide_if_role(xpath, options)
-        self.set_input_values_and_readonly(xpath, attempt, options)
-        self.soften_validation(xpath)
-        self.defuse_buttons(xpath)
-        self.shuffle_contents(xpath)
-        self.add_styles(xpath)
-        self.format_floats(xpath)
+        self._resolve_placeholders(xpath)
+        self._hide_unwanted_feedback(xpath, options)
+        self._hide_if_role(xpath, options)
+        self._set_input_values_and_readonly(xpath, attempt, options)
+        self._soften_validation(xpath)
+        self._defuse_buttons(xpath)
+        self._shuffle_contents(xpath)
+        self._add_styles(xpath)
+        self._format_floats(xpath)
         # TODO: mangle_ids_and_names
-        self.clean_up(newdoc, xpath)
+        self._clean_up(newdoc, xpath)
 
         return etree.tostring(newdoc, pretty_print=True).decode()
 
-    def resolve_placeholders(self, xpath: etree.XPathDocumentEvaluator) -> None:
+    def _resolve_placeholders(self, xpath: etree.XPathDocumentEvaluator) -> None:
         """Replace placeholder PIs such as `<?p my_key plain?>` with the appropriate value from `self.placeholders`.
 
         Since QPy transformations should not be applied to the content of the placeholders, this method should be called
         last.
         """
-        for p_instruction in assert_element_list(xpath("//processing-instruction('p')")):
+        for p_instruction in _assert_element_list(xpath("//processing-instruction('p')")):
             if not p_instruction.text:
                 continue
             parts = p_instruction.text.strip().split()
@@ -216,14 +243,14 @@ class QuestionUIRenderer:
             p_instruction.addnext(etree.fromstring(f"<string>{replacement}</string>"))
             parent.remove(p_instruction)
 
-    def hide_unwanted_feedback(
+    def _hide_unwanted_feedback(
         self, xpath: etree.XPathDocumentEvaluator, options: QuestionDisplayOptions | None = None
     ) -> None:
         """Hides elements marked with `qpy:feedback` if the type of feedback is disabled in `options`."""
         if not options:
             return
 
-        for element in assert_element_list(xpath("//*[@qpy:feedback]")):
+        for element in _assert_element_list(xpath("//*[@qpy:feedback]")):
             feedback_type = element.get(f"{{{self.QPY_NAMESPACE}}}feedback")
 
             # Check conditions to remove the element
@@ -234,7 +261,7 @@ class QuestionUIRenderer:
                 if parent is not None:
                     parent.remove(element)
 
-    def hide_if_role(self, xpath: etree.XPathDocumentEvaluator, options: QuestionDisplayOptions | None = None) -> None:
+    def _hide_if_role(self, xpath: etree.XPathDocumentEvaluator, options: QuestionDisplayOptions | None = None) -> None:
         """Hides elements based on user role.
 
         Removes elements with `qpy:if-role` attributes if the user matches none of the given roles in this context.
@@ -242,7 +269,7 @@ class QuestionUIRenderer:
         if not options or options.context.get("role") == "admin":
             return
 
-        for element in assert_element_list(xpath("//*[@qpy:if-role]")):
+        for element in _assert_element_list(xpath("//*[@qpy:if-role]")):
             attr = element.attrib.get(f"{{{self.QPY_NAMESPACE}}}if-role")
             if attr is None:
                 continue
@@ -253,12 +280,8 @@ class QuestionUIRenderer:
                 if parent is not None:
                     parent.remove(element)
 
-    # TODO: refactor to reduce complexity
-    def set_input_values_and_readonly(  # noqa: C901
-        self,
-        xpath: etree.XPathDocumentEvaluator,
-        attempt: dict | None,
-        options: QuestionDisplayOptions | None = None,
+    def _set_input_values_and_readonly(
+        self, xpath: etree.XPathDocumentEvaluator, attempt: dict | None, options: QuestionDisplayOptions | None = None
     ) -> None:
         """Transforms input(-like) elements.
 
@@ -267,105 +290,70 @@ class QuestionUIRenderer:
 
         Requires the unmangled name of the element, so must be called `before` `mangle_ids_and_names`
         """
-        for element in assert_element_list(xpath("//xhtml:button | //xhtml:input | //xhtml:select | //xhtml:textarea")):
+        elements = _assert_element_list(xpath("//xhtml:button | //xhtml:input | //xhtml:select | //xhtml:textarea"))
+
+        for element in elements:
             # Disable the element if options specify readonly
             if options and options.readonly:
                 element.set("disabled", "disabled")
 
             name = element.get("name")
-            if not name:
-                continue
-
-            if element.tag.endswith("}input"):
-                type_attr = element.get("type", "text")
-            else:
-                local_name = str(etree.QName(element).localname)  # Extract the local name
-                type_attr = local_name.rsplit("}", maxsplit=1)[-1]
-
-            if not attempt:
+            if not name or not attempt:
                 continue
 
             last_value = attempt.get(name)
             if last_value is not None:
-                if type_attr in {"checkbox", "radio"}:
-                    if element.get("value") == last_value:
-                        element.set("checked", "checked")
-                elif type_attr == "select":
-                    # Iterate over child <option> elements to set 'selected' attribute
-                    for option in assert_element_list(xpath(f".//xhtml:option[parent::xhtml:select[@name='{name}']]")):
-                        opt_value = option.get("value") if option.get("value") is not None else option.text
-                        if opt_value == last_value:
-                            option.set("selected", "selected")
-                            break
-                elif type_attr == "textarea":
-                    element.text = last_value
-                elif type_attr not in {"button", "submit", "hidden"}:
-                    element.set("value", last_value)
+                _set_element_value(element, last_value, name, xpath)
 
-    # TODO: refactor to reduce complexity
-    def soften_validation(self, xpath: etree.XPathDocumentEvaluator) -> None:  # noqa: C901
+    def _soften_validation(self, xpath: etree.XPathDocumentEvaluator) -> None:
         """Replaces HTML attributes so that submission is not prevented.
 
         Removes attributes `pattern`, `required`, `minlength`, `maxlength`, `min`, `max` from elements, so form
         submission is not affected. The standard attributes are replaced with `data-qpy_X`, which are then evaluated in
         JavaScript.
         """
-        # Handle 'pattern' attribute for <input> elements
-        for element in assert_element_list(xpath(".//xhtml:input[@pattern]")):
-            pattern = element.get("pattern")
-            element.attrib.pop("pattern")  # Remove the attribute
-            if pattern:
-                element.set("data-qpy_pattern", pattern)
 
-        # Handle 'required' attribute for <input>, <select>, <textarea> elements
-        for element in assert_element_list(xpath("(.//xhtml:input | .//xhtml:select | .//xhtml:textarea)[@required]")):
-            element.attrib.pop("required")
-            element.set("data-qpy_required", "true")
-            element.set("aria-required", "true")
+        def handle_attribute(
+            elements: list[str], attribute: str, data_attribute: str, aria_attribute: str | None = None
+        ) -> None:
+            xhtml_elems = " | ".join(f".//xhtml:{elem}" for elem in elements)
+            element_list = _assert_element_list(xpath(f"({xhtml_elems})[@{attribute}]"))
+            for element in element_list:
+                value = element.get(attribute)
+                element.attrib.pop(attribute)
+                if value:
+                    value = "true" if value == attribute else value
+                    element.set(data_attribute, value)
+                    if aria_attribute:
+                        element.set(aria_attribute, value)
 
-        # Handle 'minlength' attribute for <input>, <textarea> elements
-        for element in assert_element_list(xpath("(.//xhtml:input | .//xhtml:textarea)[@minlength]")):
-            minlength = element.get("minlength")
-            element.attrib.pop("minlength")  # Remove the attribute
-            if minlength:
-                element.set("data-qpy_minlength", minlength)
+        # 'pattern' attribute for <input> elements
+        handle_attribute(["input"], "pattern", "data-qpy_pattern")
 
-        # Handle 'maxlength' attribute for <input>, <textarea> elements
-        for element in assert_element_list(xpath("(.//xhtml:input | .//xhtml:textarea)[@maxlength]")):
-            maxlength = element.get("maxlength")
-            element.attrib.pop("maxlength")
-            if maxlength:
-                element.set("data-qpy_maxlength", maxlength)
+        # 'required' attribute for <input>, <select>, <textarea> elements
+        handle_attribute(["input", "select", "textarea"], "required", "data-qpy_required", "aria-required")
 
-        # Handle 'min' attribute for <input> elements
-        for element in assert_element_list(xpath(".//xhtml:input[@min]")):
-            min_value = element.get("min")
-            element.attrib.pop("min")
-            if min_value:
-                element.set("data-qpy_min", min_value)
-                element.set("aria-valuemin", min_value)
+        # 'minlength'/'maxlength' attribute for <input>, <textarea> elements
+        handle_attribute(["input", "textarea"], "minlength", "data-qpy_minlength")
+        handle_attribute(["input", "textarea"], "maxlength", "data-qpy_maxlength")
 
-        # Handle 'max' attribute for <input> elements
-        for element in assert_element_list(xpath(".//xhtml:input[@max]")):
-            max_value = element.get("max")
-            element.attrib.pop("max")
-            if max_value:
-                element.set("data-qpy_max", max_value)
-                element.set("aria-valuemax", max_value)
+        # 'min'/'max' attributes for <input> elements
+        handle_attribute(["input"], "min", "data-qpy_min", "aria-valuemin")
+        handle_attribute(["input"], "max", "data-qpy_max", "aria-valuemax")
 
-    def defuse_buttons(self, xpath: etree.XPathDocumentEvaluator) -> None:
+    def _defuse_buttons(self, xpath: etree.XPathDocumentEvaluator) -> None:
         """Turns submit and reset buttons into simple buttons without a default action."""
-        for element in assert_element_list(
+        for element in _assert_element_list(
             xpath("(//xhtml:input | //xhtml:button)[@type = 'submit' or @type = 'reset']")
         ):
             element.set("type", "button")
 
-    def shuffle_contents(self, xpath: etree.XPathDocumentEvaluator) -> None:
+    def _shuffle_contents(self, xpath: etree.XPathDocumentEvaluator) -> None:
         """Shuffles children of elements marked with `qpy:shuffle-contents`.
 
         Also replaces `qpy:shuffled-index` elements which are descendants of each child with the new index of the child.
         """
-        for element in assert_element_list(xpath("//*[@qpy:shuffle-contents]")):
+        for element in _assert_element_list(xpath("//*[@qpy:shuffle-contents]")):
             # Collect child elements to shuffle them
             child_elements = [child for child in element if isinstance(child, etree._Element)]
             self._random.shuffle(child_elements)
@@ -374,32 +362,31 @@ class QuestionUIRenderer:
 
             # Reinsert shuffled elements, preserving non-element nodes
             for i, child in enumerate(child_elements):
-                replace_shuffled_indices(child, i + 1)
+                _replace_shuffled_indices(child, i + 1)
                 # Move each child element back to its parent at the correct position
                 element.append(child)
 
-    # TODO: refactor to reduce complexity
-    def clean_up(self, doc: etree._ElementTree, xpath: etree.XPathDocumentEvaluator) -> None:
+    def _clean_up(self, doc: etree._ElementTree, xpath: etree.XPathDocumentEvaluator) -> None:
         """Removes remaining QuestionPy elements and attributes as well as comments and xmlns declarations."""
-        for element in assert_element_list(xpath("//qpy:*")):
+        for element in _assert_element_list(xpath("//qpy:*")):
             parent = element.getparent()
             if parent is not None:
                 parent.remove(element)
 
         # Remove attributes in the QuestionPy namespace
-        for element in assert_element_list(xpath("//*")):
+        for element in _assert_element_list(xpath("//*")):
             qpy_attributes = [attr for attr in element.attrib if attr.startswith(f"{{{self.QPY_NAMESPACE}}}")]  # type: ignore[arg-type]
             for attr in qpy_attributes:
                 del element.attrib[attr]
 
         # Remove comments
-        for comment in assert_element_list(xpath("//comment()")):
+        for comment in _assert_element_list(xpath("//comment()")):
             parent = comment.getparent()
             if parent is not None:
                 parent.remove(comment)
 
         # Remove namespaces from all elements. (QPy elements should all have been consumed previously anyhow.)
-        for element in assert_element_list(xpath("//*")):
+        for element in _assert_element_list(xpath("//*")):
             qname = etree.QName(element)
             if qname.namespace == self.XHTML_NAMESPACE:
                 element.tag = qname.localname
@@ -414,10 +401,10 @@ class QuestionUIRenderer:
                 existing_classes.append(class_name)
         element.set("class", " ".join(existing_classes))
 
-    def add_styles(self, xpath: etree.XPathDocumentEvaluator) -> None:
+    def _add_styles(self, xpath: etree.XPathDocumentEvaluator) -> None:
         """Adds CSS classes to various elements."""
         # First group: input (not checkbox, radio, button, submit, reset), select, textarea
-        for element in assert_element_list(
+        for element in _assert_element_list(
             xpath("""
                 //xhtml:input[@type != 'checkbox' and @type != 'radio' and
                               @type != 'button' and @type != 'submit' and @type != 'reset']
@@ -427,7 +414,7 @@ class QuestionUIRenderer:
             self.add_class_names(element, "form-control", "qpy-input")
 
         # Second group: input (button, submit, reset), button
-        for element in assert_element_list(
+        for element in _assert_element_list(
             xpath("""
                 //xhtml:input[@type = 'button' or @type = 'submit' or @type = 'reset']
                 | //xhtml:button
@@ -436,10 +423,10 @@ class QuestionUIRenderer:
             self.add_class_names(element, "btn", "btn-primary", "qpy-input")
 
         # Third group: input (checkbox, radio)
-        for element in assert_element_list(xpath("//xhtml:input[@type = 'checkbox' or @type = 'radio']")):
+        for element in _assert_element_list(xpath("//xhtml:input[@type = 'checkbox' or @type = 'radio']")):
             self.add_class_names(element, "qpy-input")
 
-    def format_floats(self, xpath: etree.XPathDocumentEvaluator) -> None:
+    def _format_floats(self, xpath: etree.XPathDocumentEvaluator) -> None:
         """Handles `qpy:format-float`.
 
         Uses `format_float` and optionally adds thousands separators.
@@ -447,7 +434,7 @@ class QuestionUIRenderer:
         thousands_sep = ","  # Placeholder for thousands separator
         decimal_sep = "."  # Placeholder for decimal separator
 
-        for element in assert_element_list(xpath("//qpy:format-float")):
+        for element in _assert_element_list(xpath("//qpy:format-float")):
             if element.text is None:
                 continue
             float_val = float(element.text)
