@@ -6,9 +6,10 @@ import zipfile
 from pathlib import Path
 
 import click
+from pydantic import ValidationError
 
-from questionpy_sdk.package.errors import PackageSourceValidationError
-from questionpy_sdk.package.source import PackageSource
+from questionpy_common.constants import DIST_DIR, MANIFEST_FILENAME
+from questionpy_common.manifest import Manifest
 from questionpy_server.worker.runtime.package_location import (
     DirPackageLocation,
     FunctionPackageLocation,
@@ -17,18 +18,19 @@ from questionpy_server.worker.runtime.package_location import (
 )
 
 
-def read_package_source(source_path: Path) -> PackageSource:
-    try:
-        return PackageSource(source_path)
-    except PackageSourceValidationError as exc:
-        raise click.ClickException(str(exc)) from exc
-
-
 def infer_package_kind(string: str) -> PackageLocation:
     path = Path(string)
     if path.is_dir():
-        package_source = read_package_source(path)
-        return DirPackageLocation(path, package_source.config)
+        try:
+            with (path / DIST_DIR / MANIFEST_FILENAME).open() as fp:
+                manifest = Manifest.model_validate_json(fp.read())
+        except FileNotFoundError as exc:
+            msg = "Could not find package manifest. Did you forget to build the package?"
+            raise click.ClickException(msg) from exc
+        except (OSError, ValidationError, ValueError) as exc:
+            msg = "Failed to read package manifest."
+            raise click.ClickException(msg) from exc
+        return DirPackageLocation(path, manifest)
 
     if zipfile.is_zipfile(path):
         return ZipPackageLocation(path)

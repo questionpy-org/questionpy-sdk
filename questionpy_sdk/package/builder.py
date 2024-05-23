@@ -10,6 +10,7 @@ import subprocess
 import zipfile
 from abc import abstractmethod
 from contextlib import AbstractContextManager
+from mimetypes import guess_type
 from os import PathLike
 from pathlib import Path
 from tempfile import TemporaryDirectory
@@ -17,6 +18,7 @@ from types import TracebackType
 
 import questionpy
 from questionpy_common.constants import DIST_DIR, MANIFEST_FILENAME
+from questionpy_common.manifest import Manifest, PackageFile
 from questionpy_sdk.models import BuildHookName
 from questionpy_sdk.package.errors import PackageBuildError
 from questionpy_sdk.package.source import PackageSource
@@ -34,6 +36,7 @@ class PackageBuilderBase(AbstractContextManager):
     def __init__(self, source: PackageSource, *, copy_sources: bool):
         self._source = source
         self._copy_sources = copy_sources
+        self._static_files: dict[str, PackageFile] = {}
 
     def write_package(self) -> None:
         """Writes the package to the filesystem.
@@ -93,13 +96,17 @@ class PackageBuilderBase(AbstractContextManager):
     def _write_package_files(self) -> None:
         """Writes custom package files."""
         self._write_glob(self._source.path, "python/**/*", prefix=DIST_DIR)
-        self._write_glob(self._source.path, "static/**/*", prefix=DIST_DIR)
-        self._write_glob(self._source.path, "js/**/*", prefix=DIST_DIR)
+        self._write_glob(self._source.path, "css/**/*", prefix=DIST_DIR, add_to_static_files=True)
+        self._write_glob(self._source.path, "js/**/*", prefix=DIST_DIR, add_to_static_files=True)
+        self._write_glob(self._source.path, "static/**/*", prefix=DIST_DIR, add_to_static_files=True)
 
     def _write_manifest(self) -> None:
         """Writes package manifest."""
-        log.debug("%s: %s", MANIFEST_FILENAME, self._source.config)
-        self._write_string(Path(DIST_DIR) / MANIFEST_FILENAME, self._source.config.manifest.model_dump_json())
+        build_manifest_path = Path(DIST_DIR) / MANIFEST_FILENAME
+        source_manifest = self._source.config.manifest
+        manifest = Manifest(**source_manifest.model_dump(), static_files=self._static_files)
+        log.debug("%s: %s", MANIFEST_FILENAME, manifest)
+        self._write_string(build_manifest_path, manifest.model_dump_json())
 
     def _run_hook(self, cmd: str, hook_name: BuildHookName, num: int) -> None:
         log.info("Running %s hook[%d]: '%s'", hook_name, num, cmd)
@@ -131,13 +138,20 @@ class PackageBuilderBase(AbstractContextManager):
             log.debug("%s: %s", source_file, path_in_pkg)
             self._write_file(source_file, path_in_pkg)
 
-    def _write_glob(self, source_dir: Path, glob: str, prefix: str = "") -> None:
+    def _write_glob(self, source_dir: Path, glob: str, prefix: str = "", *, add_to_static_files: bool = False) -> None:
         for source_file in source_dir.glob(glob):
             if self._skip_file(source_file):
                 continue
             path_in_pkg = prefix / source_file.relative_to(source_dir)
             log.debug("%s: %s", path_in_pkg, source_file)
             self._write_file(source_file, path_in_pkg)
+
+            # register as static file in build manifest
+            if add_to_static_files:
+                mime_type = guess_type(source_file)[0]
+                file_size = source_file.stat().st_size
+                path_in_dist = str(path_in_pkg.relative_to(*path_in_pkg.parts[:1]))
+                self._static_files[path_in_dist] = PackageFile(mime_type=mime_type, size=file_size)
 
     @staticmethod
     def _skip_file(path: Path) -> bool:

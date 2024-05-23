@@ -32,7 +32,7 @@ from questionpy_common.environment import (
     get_qpy_environment,
     set_qpy_environment,
 )
-from questionpy_common.manifest import Manifest, PackageType
+from questionpy_common.manifest import Manifest, PackageType, SourceManifest
 
 from ._attempt import Attempt, AttemptUiPart, BaseAttemptState, BaseScoringState
 from ._qtype import BaseQuestionState, Question, QuestionType
@@ -69,6 +69,7 @@ __all__ = [
     "ScoreModel",
     "ScoringCode",
     "ScoringMethod",
+    "SourceManifest",
     "SubquestionModel",
     "WorkerResourceLimits",
     "create_jinja2_environment",

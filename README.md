@@ -12,7 +12,7 @@ $ poetry install
 
 At minimum, a QuestionPy package requires a configuration file. The
 configuration is a YAML-formatted file called `qpy_config.yml` at the root of
-your package. See the `PackageConfig` and `Manifest` class for all supported
+your package. See the `PackageConfig` and `SourceManifest` class for all supported
 properties.
 
 ```yaml
