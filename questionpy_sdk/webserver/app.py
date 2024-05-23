@@ -1,14 +1,17 @@
 #  This file is part of the QuestionPy SDK. (https://questionpy.org)
 #  The QuestionPy SDK is free software released under terms of the MIT license. See LICENSE.md.
 #  (c) Technische Universität Berlin, innoCampus <info@isis.tu-berlin.de>
+import traceback
 from functools import cached_property
 from pathlib import Path
 from typing import TYPE_CHECKING
 
 import aiohttp_jinja2
 from aiohttp import web
+from aiohttp.typedefs import Handler
 from jinja2 import PackageLoader
 
+from questionpy_common.api.qtype import InvalidQuestionStateError
 from questionpy_common.constants import MiB
 from questionpy_common.manifest import Manifest
 from questionpy_server import WorkerPool
@@ -24,6 +27,19 @@ async def _extract_manifest(app: web.Application) -> None:
     worker: Worker
     async with webserver.worker_pool.get_worker(webserver.package_location, 0, None) as worker:
         app[MANIFEST_APP_KEY] = await worker.get_manifest()
+
+
+@web.middleware
+async def _invalid_question_state_middleware(request: web.Request, handler: Handler) -> web.StreamResponse:
+    webserver = request.app[SDK_WEBSERVER_APP_KEY]
+    try:
+        return await handler(request)
+    except InvalidQuestionStateError as e:
+        question_state = webserver.load_question_state()
+        context = {"stacktrace": "".join(traceback.format_exception(e)), "manifest": request.app[MANIFEST_APP_KEY]}
+        if question_state is not None:
+            context["question_state"] = question_state
+        return aiohttp_jinja2.render_template("invalid_question_state.html.jinja2", request, context, status=500)
 
 
 class WebServer:
@@ -47,6 +63,7 @@ class WebServer:
         self.web_app.router.add_static("/static", Path(__file__).parent / "static")
 
         self.web_app.on_startup.append(_extract_manifest)
+        self.web_app.middlewares.append(_invalid_question_state_middleware)
 
         jinja2_extensions = ["jinja2.ext.do"]
         aiohttp_jinja2.setup(self.web_app, loader=PackageLoader(__package__), extensions=jinja2_extensions)

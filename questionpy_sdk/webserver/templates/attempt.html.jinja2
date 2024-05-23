@@ -1,6 +1,10 @@
 {% extends "page.html.jinja2" %}
 {% import "macros.jinja2" as macros %}
 
+{% block head %}
+    {{ super() }}
+    <script type="module" src="static/script.js"></script>
+{% endblock %}
 {% block title %}Question Preview{%  endblock %}
 {% block header %}
     <h1>Question Preview</h1>

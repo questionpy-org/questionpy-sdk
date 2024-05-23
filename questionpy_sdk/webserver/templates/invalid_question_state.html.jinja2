@@ -1,0 +1,34 @@
+{% extends "page.html.jinja2" %}
+{% import "macros.jinja2" as macros %}
+
+{% block title %}{{ manifest.short_name }}{% endblock %}
+{% block header %}
+    <h1>{{ manifest.short_name }}</h1>
+{% endblock %}
+
+{% block content %}
+    <section>
+        <h2>Error: Invalid Question State</h2>
+        <p>
+            The question state could not be parsed by the package. If you renamed or added required form fields, you
+            likely need to delete the question state and create a new question, but this may also be caused by a bug
+            in the package.
+        </p>
+    </section>
+
+    <form action="/delete-question-state" method="post">
+        <button type="submit">Delete the faulty question state and reload</button>
+    </form>
+
+    {% if question_state is defined %}
+    <section>
+        <h2>Question State</h2>
+        <pre class="codeblock"><code>{{ question_state }}</code></pre>
+    </section>
+    {% endif %}
+
+    <section>
+        <h2>Stacktrace</h2>
+        <pre class="codeblock"><code>{{ stacktrace }}</code></pre>
+    </section>
+{% endblock %}

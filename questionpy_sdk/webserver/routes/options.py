@@ -82,3 +82,10 @@ async def remove_element(request: web.Request) -> web.Response:
 
     await _save_updated_form_data(question_form_data, webserver)
     return HTTPFound("/")
+
+
+@routes.post("/delete-question-state")
+async def delete_question_state(request: web.Request) -> web.Response:
+    webserver = request.app[SDK_WEBSERVER_APP_KEY]
+    webserver.delete_question_state()
+    return web.HTTPFound("/")
