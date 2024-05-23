@@ -365,7 +365,7 @@ class QuestionUIRenderer:
 
         Also replaces `qpy:shuffled-index` elements which are descendants of each child with the new index of the child.
         """
-        if self.seed:
+        if self.seed is not None:
             random.seed(self.seed)
 
         for element in assert_element_list(xpath("//*[@qpy:shuffle-contents]")):

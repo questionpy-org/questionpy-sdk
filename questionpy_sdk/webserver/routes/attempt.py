@@ -37,10 +37,8 @@ async def get_attempt(request: web.Request) -> web.Response:
     question_state = json.dumps(stored_state)
 
     display_options = QuestionDisplayOptions.model_validate_json(request.cookies.get("display_options", "{}"))
-    seed = int(request.cookies.get("attempt_seed", -1))
 
-    if seed < 0:
-        seed = random.randint(0, 10)
+    seed = int(request.cookies["attempt_seed"]) if "attempt_seed" in request.cookies else random.randint(0, 10)
 
     attempt_state = request.cookies.get("attempt_state")
     score_json = request.cookies.get("score")
