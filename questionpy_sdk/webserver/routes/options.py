@@ -2,11 +2,10 @@
 #  The QuestionPy SDK is free software released under terms of the MIT license. See LICENSE.md.
 #  (c) Technische Universität Berlin, innoCampus <info@isis.tu-berlin.de>
 
-from typing import TYPE_CHECKING
+from typing import TYPE_CHECKING, Never
 
 import aiohttp_jinja2
 from aiohttp import web
-from aiohttp.web_exceptions import HTTPFound
 
 from questionpy_common.environment import RequestUser
 from questionpy_sdk.webserver._form_data import get_nested_form_data, parse_form_data
@@ -58,7 +57,7 @@ async def submit_form(request: web.Request) -> web.Response:
 
 
 @routes.post("/repeat")
-async def repeat_element(request: web.Request) -> web.Response:
+async def repeat_element(request: web.Request) -> Never:
     """Adds Repetitions to the referenced RepetitionElement and store the form_data in the StateStorage."""
     webserver = request.app[SDK_WEBSERVER_APP_KEY]
     data = await request.json()
@@ -68,11 +67,11 @@ async def repeat_element(request: web.Request) -> web.Response:
         repetition_list.extend([repetition_list[-1]] * int(data["increment"]))
 
     await _save_updated_form_data(question_form_data, webserver)
-    return HTTPFound("/")
+    raise web.HTTPFound("/")  # noqa: EM101
 
 
 @routes.post("/options/remove-repetition")
-async def remove_element(request: web.Request) -> web.Response:
+async def remove_element(request: web.Request) -> Never:
     webserver = request.app[SDK_WEBSERVER_APP_KEY]
     data = await request.json()
     question_form_data = parse_form_data(data["form_data"])
@@ -81,11 +80,11 @@ async def remove_element(request: web.Request) -> web.Response:
         del repetition_list[int(data["index"])]
 
     await _save_updated_form_data(question_form_data, webserver)
-    return HTTPFound("/")
+    raise web.HTTPFound("/")  # noqa: EM101
 
 
 @routes.post("/delete-question-state")
-async def delete_question_state(request: web.Request) -> web.Response:
+async def delete_question_state(request: web.Request) -> Never:
     webserver = request.app[SDK_WEBSERVER_APP_KEY]
     webserver.delete_question_state()
-    return web.HTTPFound("/")
+    raise web.HTTPFound("/")  # noqa: EM101

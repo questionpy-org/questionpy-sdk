@@ -34,7 +34,7 @@ async def get_attempt(request: web.Request) -> web.Response:
     question_state = webserver.load_question_state()
     if question_state is None:
         # Redirect to the options so the user can create the question.
-        return web.HTTPFound("/")
+        raise web.HTTPFound("/")  # noqa: EM101
 
     display_options = QuestionDisplayOptions.model_validate_json(request.cookies.get("display_options", "{}"))
 
@@ -96,14 +96,14 @@ async def _score_attempt(request: web.Request, data: dict) -> web.Response:
     question_state = webserver.load_question_state()
     if question_state is None:
         # Redirect to the options so the user can create the question.
-        return web.HTTPFound("/")
+        raise web.HTTPFound("/")  # noqa: EM101
 
     display_options = QuestionDisplayOptions.model_validate_json(request.cookies.get("display_options", "{}"))
     display_options.readonly = True
 
     attempt_state = request.cookies.get("attempt_state")
     if not attempt_state:
-        return web.HTTPNotFound(reason="Attempt has to be started before being submitted. Try reloading the page.")
+        raise web.HTTPNotFound(reason="Attempt has to be started before being submitted. Try reloading the page.")
 
     score_json = request.cookies.get("score")
     score = ScoreModel.model_validate_json(score_json) if score_json else None
