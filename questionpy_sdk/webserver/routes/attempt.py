@@ -22,7 +22,7 @@ if TYPE_CHECKING:
 routes = web.RouteTableDef()
 
 
-def set_cookie(
+def _set_cookie(
     response: web.Response, name: str, value: str, max_age: int | None = 3600, same_site: str | None = "Strict"
 ) -> None:
     response.set_cookie(name=name, value=value, max_age=max_age, samesite=same_site)
@@ -31,10 +31,10 @@ def set_cookie(
 @routes.get("/attempt")
 async def get_attempt(request: web.Request) -> web.Response:
     webserver = request.app[SDK_WEBSERVER_APP_KEY]
-    stored_state = webserver.state_storage.get(webserver.package_location)
-    if not stored_state:
-        return web.HTTPNotFound(reason="No question state found.")
-    question_state = json.dumps(stored_state)
+    question_state = webserver.load_question_state()
+    if question_state is None:
+        # Redirect to the options so the user can create the question.
+        return web.HTTPFound("/")
 
     display_options = QuestionDisplayOptions.model_validate_json(request.cookies.get("display_options", "{}"))
 
@@ -85,18 +85,18 @@ async def get_attempt(request: web.Request) -> web.Response:
     )
 
     response = aiohttp_jinja2.render_template("attempt.html.jinja2", request, context)
-    set_cookie(response, "attempt_state", attempt_state)
-    set_cookie(response, "attempt_seed", str(seed))
+    _set_cookie(response, "attempt_state", attempt_state)
+    _set_cookie(response, "attempt_seed", str(seed))
     return response
 
 
 async def _score_attempt(request: web.Request, data: dict) -> web.Response:
     webserver = request.app[SDK_WEBSERVER_APP_KEY]
 
-    stored_state = webserver.state_storage.get(webserver.package_location)
-    if not stored_state:
-        return web.HTTPNotFound(reason="No question state found.")
-    question_state = json.dumps(stored_state)
+    question_state = webserver.load_question_state()
+    if question_state is None:
+        # Redirect to the options so the user can create the question.
+        return web.HTTPFound("/")
 
     display_options = QuestionDisplayOptions.model_validate_json(request.cookies.get("display_options", "{}"))
     display_options.readonly = True
@@ -119,8 +119,8 @@ async def _score_attempt(request: web.Request, data: dict) -> web.Response:
         )
 
     response = web.Response(status=201)
-    set_cookie(response, "display_options", display_options.model_dump_json())
-    set_cookie(response, "score", TypeAdapter(ScoreModel).dump_json(attempt_scored).decode())
+    _set_cookie(response, "display_options", display_options.model_dump_json())
+    _set_cookie(response, "score", TypeAdapter(ScoreModel).dump_json(attempt_scored).decode())
     return response
 
 
@@ -128,7 +128,7 @@ async def _score_attempt(request: web.Request, data: dict) -> web.Response:
 async def submit_attempt(request: web.Request) -> web.Response:
     data = await request.json()
     response = await _score_attempt(request, data)
-    set_cookie(response, "last_attempt_data", json.dumps(data))
+    _set_cookie(response, "last_attempt_data", json.dumps(data))
     return response
 
 
@@ -147,7 +147,7 @@ async def submit_display_options(request: web.Request) -> web.Response:
     display_options = QuestionDisplayOptions.model_validate(display_options_dict)
 
     response = web.Response(status=201)
-    set_cookie(response, "display_options", display_options.model_dump_json())
+    _set_cookie(response, "display_options", display_options.model_dump_json())
     return response
 
 
@@ -174,5 +174,5 @@ async def edit_last_attempt(request: web.Request) -> web.Response:
 async def save_attempt(request: web.Request) -> web.Response:
     last_attempt_data = await request.json()
     response = web.Response(status=201)
-    set_cookie(response, "last_attempt_data", json.dumps(last_attempt_data))
+    _set_cookie(response, "last_attempt_data", json.dumps(last_attempt_data))
     return response

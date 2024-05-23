@@ -2,12 +2,8 @@
 #  The QuestionPy SDK is free software released under terms of the MIT license. See LICENSE.md.
 #  (c) Technische Universität Berlin, innoCampus <info@isis.tu-berlin.de>
 
-import json
 import operator
-from pathlib import Path
 from typing import Any
-
-from questionpy_server.worker.runtime.package_location import PackageLocation
 
 
 def _unflatten(flat_form_data: dict[str, str]) -> dict[str, Any]:
@@ -91,32 +87,3 @@ def get_nested_form_data(form_data: dict[str, Any], reference: str) -> object:
         current_element = current_element[ref]
 
     return current_element
-
-
-class QuestionStateStorage:
-    def __init__(self, storage_path: Path) -> None:
-        # Mapping of package path to question state path
-        self.paths: dict[str, Path] = {}
-        self.storage_path = storage_path
-
-    def insert(self, key: PackageLocation, question_state: dict) -> None:
-        path = self._state_path_for_package(key)
-        path.parent.mkdir(parents=True, exist_ok=True)
-        self.paths[str(key)] = path
-        with path.open("w") as file:
-            json.dump(question_state, file, indent=2)
-
-    def get(self, key: PackageLocation) -> dict | None:
-        if str(key) in self.paths:
-            path = self.paths.get(str(key))
-            if path and path.exists():
-                return json.loads(path.read_text())
-        path = self._state_path_for_package(key)
-        if not path.exists():
-            return None
-        self.paths[str(key)] = path
-        return json.loads(path.read_text())
-
-    def _state_path_for_package(self, package_location: PackageLocation) -> Path:
-        filename = str(package_location) + ".json"
-        return self.storage_path / filename
