@@ -2,8 +2,8 @@
 #  The QuestionPy SDK is free software released under terms of the MIT license. See LICENSE.md.
 #  (c) Technische Universität Berlin, innoCampus <info@isis.tu-berlin.de>
 
-import random
 from copy import deepcopy
+from random import Random
 from typing import Any
 
 from lxml import etree
@@ -101,14 +101,12 @@ def replace_shuffled_indices(element: etree._Element, index: int) -> None:
 class QuestionUIRenderer:
     XHTML_NAMESPACE: str = "http://www.w3.org/1999/xhtml"
     QPY_NAMESPACE: str = "http://questionpy.org/ns/question"
-    root: etree._Element
-    placeholders: dict[str, str]
 
     def __init__(self, xml: str, placeholders: dict[str, str], seed: int | None = None) -> None:
-        self.seed = seed
-        self.xml = xml
-        self.placeholders = placeholders
-        self.root = etree.fromstring(xml.encode())
+        self._xml = xml
+        self._placeholders = placeholders
+        self._root = etree.fromstring(xml.encode())
+        self._random = Random(seed)
 
     def get_metadata(self) -> QuestionMetadata:
         """Extracts metadata from the question UI."""
@@ -116,7 +114,7 @@ class QuestionUIRenderer:
         namespaces: dict[str, str] = {"xhtml": self.XHTML_NAMESPACE, "qpy": self.QPY_NAMESPACE}
 
         # Extract correct responses
-        for element in self.root.findall(".//*[@qpy:correct-response]", namespaces=namespaces):
+        for element in self._root.findall(".//*[@qpy:correct-response]", namespaces=namespaces):
             name = element.get("name")
             if not name:
                 continue
@@ -133,7 +131,7 @@ class QuestionUIRenderer:
 
         # Extract other metadata
         for element_type in ["input", "select", "textarea", "button"]:
-            for element in self.root.findall(f".//xhtml:{element_type}", namespaces=namespaces):
+            for element in self._root.findall(f".//xhtml:{element_type}", namespaces=namespaces):
                 name = element.get("name")
                 if not name:
                     continue
@@ -146,7 +144,7 @@ class QuestionUIRenderer:
 
     def render(self, attempt: dict | None = None, options: QuestionDisplayOptions | None = None) -> str:
         """Applies transformations to the descendants of a given node and returns the resulting HTML."""
-        copy = deepcopy(self.root)
+        copy = deepcopy(self._root)
         copy.nsmap.setdefault(None, self.XHTML_NAMESPACE)  # Interpret the default namespace as XHTML.
         newdoc = etree.ElementTree(copy)
 
@@ -185,11 +183,11 @@ class QuestionUIRenderer:
             if parent is None:
                 continue
 
-            if key not in self.placeholders:
+            if key not in self._placeholders:
                 parent.remove(p_instruction)
                 continue
 
-            raw_value = self.placeholders[key]
+            raw_value = self._placeholders[key]
 
             if clean_option.lower() not in {"clean", "noclean"}:
                 if clean_option.lower() != "plain":
@@ -365,13 +363,10 @@ class QuestionUIRenderer:
 
         Also replaces `qpy:shuffled-index` elements which are descendants of each child with the new index of the child.
         """
-        if self.seed is not None:
-            random.seed(self.seed)
-
         for element in assert_element_list(xpath("//*[@qpy:shuffle-contents]")):
             # Collect child elements to shuffle them
             child_elements = [child for child in element if isinstance(child, etree._Element)]
-            random.shuffle(child_elements)
+            self._random.shuffle(child_elements)
 
             element.attrib.pop("{%s}shuffle-contents" % self.QPY_NAMESPACE)
 
