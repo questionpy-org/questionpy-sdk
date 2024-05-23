@@ -1,6 +1,10 @@
 {% extends "page.html.jinja2" %}
 {% import "macros.jinja2" as macros %}
 
+{% block head %}
+    {{ super() }}
+    <script type="module" src="static/script.js"></script>
+{% endblock %}
 {% block title %}{{ manifest.short_name }}{%  endblock %}
 {% block header %}
     <h1>{{ manifest.short_name }}</h1>

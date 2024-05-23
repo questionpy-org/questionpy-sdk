@@ -7,7 +7,7 @@ from typing import Generic, TypeVar
 from pydantic import BaseModel, ValidationError
 
 from questionpy_common.api.attempt import BaseAttempt
-from questionpy_common.api.qtype import BaseQuestionType, OptionsFormValidationError
+from questionpy_common.api.qtype import BaseQuestionType, InvalidQuestionStateError, OptionsFormValidationError
 from questionpy_common.api.question import BaseQuestion
 from questionpy_common.environment import get_qpy_environment
 
@@ -166,5 +166,8 @@ class QuestionType(BaseQuestionType):
 
     def create_question_from_state(self, question_state: str) -> Question:
         state_class = _get_state_class(self.question_class)
-        parsed_state = state_class.model_validate_json(question_state)
+        try:
+            parsed_state = state_class.model_validate_json(question_state)
+        except ValidationError as e:
+            raise InvalidQuestionStateError from e
         return self.question_class(self, parsed_state)

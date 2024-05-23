@@ -54,6 +54,18 @@ html, body {
     height: 4rem;
 }
 
+.codeblock {
+    overflow: scroll;
+}
+
+section {
+    margin-top: 1em;
+}
+
+button {
+    padding: .5em;
+}
+
 /* Element styles */
 
 .element {
