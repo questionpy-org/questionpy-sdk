@@ -5,21 +5,21 @@
 from collections.abc import Mapping
 from typing import Literal
 
-from questionpy_common.manifest import Manifest
+from questionpy_common.manifest import SourceManifest
 
 BuildHookName = Literal["pre", "post"]
 
 
-class PackageConfig(Manifest):
+class PackageConfig(SourceManifest):
     """A QuestionPy source package configuration.
 
-    This class expands upon [`Manifest`][questionpy_common.manifest.Manifest] by incorporating additional configuration
-    parameters.
+    This class extends [`SourceManifest`][questionpy_common.manifest.SourceManifest] by incorporating additional
+    configuration parameters.
     """
 
     build_hooks: Mapping[BuildHookName, str | list[str]] = {}
 
     @property
-    def manifest(self) -> Manifest:
-        """Creates [`Manifest`][questionpy_common.manifest.Manifest] from config model."""
-        return Manifest.model_validate(dict(self))
+    def manifest(self) -> SourceManifest:
+        """Creates [`SourceManifest`][questionpy_common.manifest.SourceManifest] from config model."""
+        return SourceManifest.model_validate(dict(self))

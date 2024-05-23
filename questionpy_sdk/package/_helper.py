@@ -2,10 +2,10 @@
 #  The QuestionPy SDK is free software released under terms of the MIT license. See LICENSE.md.
 #  (c) Technische Universität Berlin, innoCampus <info@isis.tu-berlin.de>
 
-from questionpy_common.manifest import Manifest
+from questionpy_common.manifest import SourceManifest
 
 
-def create_normalized_filename(manifest: Manifest) -> str:
+def create_normalized_filename(manifest: SourceManifest) -> str:
     """Creates a normalized file name for the given manifest.
 
     Args:

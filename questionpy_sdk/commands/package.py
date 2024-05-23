@@ -11,10 +11,10 @@ import click
 
 from questionpy_common.constants import DIST_DIR
 from questionpy_sdk.package.builder import DirPackageBuilder, ZipPackageBuilder
-from questionpy_sdk.package.errors import PackageBuildError
+from questionpy_sdk.package.errors import PackageBuildError, PackageSourceValidationError
 from questionpy_sdk.package.source import PackageSource
 
-from ._helper import confirm_overwrite, read_package_source
+from ._helper import confirm_overwrite
 
 
 def validate_out_path(context: click.Context, _parameter: click.Parameter, value: Path | None) -> Path | None:
@@ -59,7 +59,10 @@ def package(
     without_sources: bool,
 ) -> None:
     """Build package from directory SOURCE."""
-    package_source = read_package_source(source)
+    try:
+        package_source = PackageSource(source)
+    except PackageSourceValidationError as exc:
+        raise click.ClickException(str(exc)) from exc
 
     for param_name, param in (
         ("--out", out_path),

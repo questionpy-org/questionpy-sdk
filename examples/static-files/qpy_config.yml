@@ -1,9 +1,9 @@
-short_name: js_example
+short_name: static_files_example
 namespace: local
 version: 0.1.0
 api_version: "0.1"
 author: innoCampus <info@isis.tu-berlin.de>
 name:
-  de: JavaScript-Beispiel
-  en: JavaScript Example
+  de: Statische-Dateien-Beispiel
+  en: Static files example
 languages: [de, en]

@@ -10,7 +10,9 @@ class ExampleAttempt(Attempt):
         return ScoreModel(scoring_code=ScoringCode.AUTOMATICALLY_SCORED, score=0)
 
     def render_formulation(self) -> AttemptUiPart:
-        ui_part = AttemptUiPart(content=self.jinja2.get_template("local.js_example/formulation.xhtml.j2").render())
+        ui_part = AttemptUiPart(
+            content=self.jinja2.get_template("local.static_files_example/formulation.xhtml.j2").render()
+        )
         # TODO: implement call_js method
         # ui_part.call_js("test", "init", {"data": "Hello world!"})  # noqa: ERA001
         return ui_part  # noqa: RET504

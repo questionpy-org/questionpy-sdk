@@ -14,6 +14,7 @@ import pytest
 import yaml
 
 from questionpy_common.constants import DIST_DIR, MANIFEST_FILENAME
+from questionpy_common.manifest import Manifest
 from questionpy_sdk.constants import PACKAGE_CONFIG_FILENAME
 from questionpy_sdk.package.builder import DirPackageBuilder, ZipPackageBuilder
 from questionpy_sdk.package.errors import PackageBuildError
@@ -110,16 +111,24 @@ def test_invalid_requirement_raises_error(source_path: Path, tmp_path: Path, mon
     assert exc.match("Failed to install requirements")
 
 
-@pytest.mark.source_pkg("javascript")
+@pytest.mark.source_pkg("static-files")
 def test_writes_package_files(qpy_pkg_path: Path) -> None:
     with ZipFile(qpy_pkg_path) as zipfile:
-        assert zipfile.getinfo(f"{DIST_DIR}/python/local/js_example/__init__.py")
+        assert zipfile.getinfo(f"{DIST_DIR}/python/local/static_files_example/__init__.py")
+        assert zipfile.getinfo(f"{DIST_DIR}/css/styles.css")
         assert zipfile.getinfo(f"{DIST_DIR}/js/test.js")
 
 
+@pytest.mark.source_pkg("static-files")
 def test_writes_manifest(qpy_pkg_path: Path) -> None:
-    with ZipFile(qpy_pkg_path) as zipfile:
-        assert zipfile.getinfo(f"{DIST_DIR}/{MANIFEST_FILENAME}")
+    with ZipFile(qpy_pkg_path) as zipfile, zipfile.open(f"{DIST_DIR}/{MANIFEST_FILENAME}") as manifest_file:
+        manifest = Manifest.model_validate_json(manifest_file.read())
+
+    assert manifest.short_name == "static_files_example"
+    assert manifest.static_files["css/styles.css"].mime_type == "text/css"
+    assert manifest.static_files["css/styles.css"].size > 0
+    assert manifest.static_files["js/test.js"].mime_type == "text/javascript"
+    assert manifest.static_files["js/test.js"].size > 0
 
 
 def test_runs_pre_build_hook(tmp_path: Path, source_path: Path) -> None:
@@ -140,7 +149,7 @@ def test_runs_pre_build_hook(tmp_path: Path, source_path: Path) -> None:
         assert zipfile.getinfo(f"{DIST_DIR}/static/my_custom_pre_build_hook")
 
 
-@pytest.mark.source_pkg("javascript")
+@pytest.mark.source_pkg("static-files")
 def test_runs_post_build_hook(tmp_path: Path, source_path: Path) -> None:
     config_path = source_path / PACKAGE_CONFIG_FILENAME
     with config_path.open("r") as f:
