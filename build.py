@@ -16,7 +16,8 @@ def create_example_zip() -> None:
     minimal_example = Path("examples/minimal")
     with ZipFile(EXAMPLE_PACKAGE, "w") as zip_file:
         for file in minimal_example.rglob("*"):
-            zip_file.write(file, file.relative_to(minimal_example))
+            if "__pycache__" not in file.parts:
+                zip_file.write(file, file.relative_to(minimal_example))
 
 
 def build(_setup_kwargs: Any) -> None:
