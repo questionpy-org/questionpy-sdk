@@ -8,4 +8,6 @@ name:
   en: Full Example
 languages: [de, en]
 build_hooks:
-  pre: npm run build
+  pre:
+    - npm ci
+    - npm run build

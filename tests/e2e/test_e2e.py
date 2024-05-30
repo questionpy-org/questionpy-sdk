@@ -10,52 +10,46 @@ from selenium.webdriver.common.by import By
 from selenium.webdriver.support import expected_conditions
 from selenium.webdriver.support.wait import WebDriverWait
 
-from questionpy import Attempt, AttemptUiPart, Question, QuestionType
+from questionpy import Attempt, NeedsManualScoringError, Package, Question, QuestionTypeWrapper
 from questionpy.form import FormModel, checkbox, repeat
-from questionpy_common.api.attempt import ScoreModel, ScoringCode
-from questionpy_common.api.qtype import BaseQuestionType
-from questionpy_common.api.question import QuestionModel, ScoringMethod
+from questionpy_common.api.qtype import QuestionTypeInterface
 from questionpy_common.environment import PackageInitFunction
 from questionpy_common.manifest import Manifest
 from questionpy_server.worker.runtime.package_location import FunctionPackageLocation
 
 
 class _NoopAttempt(Attempt):
-    def export_score(self) -> ScoreModel:
-        return ScoreModel(scoring_code=ScoringCode.NEEDS_MANUAL_SCORING, score=None)
+    def _compute_score(self) -> float:
+        raise NeedsManualScoringError
 
-    def render_formulation(self) -> AttemptUiPart:
-        return AttemptUiPart(content="")
+    formulation = ""
 
 
 class _NoopQuestion(Question):
     attempt_class = _NoopAttempt
 
-    def export(self) -> QuestionModel:
-        return QuestionModel(scoring_method=ScoringMethod.AUTOMATICALLY_SCORABLE)
 
-
-def package_1_init() -> BaseQuestionType:
+def package_1_init(package: Package) -> QuestionTypeInterface:
     class Package1Form(FormModel):
         optional_checkbox: bool = checkbox("Optional Checkbox")
 
     class Package1Question(_NoopQuestion):
         options: Package1Form
 
-    return QuestionType(Package1Question)
+    return QuestionTypeWrapper(Package1Question, package)
 
 
-def package_2_init() -> BaseQuestionType:
+def package_2_init(package: Package) -> QuestionTypeInterface:
     class Package2Form(FormModel):
         required_checkbox: bool = checkbox("Required Checkbox", required=True)
 
     class Package2Question(_NoopQuestion):
         options: Package2Form
 
-    return QuestionType(Package2Question)
+    return QuestionTypeWrapper(Package2Question, package)
 
 
-def package_3_init() -> BaseQuestionType:
+def package_3_init(package: Package) -> QuestionTypeInterface:
     class SubModel(FormModel):
         optional_checkbox: bool = checkbox("Optional Checkbox { qpy:repno }")
 
@@ -65,7 +59,7 @@ def package_3_init() -> BaseQuestionType:
     class Package3Question(_NoopQuestion):
         options: Package3Form
 
-    return QuestionType(Package3Question)
+    return QuestionTypeWrapper(Package3Question, package)
 
 
 _C = TypeVar("_C", bound=Callable)

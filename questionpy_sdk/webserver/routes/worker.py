@@ -9,7 +9,7 @@ from aiohttp import web
 from questionpy_sdk.webserver.app import SDK_WEBSERVER_APP_KEY
 
 if TYPE_CHECKING:
-    from questionpy_server.worker.worker import Worker
+    from questionpy_server.worker import Worker
 
 routes = web.RouteTableDef()
 

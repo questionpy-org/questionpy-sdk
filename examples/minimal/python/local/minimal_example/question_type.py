@@ -1,35 +1,26 @@
-from questionpy import Attempt, AttemptUiPart, Question, QuestionType, ScoringCode
-from questionpy_common.api.attempt import ScoreModel
-from questionpy_common.api.question import QuestionModel, ScoringMethod
+from questionpy import Attempt, Question, ResponseNotScorableError
 
 from .form import MyModel
 
 
 class ExampleAttempt(Attempt):
-    def export_score(self) -> ScoreModel:
+    def _compute_score(self) -> float:
         if not self.response or "choice" not in self.response:
-            return ScoreModel(scoring_code=ScoringCode.RESPONSE_NOT_SCORABLE, score=None)
+            msg = "'choice' is missing"
+            raise ResponseNotScorableError(msg)
 
         if self.response["choice"] == "B":
-            return ScoreModel(scoring_code=ScoringCode.AUTOMATICALLY_SCORED, score=1)
+            return 1
 
-        return ScoreModel(scoring_code=ScoringCode.AUTOMATICALLY_SCORED, score=0)
+        return 0
 
-    def render_formulation(self) -> AttemptUiPart:
-        return AttemptUiPart(
-            content=self.jinja2.get_template("local.minimal_example/formulation.xhtml.j2").render(),
-            placeholders={"description": "Welcher ist der zweite Buchstabe im deutschen Alphabet?"},
-        )
+    @property
+    def formulation(self) -> str:
+        self.placeholders["description"] = "Welcher ist der zweite Buchstabe im deutschen Alphabet?"
+        return self.jinja2.get_template("local.minimal_example/formulation.xhtml.j2").render()
 
 
 class ExampleQuestion(Question):
     attempt_class = ExampleAttempt
 
     options: MyModel
-
-    def export(self) -> QuestionModel:
-        return QuestionModel(scoring_method=ScoringMethod.AUTOMATICALLY_SCORABLE)
-
-
-class ExampleQuestionType(QuestionType):
-    question_class = ExampleQuestion

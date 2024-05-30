@@ -2,13 +2,12 @@
 #  The QuestionPy SDK is free software released under terms of the MIT license. See LICENSE.md.
 #  (c) Technische Universität Berlin, innoCampus <info@isis.tu-berlin.de>
 from abc import ABC
-from typing import Generic, TypeVar
+from typing import ClassVar, Generic, Self, TypeVar
 
-from pydantic import BaseModel, ValidationError
+from pydantic import BaseModel, JsonValue, ValidationError
 
-from questionpy_common.api.attempt import BaseAttempt
-from questionpy_common.api.qtype import BaseQuestionType, InvalidQuestionStateError, OptionsFormValidationError
-from questionpy_common.api.question import BaseQuestion
+from questionpy_common.api.qtype import OptionsFormValidationError
+from questionpy_common.api.question import ScoringMethod, SubquestionModel
 from questionpy_common.environment import get_qpy_environment
 
 from ._attempt import Attempt, BaseAttemptState, BaseScoringState
@@ -16,49 +15,99 @@ from ._util import get_mro_type_hint
 from .form import FormModel, OptionsFormDefinition
 
 _F = TypeVar("_F", bound=FormModel)
+_S = TypeVar("_S", bound="BaseQuestionState")
 
 
-class BaseQuestionState(BaseModel, Generic[_F]):
+class QuestionStateWithVersion(BaseModel, Generic[_F, _S]):
     package_name: str
     package_version: str
     options: _F
+    state: _S
 
 
-class Question(BaseQuestion, ABC):
+class BaseQuestionState(BaseModel):
+    pass
+
+
+class Question(ABC):
     attempt_class: type["Attempt"]
 
     options: FormModel
-    state: BaseQuestionState
+    question_state: BaseQuestionState
 
-    def __init__(self, qtype: BaseQuestionType, state: BaseQuestionState) -> None:
-        self.qtype = qtype
-        self.state = state
+    scoring_method = ScoringMethod.AUTOMATICALLY_SCORABLE
 
-    def start_attempt(self, variant: int) -> BaseAttempt:
-        attempt_state = get_mro_type_hint(self.attempt_class, "attempt_state", BaseAttemptState)(variant=variant)
+    options_class: ClassVar[type[FormModel]]
+    question_state_class: ClassVar[type[BaseQuestionState]]
+    question_state_with_version_class: ClassVar[type[QuestionStateWithVersion]]
+
+    def __init__(self, qswv: QuestionStateWithVersion) -> None:
+        self.question_state_with_version = qswv
+
+        self.num_variants = 1
+        self.score_min: float = 0
+        self.score_max: float = 1
+        self.penalty: float | None = None
+        self.random_guess_score: float | None = None
+        self.response_analysis_by_variant = False
+        self.hints_available = False
+        self.subquestions: list[SubquestionModel] = []
+
+    @classmethod
+    def get_new_question_options_form(cls) -> OptionsFormDefinition:
+        """Get the form used to create a new question."""
+        return cls.options_class.qpy_form
+
+    @classmethod
+    def from_options(cls, old_qswv: QuestionStateWithVersion | None, form_data: dict[str, JsonValue]) -> Self:
+        try:
+            parsed_form_data = cls.options_class.model_validate(form_data)
+        except ValidationError as e:
+            error_dict = {".".join(map(str, error["loc"])): error["msg"] for error in e.errors()}
+            raise OptionsFormValidationError(error_dict) from e
+
+        if old_qswv:
+            new_qswv = old_qswv.model_copy(update={"options": parsed_form_data})
+        else:
+            env = get_qpy_environment()
+            new_qswv = QuestionStateWithVersion(
+                package_name=f"{env.main_package.manifest.namespace}.{env.main_package.manifest.short_name}",
+                package_version=env.main_package.manifest.version,
+                options=parsed_form_data,
+                state=cls.make_question_state(parsed_form_data),
+            )
+
+        return cls(new_qswv)
+
+    @classmethod
+    def from_state(cls, qswv: QuestionStateWithVersion) -> Self:
+        return cls(qswv)
+
+    @classmethod
+    def make_question_state(cls, options: FormModel) -> BaseQuestionState:
+        return cls.question_state_class()
+
+    @classmethod
+    def validate_options(cls, raw_options: dict[str, JsonValue]) -> FormModel:
+        return cls.options_class.model_validate(raw_options)
+
+    def get_options_form(self) -> tuple[OptionsFormDefinition, dict[str, JsonValue]]:
+        return self.options_class.qpy_form, self.options.model_dump()
+
+    def start_attempt(self, variant: int) -> Attempt:
+        attempt_state = self.attempt_class.attempt_state_class(variant=variant)
         return self.attempt_class(self, attempt_state)
 
     def get_attempt(
         self,
-        attempt_state: str,
-        scoring_state: str | None = None,
-        response: dict | None = None,
+        attempt_state: BaseAttemptState,
+        scoring_state: BaseScoringState | None = None,
+        response: dict[str, JsonValue] | None = None,
         *,
         compute_score: bool = False,
         generate_hint: bool = False,
-    ) -> BaseAttempt:
-        attempt_state_obj = get_mro_type_hint(
-            self.attempt_class, "attempt_state", BaseAttemptState
-        ).model_validate_json(attempt_state)
-        scoring_state_obj = None
-        if scoring_state is not None:
-            scoring_state_obj = get_mro_type_hint(
-                self.attempt_class, "scoring_state", BaseScoringState
-            ).model_validate_json(scoring_state)
-        return self.attempt_class(self, attempt_state_obj, response, scoring_state_obj)
-
-    def export_question_state(self) -> str:
-        return self.state.model_dump_json()
+    ) -> Attempt:
+        return self.attempt_class(self, attempt_state, scoring_state, response)
 
     def __init_subclass__(cls, *args: object, **kwargs: object) -> None:
         super().__init_subclass__(*args, **kwargs)
@@ -67,107 +116,16 @@ class Question(BaseQuestion, ABC):
             msg = f"Missing '{cls.__name__}.attempt_class' attribute. It should point to your attempt implementation"
             raise TypeError(msg)
 
-        state_class = _get_state_class(cls)
-        options_class = get_mro_type_hint(cls, "options", FormModel)
-        # We handle questions using the default state separately in create_question_from_state.
-        if state_class is not BaseQuestionState and options_class != state_class.model_fields["options"].annotation:
-            msg = f"{cls.__name__} must have the same FormModel as {state_class.__name__}."
-            raise TypeError(msg)
+        cls.question_state_class = get_mro_type_hint(cls, "question_state", BaseQuestionState)
+        cls.options_class = get_mro_type_hint(cls, "options", FormModel)
+        cls.question_state_with_version_class = QuestionStateWithVersion[  # type: ignore[misc]
+            cls.options_class, cls.question_state_class  # type: ignore[name-defined]
+        ]
 
     @property  # type: ignore[no-redef]
     def options(self) -> FormModel:
-        return self.state.options
+        return self.question_state_with_version.options
 
-    @options.setter
-    def options(self, value: FormModel) -> None:
-        self.state.options = value
-
-
-def _get_state_class(question_class: type[Question]) -> type[BaseQuestionState]:
-    state_class = get_mro_type_hint(question_class, "state", BaseQuestionState)
-
-    if state_class is BaseQuestionState:
-        return state_class[get_mro_type_hint(question_class, "options", FormModel)]  # type: ignore[return-value]
-
-    return state_class
-
-
-class QuestionType(BaseQuestionType):
-    """A question type.
-
-    This class is intended to be used in one of two ways:
-
-    - If you don't need to override any of the default [`QuestionType`][questionpy.QuestionType] methods, you should
-      provide your [`FormModel`][questionpy.form.FormModel] and [`Question`][questionpy.Question] subclasses as
-      constructor arguments.
-
-    - If you do, you should inherit from [`QuestionType`][questionpy.QuestionType], specifying your
-      [`FormModel`][questionpy.form.FormModel] and [`Question`][questionpy.Question] as type arguments.
-
-    Examples:
-        This example shows how to subclass [`QuestionType`][questionpy.QuestionType]:
-
-        >>> class MyOptions(FormModel): ...
-        >>> class MyAttempt(Attempt): ...
-        >>> class MyQuestion(Question):
-        ...     attempt_class = MyAttempt
-        >>> class MyQuestionType(QuestionType):
-        ...     question_class = MyQuestion
-        ...     # Your code goes here.
-    """
-
-    question_class: type["Question"]
-
-    def __init__(self, question_class: type[Question] | None = None) -> None:
-        """Initializes a new question.
-
-        Args:
-            question_class: The :class:`Question`-class used by this type. Can be set as a class variable as well.
-        """
-        if question_class:
-            self.question_class = question_class
-
-        if not hasattr(self, "question_class"):
-            msg = (
-                f"Missing '{type(self).__name__}.question_class' attribute. It should point to your question "
-                f"implementation"
-            )
-            raise TypeError(msg)
-
-    def get_options_form(self, question_state: str | None) -> tuple[OptionsFormDefinition, dict[str, object]]:
-        if question_state:
-            question = self.create_question_from_state(question_state)
-            form_data = question.options.model_dump(mode="json")
-        else:
-            form_data = {}
-
-        return (get_mro_type_hint(self.question_class, "options", FormModel).qpy_form, form_data)
-
-    def create_question_from_options(self, old_state: str | None, form_data: dict[str, object]) -> Question:
-        try:
-            parsed_form_data = get_mro_type_hint(self.question_class, "options", FormModel).model_validate(form_data)
-        except ValidationError as e:
-            error_dict = {".".join(map(str, error["loc"])): error["msg"] for error in e.errors()}
-            raise OptionsFormValidationError(error_dict) from e
-
-        if old_state:
-            state = _get_state_class(self.question_class).model_validate_json(old_state)
-            # TODO: Should we also update package_name and package_version here? Or check that they match?
-            state.options = parsed_form_data
-        else:
-            env = get_qpy_environment()
-            state = _get_state_class(self.question_class)(
-                package_name=f"{env.main_package.manifest.namespace}.{env.main_package.manifest.short_name}",
-                package_version=env.main_package.manifest.version,
-                options=parsed_form_data,
-            )
-
-        return self.question_class(self, state)
-
-    def create_question_from_state(self, question_state: str) -> Question:
-        state_class = _get_state_class(self.question_class)
-        try:
-            parsed_state = state_class.model_validate_json(question_state)
-        except ValidationError as e:
-            raise InvalidQuestionStateError from e
-        return self.question_class(self, parsed_state)
+    @property  # type: ignore[no-redef]
+    def question_state(self) -> BaseQuestionState:
+        return self.question_state_with_version.state

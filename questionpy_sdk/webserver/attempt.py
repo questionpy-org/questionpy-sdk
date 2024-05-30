@@ -3,14 +3,13 @@
 #  (c) Technische Universität Berlin, innoCampus <info@isis.tu-berlin.de>
 from typing import Literal, TypedDict
 
-from questionpy_common.api.attempt import AttemptModel, AttemptScoredModel
+from questionpy_common.api.attempt import AttemptModel, AttemptScoredModel, AttemptStartedModel
 from questionpy_sdk.webserver.question_ui import (
     QuestionDisplayOptions,
     QuestionFormulationUIRenderer,
     QuestionUIRenderer,
 )
 from questionpy_sdk.webserver.question_ui.errors import RenderErrorCollections, log_render_errors
-from questionpy_server.api.models import AttemptStarted
 
 
 class _AttemptRenderContext(TypedDict):
@@ -46,7 +45,7 @@ def get_attempt_render_context(
     context: _AttemptRenderContext = {
         "attempt_status": (
             "Started"
-            if isinstance(attempt, AttemptStarted)
+            if isinstance(attempt, AttemptStartedModel)
             else "Scored"
             if isinstance(attempt, AttemptScoredModel)
             else "In progress"

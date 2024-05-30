@@ -1,22 +1,15 @@
 from abc import ABC, abstractmethod
 from collections.abc import Sequence
 from functools import cached_property
-from typing import TYPE_CHECKING
+from typing import TYPE_CHECKING, ClassVar
 
 import jinja2
-from pydantic import BaseModel
+from pydantic import BaseModel, JsonValue
 
-from questionpy_common.api.attempt import (
-    AttemptFile,
-    AttemptModel,
-    AttemptScoredModel,
-    AttemptUi,
-    BaseAttempt,
-    CacheControl,
-    ScoreModel,
-)
+from questionpy_common.api.attempt import AttemptFile, AttemptUi, CacheControl, ScoredInputModel, ScoringCode
 
 from ._ui import create_jinja2_environment
+from ._util import get_mro_type_hint
 
 if TYPE_CHECKING:
     from ._qtype import Question
@@ -67,61 +60,123 @@ def _merge_uis(
     )
 
 
-class Attempt(BaseAttempt, ABC):
+class Attempt(ABC):
     attempt_state: BaseAttemptState
     scoring_state: BaseScoringState | None
+
+    attempt_state_class: ClassVar[type[BaseAttemptState]]
+    scoring_state_class: ClassVar[type[BaseScoringState]]
+
+    cache_control = CacheControl.PRIVATE_CACHE
 
     def __init__(
         self,
         question: "Question",
         attempt_state: BaseAttemptState,
-        response: dict | None = None,
         scoring_state: BaseScoringState | None = None,
+        response: dict[str, JsonValue] | None = None,
     ) -> None:
         self.question = question
         self.attempt_state = attempt_state
         self.response = response
         self.scoring_state = scoring_state
 
-    @abstractmethod
-    def render_formulation(self) -> AttemptUiPart:
-        pass
+        self.placeholders: dict[str, str] = {}
+        self.css_files: list[str] = []
+        self.files: dict[str, AttemptFile] = {}
 
-    def render_general_feedback(self) -> AttemptUiPart | None:
-        return None
+        self.scoring_code: ScoringCode | None = None
+        """When scoring is completed, set this to the outcome.
 
-    def render_specific_feedback(self) -> AttemptUiPart | None:
-        return None
+        This is set by :meth:`score_response` depending on if :meth:`_compute_score` and :meth:`_compute_final_score`
+        raise any errors.
 
-    def render_right_answer_description(self) -> AttemptUiPart | None:
-        return None
+        Note that when rescoring an attempt, the previous scoring information is not filled in and this field should
+        only be viewed as an output.
+        """
+        self.scored_inputs: dict[str, ScoredInputModel] = {}
+        """Optionally, granular scores for the attempt's input fields can be added to this dict.
 
-    def render_ui(self) -> AttemptUi:
-        formulation = self.render_formulation()
-        general_feedback = self.render_general_feedback()
-        specific_feedback = self.render_specific_feedback()
-        right_answer = self.render_right_answer_description()
+        Note that when rescoring an attempt, the previous scoring information is not filled in and this field should
+        only be viewed as an output.
+        """
+        self.score: float | None = None
+        """Score calculated by :meth:`_score_response`.
 
-        return _merge_uis(formulation, general_feedback, specific_feedback, right_answer, self.cache_control)
+        Note that when rescoring an attempt, the previous scoring information is not filled in and this field should
+        only be viewed as an output.
+        """
+        self.score_final: float | None = None
+        """Score calculated by :meth:`_score_final_response`.
+
+        Note that when rescoring an attempt, the previous scoring information is not filled in and this field should
+        only be viewed as an output.
+        """
 
     @property
-    def cache_control(self) -> CacheControl:
-        """Specifies if this attempt's UI may be cached and if that cache may be shared with other attempts."""
-        return CacheControl.PRIVATE_CACHE
+    @abstractmethod
+    def formulation(self) -> str:
+        pass
+
+    @property
+    def general_feedback(self) -> str | None:
+        return None
+
+    @property
+    def specific_feedback(self) -> str | None:
+        return None
+
+    @property
+    def right_answer_description(self) -> str | None:
+        return None
+
+    def score_response(self, *, try_scoring_with_countback: bool = False, try_giving_hint: bool = False) -> None:
+        try:
+            self.score = self._compute_score()
+            self.score_final = self._compute_final_score()
+        except _ScoringError as e:
+            self.scoring_code = e.scoring_code
+        else:
+            self.scoring_code = ScoringCode.AUTOMATICALLY_SCORED
+
+    @abstractmethod
+    def _compute_score(self) -> float:
+        pass
+
+    def _compute_final_score(self) -> float:
+        return self._compute_score() if self.score is None else self.score
 
     @cached_property
     def jinja2(self) -> jinja2.Environment:
-        return create_jinja2_environment(self, self.question, self.question.qtype)
+        return create_jinja2_environment(self, self.question)
 
-    def export(self) -> AttemptModel:
-        return AttemptModel(variant=self.attempt_state.variant, ui=self.render_ui())
+    @property
+    def variant(self) -> int:
+        return self.attempt_state.variant
 
-    @abstractmethod
-    def export_score(self) -> ScoreModel:
-        pass
+    def __init_subclass__(cls, *args: object, **kwargs: object):
+        super().__init_subclass__(*args, **kwargs)
 
-    def export_scored_attempt(self) -> AttemptScoredModel:
-        return AttemptScoredModel(**self.export().model_dump(), **self.export_score().model_dump())
+        cls.attempt_state_class = get_mro_type_hint(cls, "attempt_state", BaseAttemptState)
+        cls.scoring_state_class = get_mro_type_hint(cls, "scoring_state", BaseScoringState)
 
-    def export_attempt_state(self) -> str:
-        return self.attempt_state.model_dump_json()
+
+class _ScoringError(Exception):
+    def __init__(self, scoring_code: ScoringCode, *args: object) -> None:
+        self.scoring_code = scoring_code
+        super().__init__(*args)
+
+
+class ResponseNotScorableError(_ScoringError):
+    def __init__(self, *args: object) -> None:
+        super().__init__(ScoringCode.RESPONSE_NOT_SCORABLE, *args)
+
+
+class InvalidResponseError(_ScoringError):
+    def __init__(self, *args: object) -> None:
+        super().__init__(ScoringCode.INVALID_RESPONSE, *args)
+
+
+class NeedsManualScoringError(_ScoringError):
+    def __init__(self, *args: object) -> None:
+        super().__init__(ScoringCode.NEEDS_MANUAL_SCORING, *args)
