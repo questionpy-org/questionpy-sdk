@@ -16,11 +16,11 @@ from questionpy_common.api.qtype import InvalidQuestionStateError
 from questionpy_common.constants import MiB
 from questionpy_common.manifest import Manifest
 from questionpy_server import WorkerPool
+from questionpy_server.worker.impl.thread import ThreadWorker
 from questionpy_server.worker.runtime.package_location import PackageLocation
-from questionpy_server.worker.worker.thread import ThreadWorker
 
 if TYPE_CHECKING:
-    from questionpy_server.worker.worker import Worker
+    from questionpy_server.worker import Worker
 
 
 async def _extract_manifest(app: web.Application) -> None:

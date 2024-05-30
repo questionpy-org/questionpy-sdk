@@ -9,7 +9,7 @@ from pathlib import Path
 from zipfile import ZipFile
 
 from questionpy_common.constants import DIST_DIR, MANIFEST_FILENAME
-from questionpy_server.misc import calculate_hash
+from questionpy_server.hash import calculate_hash
 from questionpy_server.repository.models import RepoMeta, RepoPackageIndex, RepoPackageVersion, RepoPackageVersions
 from questionpy_server.utils.manifest import ComparableManifest
 

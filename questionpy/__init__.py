@@ -6,17 +6,17 @@ from questionpy_common.api.attempt import (
     AttemptFile,
     AttemptModel,
     AttemptScoredModel,
+    AttemptStartedModel,
     AttemptUi,
-    BaseAttempt,
     CacheControl,
     ClassifiedResponse,
     ScoreModel,
     ScoringCode,
 )
-from questionpy_common.api.qtype import BaseQuestionType, OptionsFormValidationError
+from questionpy_common.api.qtype import OptionsFormValidationError, QuestionTypeInterface
 from questionpy_common.api.question import (
-    BaseQuestion,
     PossibleResponse,
+    QuestionInterface,
     QuestionModel,
     ScoringMethod,
     SubquestionModel,
@@ -34,27 +34,36 @@ from questionpy_common.environment import (
 )
 from questionpy_common.manifest import Manifest, PackageType, SourceManifest
 
-from ._attempt import Attempt, AttemptUiPart, BaseAttemptState, BaseScoringState
-from ._qtype import BaseQuestionState, Question, QuestionType
+from ._attempt import (
+    Attempt,
+    AttemptUiPart,
+    BaseAttemptState,
+    BaseScoringState,
+    InvalidResponseError,
+    NeedsManualScoringError,
+    ResponseNotScorableError,
+)
+from ._qtype import BaseQuestionState, Question
 from ._ui import create_jinja2_environment
+from ._wrappers import QuestionTypeWrapper, QuestionWrapper
 
 __all__ = [
     "Attempt",
     "AttemptFile",
     "AttemptModel",
     "AttemptScoredModel",
+    "AttemptStartedModel",
     "AttemptUi",
     "AttemptUiPart",
-    "BaseAttempt",
     "BaseAttemptState",
-    "BaseQuestion",
     "BaseQuestionState",
-    "BaseQuestionType",
     "BaseScoringState",
     "CacheControl",
     "ClassifiedResponse",
     "Environment",
+    "InvalidResponseError",
     "Manifest",
+    "NeedsManualScoringError",
     "NoEnvironmentError",
     "OnRequestCallback",
     "OptionsFormValidationError",
@@ -63,9 +72,13 @@ __all__ = [
     "PackageType",
     "PossibleResponse",
     "Question",
+    "QuestionInterface",
     "QuestionModel",
-    "QuestionType",
+    "QuestionTypeInterface",
+    "QuestionTypeWrapper",
+    "QuestionWrapper",
     "RequestUser",
+    "ResponseNotScorableError",
     "ScoreModel",
     "ScoringCode",
     "ScoringMethod",

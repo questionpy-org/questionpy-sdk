@@ -1,7 +1,6 @@
 #  This file is part of the QuestionPy SDK. (https://questionpy.org)
 #  The QuestionPy SDK is free software released under terms of the MIT license. See LICENSE.md.
 #  (c) Technische Universität Berlin, innoCampus <info@isis.tu-berlin.de>
-
 from typing import TYPE_CHECKING, Never
 
 import aiohttp_jinja2
@@ -13,7 +12,7 @@ from questionpy_sdk.webserver.app import SDK_WEBSERVER_APP_KEY, StateFilename, W
 from questionpy_sdk.webserver.context import contextualize
 
 if TYPE_CHECKING:
-    from questionpy_server.worker.worker import Worker
+    from questionpy_server.worker import Worker
 
 routes = web.RouteTableDef()
 

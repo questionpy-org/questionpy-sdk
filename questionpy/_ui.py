@@ -1,11 +1,12 @@
 import importlib.resources
+from typing import TYPE_CHECKING
 
 import jinja2
 
-from questionpy_common.api.attempt import BaseAttempt
-from questionpy_common.api.qtype import BaseQuestionType
-from questionpy_common.api.question import BaseQuestion
 from questionpy_common.environment import Package, get_qpy_environment
+
+if TYPE_CHECKING:
+    from questionpy import Attempt, Question
 
 
 def _loader_for_package(package: Package) -> jinja2.BaseLoader | None:
@@ -19,9 +20,7 @@ def _loader_for_package(package: Package) -> jinja2.BaseLoader | None:
     return jinja2.PackageLoader(pkg_name)
 
 
-def create_jinja2_environment(
-    attempt: BaseAttempt, question: BaseQuestion, qtype: BaseQuestionType
-) -> jinja2.Environment:
+def create_jinja2_environment(attempt: "Attempt", question: "Question") -> jinja2.Environment:
     """Creates a Jinja2 environment with sensible default configuration.
 
     - Library templates are accessible under the prefix ``qpy/``.
@@ -40,6 +39,11 @@ def create_jinja2_environment(
     loader_mapping["qpy"] = jinja2.PackageLoader(__package__)
 
     env = jinja2.Environment(autoescape=True, loader=jinja2.PrefixLoader(mapping=loader_mapping))
-    env.globals.update({"environment": qpy_env, "attempt": attempt, "question": question, "question_type": qtype})
+    env.globals.update({
+        "environment": qpy_env,
+        "attempt": attempt,
+        "question": question,
+        "question_type": type(question),
+    })
 
     return env

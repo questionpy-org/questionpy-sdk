@@ -17,7 +17,7 @@ from questionpy_sdk.webserver.attempt import get_attempt_render_context
 from questionpy_sdk.webserver.question_ui import QuestionDisplayOptions
 
 if TYPE_CHECKING:
-    from questionpy_server.worker.worker import Worker
+    from questionpy_server.worker import Worker
 
 routes = web.RouteTableDef()
 
