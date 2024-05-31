@@ -4,7 +4,6 @@
 
 import json
 import random
-from typing import TYPE_CHECKING
 
 import aiohttp_jinja2
 from aiohttp import web
@@ -15,9 +14,6 @@ from questionpy_common.environment import RequestUser
 from questionpy_sdk.webserver.app import SDK_WEBSERVER_APP_KEY
 from questionpy_sdk.webserver.attempt import get_attempt_render_context
 from questionpy_sdk.webserver.question_ui import QuestionDisplayOptions
-
-if TYPE_CHECKING:
-    from questionpy_server.worker.worker import Worker
 
 routes = web.RouteTableDef()
 
@@ -48,7 +44,6 @@ async def get_attempt(request: web.Request) -> web.Response:
     if score_json:
         score = ScoreModel.model_validate_json(score_json)
 
-    worker: Worker
     if attempt_state:
         # Display a previously started attempt.
         async with webserver.worker_pool.get_worker(webserver.package_location, 0, None) as worker:
@@ -108,7 +103,6 @@ async def _score_attempt(request: web.Request, data: dict) -> web.Response:
     score_json = request.cookies.get("score")
     score = ScoreModel.model_validate_json(score_json) if score_json else None
 
-    worker: Worker
     async with webserver.worker_pool.get_worker(webserver.package_location, 0, None) as worker:
         attempt_scored = await worker.score_attempt(
             request_user=RequestUser(["de", "en"]),

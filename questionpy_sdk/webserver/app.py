@@ -4,7 +4,6 @@
 import traceback
 from functools import cached_property
 from pathlib import Path
-from typing import TYPE_CHECKING
 
 import aiohttp_jinja2
 from aiohttp import web
@@ -18,13 +17,9 @@ from questionpy_server import WorkerPool
 from questionpy_server.worker.runtime.package_location import PackageLocation
 from questionpy_server.worker.worker.thread import ThreadWorker
 
-if TYPE_CHECKING:
-    from questionpy_server.worker.worker import Worker
-
 
 async def _extract_manifest(app: web.Application) -> None:
     webserver = app[SDK_WEBSERVER_APP_KEY]
-    worker: Worker
     async with webserver.worker_pool.get_worker(webserver.package_location, 0, None) as worker:
         app[MANIFEST_APP_KEY] = await worker.get_manifest()
 
