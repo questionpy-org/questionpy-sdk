@@ -7,6 +7,8 @@ from shutil import copytree
 
 import pytest
 
+from questionpy_common.constants import DIST_DIR
+
 
 @pytest.fixture
 def source_path(request: pytest.FixtureRequest, tmp_path: Path) -> Path:
@@ -15,6 +17,6 @@ def source_path(request: pytest.FixtureRequest, tmp_path: Path) -> Path:
 
     src_path = Path(__file__).parent.parent.parent / "examples" / example_pkg
     dest_path = tmp_path / example_pkg
-    copytree(src_path, dest_path)
+    copytree(src_path, dest_path, ignore=lambda src, names: (DIST_DIR,))
 
     return dest_path
