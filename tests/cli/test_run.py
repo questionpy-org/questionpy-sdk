@@ -6,7 +6,9 @@ from pathlib import Path
 
 from click.testing import CliRunner
 
+from questionpy_common.constants import DIST_DIR, MANIFEST_FILENAME
 from questionpy_sdk.commands.run import run
+from tests.cli.conftest import long_running_cmd
 
 
 def test_run_no_arguments(runner: CliRunner) -> None:
@@ -28,8 +30,9 @@ def test_run_non_zip_file(runner: CliRunner, cwd: Path) -> None:
     assert "'README.md' doesn't look like a QPy package zip file, directory or module" in result.stdout
 
 
-def test_run_dir_without_manifest(runner: CliRunner, cwd: Path) -> None:
-    (cwd / "tests").mkdir()
-    result = runner.invoke(run, ["tests"])
-    assert result.exit_code != 0
-    assert "Could not find package manifest" in result.stdout
+def test_run_dir_builds_package(source_path: Path) -> None:
+    with long_running_cmd(["run", str(source_path)]) as proc:
+        assert proc.stdout
+        first_line = proc.stdout.readline().decode("utf-8")
+        assert f"Successfully built package '{source_path}'" in first_line
+        assert (source_path / DIST_DIR / MANIFEST_FILENAME).exists()
