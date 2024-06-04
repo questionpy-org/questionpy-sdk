@@ -79,25 +79,29 @@ async def long_running_cmd(args: Iterable[str], timeout: float = 5) -> AsyncIter
                 *popen_args, stdin=PIPE, stdout=PIPE, stderr=PIPE, env={"QPY_STATE_STORAGE_PATH": state_dir}
             )
 
-            # ensure tests don't hang indefinitely
-            async def kill_after_timeout() -> None:
-                await asyncio.sleep(timeout)
-                proc.send_signal(signal.SIGINT)
+            def terminate() -> None:
+                with contextlib.suppress(ProcessLookupError):
+                    proc.send_signal(signal.SIGTERM)
 
-            kill_task = asyncio.create_task(kill_after_timeout())
+            # ensure tests don't hang indefinitely
+            async def terminate_after_timeout() -> None:
+                await asyncio.sleep(timeout)
+                terminate()
+
+            kill_task = asyncio.create_task(terminate_after_timeout())
             yield proc
 
         finally:
             if kill_task:
                 kill_task.cancel()
-            proc.send_signal(signal.SIGINT)
+            terminate()
             await proc.wait()
 
 
-async def assert_webserver_is_up(session: aiohttp.ClientSession, url: str = "http://localhost:8080/") -> None:
+async def assert_webserver_is_up(session: aiohttp.ClientSession, port: int) -> None:
     for _ in range(50):  # allow 5 sec to come up
         try:
-            async with session.get(url) as response:
+            async with session.get(f"http://localhost:{port}/") as response:
                 assert response.status == 200
                 return
         except aiohttp.ClientConnectionError:
