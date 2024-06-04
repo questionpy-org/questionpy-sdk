@@ -23,7 +23,7 @@ from questionpy_sdk.models import BuildHookName
 from questionpy_sdk.package.errors import PackageBuildError
 from questionpy_sdk.package.source import PackageSource
 
-log = logging.getLogger(__name__)
+log = logging.getLogger("questionpy-sdk:builder")
 
 
 class PackageBuilderBase(AbstractContextManager):
