@@ -27,7 +27,7 @@ class _AttemptRenderContext(TypedDict):
 def _render_part(
     ui: AttemptUi, part: str, last_attempt_data: dict, display_options: QuestionDisplayOptions, seed: int
 ) -> str:
-    return QuestionUIRenderer(part, ui.placeholders, seed).render(last_attempt_data, display_options)
+    return QuestionUIRenderer(part, ui.placeholders, display_options, seed, last_attempt_data).render()
 
 
 def get_attempt_render_context(

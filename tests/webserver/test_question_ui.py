@@ -1,7 +1,6 @@
 #  This file is part of the QuestionPy SDK. (https://questionpy.org)
 #  The QuestionPy SDK is free software released under terms of the MIT license. See LICENSE.md.
 #  (c) Technische Universität Berlin, innoCampus <info@isis.tu-berlin.de>
-from contextlib import suppress
 from importlib import resources
 from typing import Any
 
@@ -29,26 +28,23 @@ def xml_content(request: pytest.FixtureRequest) -> str | None:
 
 @pytest.fixture
 def result(request: pytest.FixtureRequest, xml_content: str | None) -> str:
-    renderer_kwargs: dict[str, Any] = {"placeholders": {}, "xml": xml_content}
-    display_options: dict[str, Any] = {}
-    attempt = None
+    renderer_kwargs: dict[str, Any] = {
+        "placeholders": {},
+        "xml": xml_content,
+        "options": QuestionDisplayOptions(),
+    }
 
     marker = request.node.get_closest_marker("render_params")
     if marker is not None:
-        with suppress(KeyError):
-            renderer_kwargs |= marker.kwargs["renderer_kwargs"]
-        with suppress(KeyError):
-            display_options |= marker.kwargs["display_options"]
-        with suppress(KeyError):
-            attempt = marker.kwargs["attempt"]
+        renderer_kwargs |= marker.kwargs
 
     renderer = QuestionUIRenderer(**renderer_kwargs)
-    return renderer.render(options=QuestionDisplayOptions(**display_options), attempt=attempt)
+    return renderer.render()
 
 
 @pytest.mark.ui_file("metadata")
 def test_should_extract_correct_metadata(xml_content: str) -> None:
-    ui_renderer = QuestionUIRenderer(xml_content, {})
+    ui_renderer = QuestionUIRenderer(xml_content, {}, QuestionDisplayOptions())
     question_metadata = ui_renderer.get_metadata()
 
     expected_metadata = QuestionMetadata()
@@ -76,12 +72,10 @@ def test_should_extract_correct_metadata(xml_content: str) -> None:
 
 @pytest.mark.ui_file("placeholder")
 @pytest.mark.render_params(
-    renderer_kwargs={
-        "placeholders": {
-            "param": "Value of param <b>one</b>.<script>'Oh no, danger!'</script>",
-            "description": "My simple description.",
-        }
-    },
+    placeholders={
+        "param": "Value of param <b>one</b>.<script>'Oh no, danger!'</script>",
+        "description": "My simple description.",
+    }
 )
 def test_should_resolve_placeholders(result: str) -> None:
     # TODO: remove <string> surrounding the resolved placeholder
@@ -101,7 +95,7 @@ def test_should_resolve_placeholders(result: str) -> None:
 
 
 @pytest.mark.ui_file("feedbacks")
-@pytest.mark.render_params(display_options={"general_feedback": False, "feedback": False})
+@pytest.mark.render_params(options=QuestionDisplayOptions(general_feedback=False, feedback=False))
 def test_should_hide_inline_feedback(result: str) -> None:
     expected = """
         <div>
@@ -149,8 +143,8 @@ def test_element_visibility_based_on_role(user_context: str, expected: str, xml_
     options = QuestionDisplayOptions()
     options.context["role"] = user_context
 
-    renderer = QuestionUIRenderer(xml_content, placeholders={})
-    result = renderer.render(options=options)
+    renderer = QuestionUIRenderer(xml_content, {}, options)
+    result = renderer.render()
 
     assert_xhtml_is_equal(result, expected)
 
@@ -185,7 +179,7 @@ def test_should_set_input_values(result: str) -> None:
 
 
 @pytest.mark.ui_file("inputs")
-@pytest.mark.render_params(display_options={"readonly": True})
+@pytest.mark.render_params(options=QuestionDisplayOptions(readonly=True))
 def test_should_disable_inputs(result: str) -> None:
     expected = """
         <div>
@@ -259,16 +253,16 @@ def test_should_format_floats_in_en(result: str) -> None:
 
 
 @pytest.mark.ui_file("shuffle")
-@pytest.mark.render_params(renderer_kwargs={"seed": 42})
+@pytest.mark.render_params(seed=42)
 def test_should_shuffle_the_same_way_in_same_attempt(result: str, xml_content: str) -> None:
     for _ in range(10):
-        renderer = QuestionUIRenderer(xml_content, placeholders={}, seed=42)
+        renderer = QuestionUIRenderer(xml_content, {}, QuestionDisplayOptions(), seed=42)
         other_result = renderer.render()
         assert result == other_result, "Shuffled order should remain consistent across renderings with the same seed"
 
 
 @pytest.mark.ui_file("shuffled-index")
-@pytest.mark.render_params(renderer_kwargs={"seed": 42})
+@pytest.mark.render_params(seed=42)
 def test_should_replace_shuffled_index(result: str) -> None:
     expected = """
         <div>
@@ -292,16 +286,14 @@ def test_should_replace_shuffled_index(result: str) -> None:
 
 
 @pytest.mark.render_params(
-    renderer_kwargs={
-        "xml": """
-            <div xmlns:qpy="http://questionpy.org/ns/question">
-                <qpy:element>Text</qpy:element>
-                <element qpy:attribute="value">Content</element>
-                <!-- Comment -->
-                <regular xmlns:qpy="http://questionpy.org/ns/question">Normal Content</regular>
-            </div>
-        """,
-    }
+    xml="""
+        <div xmlns:qpy="http://questionpy.org/ns/question">
+            <qpy:element>Text</qpy:element>
+            <element qpy:attribute="value">Content</element>
+            <!-- Comment -->
+            <regular xmlns:qpy="http://questionpy.org/ns/question">Normal Content</regular>
+        </div>
+    """
 )
 def test_clean_up(result: str) -> None:
     expected = """

@@ -2,7 +2,6 @@
 #  The QuestionPy SDK is free software released under terms of the MIT license. See LICENSE.md.
 #  (c) Technische Universität Berlin, innoCampus <info@isis.tu-berlin.de>
 
-from copy import deepcopy
 from random import Random
 from typing import Any
 
@@ -129,11 +128,22 @@ class QuestionUIRenderer:
     XHTML_NAMESPACE: str = "http://www.w3.org/1999/xhtml"
     QPY_NAMESPACE: str = "http://questionpy.org/ns/question"
 
-    def __init__(self, xml: str, placeholders: dict[str, str], seed: int | None = None) -> None:
-        self._xml = xml
+    def __init__(
+        self,
+        xml: str,
+        placeholders: dict[str, str],
+        options: QuestionDisplayOptions,
+        seed: int | None = None,
+        attempt: dict | None = None,
+    ) -> None:
+        self._xml = etree.ElementTree(etree.fromstring(xml))
+        self._xpath = etree.XPathDocumentEvaluator(self._xml)
+        self._xpath.register_namespace("xhtml", self.XHTML_NAMESPACE)
+        self._xpath.register_namespace("qpy", self.QPY_NAMESPACE)
         self._placeholders = placeholders
-        self._root = etree.fromstring(xml.encode())
+        self._options = options
         self._random = Random(seed)
+        self._attempt = attempt
 
     def get_metadata(self) -> QuestionMetadata:
         """Extracts metadata from the question UI."""
@@ -141,7 +151,7 @@ class QuestionUIRenderer:
         namespaces: dict[str, str] = {"xhtml": self.XHTML_NAMESPACE, "qpy": self.QPY_NAMESPACE}
 
         # Extract correct responses
-        for element in self._root.findall(".//*[@qpy:correct-response]", namespaces=namespaces):
+        for element in self._xml.findall(".//*[@qpy:correct-response]", namespaces=namespaces):
             name = element.get("name")
             if not name:
                 continue
@@ -158,7 +168,7 @@ class QuestionUIRenderer:
 
         # Extract other metadata
         for element_type in ["input", "select", "textarea", "button"]:
-            for element in self._root.findall(f".//xhtml:{element_type}", namespaces=namespaces):
+            for element in self._xml.findall(f".//xhtml:{element_type}", namespaces=namespaces):
                 name = element.get("name")
                 if not name:
                     continue
@@ -169,37 +179,29 @@ class QuestionUIRenderer:
 
         return question_metadata
 
-    def render(self, attempt: dict | None = None, options: QuestionDisplayOptions | None = None) -> str:
-        """Applies transformations to the descendants of a given node and returns the resulting HTML."""
-        copy = deepcopy(self._root)
-        copy.nsmap.setdefault(None, self.XHTML_NAMESPACE)  # Interpret the default namespace as XHTML.
-        newdoc = etree.ElementTree(copy)
-
-        xpath = etree.XPathDocumentEvaluator(newdoc)
-        xpath.register_namespace("xhtml", self.XHTML_NAMESPACE)
-        xpath.register_namespace("qpy", self.QPY_NAMESPACE)
-
-        self._resolve_placeholders(xpath)
-        self._hide_unwanted_feedback(xpath, options)
-        self._hide_if_role(xpath, options)
-        self._set_input_values_and_readonly(xpath, attempt, options)
-        self._soften_validation(xpath)
-        self._defuse_buttons(xpath)
-        self._shuffle_contents(xpath)
-        self._add_styles(xpath)
-        self._format_floats(xpath)
+    def render(self) -> str:
+        """Applies transformations and returns the resulting HTML."""
+        self._resolve_placeholders()
+        self._hide_unwanted_feedback()
+        self._hide_if_role()
+        self._set_input_values_and_readonly()
+        self._soften_validation()
+        self._defuse_buttons()
+        self._shuffle_contents()
+        self._add_styles()
+        self._format_floats()
         # TODO: mangle_ids_and_names
-        self._clean_up(newdoc, xpath)
+        self._clean_up()
 
-        return etree.tostring(newdoc, pretty_print=True).decode()
+        return etree.tostring(self._xml, pretty_print=True).decode()
 
-    def _resolve_placeholders(self, xpath: etree.XPathDocumentEvaluator) -> None:
+    def _resolve_placeholders(self) -> None:
         """Replace placeholder PIs such as `<?p my_key plain?>` with the appropriate value from `self.placeholders`.
 
         Since QPy transformations should not be applied to the content of the placeholders, this method should be called
         last.
         """
-        for p_instruction in _assert_element_list(xpath("//processing-instruction('p')")):
+        for p_instruction in _assert_element_list(self._xpath("//processing-instruction('p')")):
             if not p_instruction.text:
                 continue
             parts = p_instruction.text.strip().split()
@@ -243,46 +245,39 @@ class QuestionUIRenderer:
             p_instruction.addnext(etree.fromstring(f"<string>{replacement}</string>"))
             parent.remove(p_instruction)
 
-    def _hide_unwanted_feedback(
-        self, xpath: etree.XPathDocumentEvaluator, options: QuestionDisplayOptions | None = None
-    ) -> None:
+    def _hide_unwanted_feedback(self) -> None:
         """Hides elements marked with `qpy:feedback` if the type of feedback is disabled in `options`."""
-        if not options:
-            return
-
-        for element in _assert_element_list(xpath("//*[@qpy:feedback]")):
+        for element in _assert_element_list(self._xpath("//*[@qpy:feedback]")):
             feedback_type = element.get(f"{{{self.QPY_NAMESPACE}}}feedback")
 
             # Check conditions to remove the element
-            if (feedback_type == "general" and not options.general_feedback) or (
-                feedback_type == "specific" and not options.feedback
+            if (feedback_type == "general" and not self._options.general_feedback) or (
+                feedback_type == "specific" and not self._options.feedback
             ):
                 parent = element.getparent()
                 if parent is not None:
                     parent.remove(element)
 
-    def _hide_if_role(self, xpath: etree.XPathDocumentEvaluator, options: QuestionDisplayOptions | None = None) -> None:
+    def _hide_if_role(self) -> None:
         """Hides elements based on user role.
 
         Removes elements with `qpy:if-role` attributes if the user matches none of the given roles in this context.
         """
-        if not options or options.context.get("role") == "admin":
+        if self._options.context.get("role") == "admin":
             return
 
-        for element in _assert_element_list(xpath("//*[@qpy:if-role]")):
+        for element in _assert_element_list(self._xpath("//*[@qpy:if-role]")):
             attr = element.attrib.get(f"{{{self.QPY_NAMESPACE}}}if-role")
             if attr is None:
                 continue
             allowed_roles = attr.split()
 
-            if options.context.get("role") not in allowed_roles:
+            if self._options.context.get("role") not in allowed_roles:
                 parent = element.getparent()
                 if parent is not None:
                     parent.remove(element)
 
-    def _set_input_values_and_readonly(
-        self, xpath: etree.XPathDocumentEvaluator, attempt: dict | None, options: QuestionDisplayOptions | None = None
-    ) -> None:
+    def _set_input_values_and_readonly(self) -> None:
         """Transforms input(-like) elements.
 
         - If `options` is set, the input is disabled.
@@ -290,22 +285,24 @@ class QuestionUIRenderer:
 
         Requires the unmangled name of the element, so must be called `before` `mangle_ids_and_names`
         """
-        elements = _assert_element_list(xpath("//xhtml:button | //xhtml:input | //xhtml:select | //xhtml:textarea"))
+        elements = _assert_element_list(
+            self._xpath("//xhtml:button | //xhtml:input | //xhtml:select | //xhtml:textarea")
+        )
 
         for element in elements:
             # Disable the element if options specify readonly
-            if options and options.readonly:
+            if self._options.readonly:
                 element.set("disabled", "disabled")
 
             name = element.get("name")
-            if not name or not attempt:
+            if not name or not self._attempt:
                 continue
 
-            last_value = attempt.get(name)
+            last_value = self._attempt.get(name)
             if last_value is not None:
-                _set_element_value(element, last_value, name, xpath)
+                _set_element_value(element, last_value, name, self._xpath)
 
-    def _soften_validation(self, xpath: etree.XPathDocumentEvaluator) -> None:
+    def _soften_validation(self) -> None:
         """Replaces HTML attributes so that submission is not prevented.
 
         Removes attributes `pattern`, `required`, `minlength`, `maxlength`, `min`, `max` from elements, so form
@@ -317,7 +314,7 @@ class QuestionUIRenderer:
             elements: list[str], attribute: str, data_attribute: str, aria_attribute: str | None = None
         ) -> None:
             xhtml_elems = " | ".join(f".//xhtml:{elem}" for elem in elements)
-            element_list = _assert_element_list(xpath(f"({xhtml_elems})[@{attribute}]"))
+            element_list = _assert_element_list(self._xpath(f"({xhtml_elems})[@{attribute}]"))
             for element in element_list:
                 value = element.get(attribute)
                 element.attrib.pop(attribute)
@@ -341,19 +338,19 @@ class QuestionUIRenderer:
         handle_attribute(["input"], "min", "data-qpy_min", "aria-valuemin")
         handle_attribute(["input"], "max", "data-qpy_max", "aria-valuemax")
 
-    def _defuse_buttons(self, xpath: etree.XPathDocumentEvaluator) -> None:
+    def _defuse_buttons(self) -> None:
         """Turns submit and reset buttons into simple buttons without a default action."""
         for element in _assert_element_list(
-            xpath("(//xhtml:input | //xhtml:button)[@type = 'submit' or @type = 'reset']")
+            self._xpath("(//xhtml:input | //xhtml:button)[@type = 'submit' or @type = 'reset']")
         ):
             element.set("type", "button")
 
-    def _shuffle_contents(self, xpath: etree.XPathDocumentEvaluator) -> None:
+    def _shuffle_contents(self) -> None:
         """Shuffles children of elements marked with `qpy:shuffle-contents`.
 
         Also replaces `qpy:shuffled-index` elements which are descendants of each child with the new index of the child.
         """
-        for element in _assert_element_list(xpath("//*[@qpy:shuffle-contents]")):
+        for element in _assert_element_list(self._xpath("//*[@qpy:shuffle-contents]")):
             # Collect child elements to shuffle them
             child_elements = [child for child in element if isinstance(child, etree._Element)]
             self._random.shuffle(child_elements)
@@ -366,32 +363,32 @@ class QuestionUIRenderer:
                 # Move each child element back to its parent at the correct position
                 element.append(child)
 
-    def _clean_up(self, doc: etree._ElementTree, xpath: etree.XPathDocumentEvaluator) -> None:
+    def _clean_up(self) -> None:
         """Removes remaining QuestionPy elements and attributes as well as comments and xmlns declarations."""
-        for element in _assert_element_list(xpath("//qpy:*")):
+        for element in _assert_element_list(self._xpath("//qpy:*")):
             parent = element.getparent()
             if parent is not None:
                 parent.remove(element)
 
         # Remove attributes in the QuestionPy namespace
-        for element in _assert_element_list(xpath("//*")):
+        for element in _assert_element_list(self._xpath("//*")):
             qpy_attributes = [attr for attr in element.attrib if attr.startswith(f"{{{self.QPY_NAMESPACE}}}")]  # type: ignore[arg-type]
             for attr in qpy_attributes:
                 del element.attrib[attr]
 
         # Remove comments
-        for comment in _assert_element_list(xpath("//comment()")):
+        for comment in _assert_element_list(self._xpath("//comment()")):
             parent = comment.getparent()
             if parent is not None:
                 parent.remove(comment)
 
         # Remove namespaces from all elements. (QPy elements should all have been consumed previously anyhow.)
-        for element in _assert_element_list(xpath("//*")):
+        for element in _assert_element_list(self._xpath("//*")):
             qname = etree.QName(element)
             if qname.namespace == self.XHTML_NAMESPACE:
                 element.tag = qname.localname
 
-        etree.cleanup_namespaces(doc, top_nsmap={None: self.XHTML_NAMESPACE})  # type: ignore[dict-item]
+        etree.cleanup_namespaces(self._xml, top_nsmap={None: self.XHTML_NAMESPACE})  # type: ignore[dict-item]
 
     def add_class_names(self, element: etree._Element, *class_names: str) -> None:
         """Adds the given class names to the elements `class` attribute if not already present."""
@@ -401,11 +398,11 @@ class QuestionUIRenderer:
                 existing_classes.append(class_name)
         element.set("class", " ".join(existing_classes))
 
-    def _add_styles(self, xpath: etree.XPathDocumentEvaluator) -> None:
+    def _add_styles(self) -> None:
         """Adds CSS classes to various elements."""
         # First group: input (not checkbox, radio, button, submit, reset), select, textarea
         for element in _assert_element_list(
-            xpath("""
+            self._xpath("""
                 //xhtml:input[@type != 'checkbox' and @type != 'radio' and
                               @type != 'button' and @type != 'submit' and @type != 'reset']
                 | //xhtml:select | //xhtml:textarea
@@ -415,7 +412,7 @@ class QuestionUIRenderer:
 
         # Second group: input (button, submit, reset), button
         for element in _assert_element_list(
-            xpath("""
+            self._xpath("""
                 //xhtml:input[@type = 'button' or @type = 'submit' or @type = 'reset']
                 | //xhtml:button
                 """)
@@ -423,10 +420,10 @@ class QuestionUIRenderer:
             self.add_class_names(element, "btn", "btn-primary", "qpy-input")
 
         # Third group: input (checkbox, radio)
-        for element in _assert_element_list(xpath("//xhtml:input[@type = 'checkbox' or @type = 'radio']")):
+        for element in _assert_element_list(self._xpath("//xhtml:input[@type = 'checkbox' or @type = 'radio']")):
             self.add_class_names(element, "qpy-input")
 
-    def _format_floats(self, xpath: etree.XPathDocumentEvaluator) -> None:
+    def _format_floats(self) -> None:
         """Handles `qpy:format-float`.
 
         Uses `format_float` and optionally adds thousands separators.
@@ -434,7 +431,7 @@ class QuestionUIRenderer:
         thousands_sep = ","  # Placeholder for thousands separator
         decimal_sep = "."  # Placeholder for decimal separator
 
-        for element in _assert_element_list(xpath("//qpy:format-float")):
+        for element in _assert_element_list(self._xpath("//qpy:format-float")):
             if element.text is None:
                 continue
             float_val = float(element.text)
