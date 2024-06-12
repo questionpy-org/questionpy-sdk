@@ -8,7 +8,7 @@ description = "Library and toolset for the development of QuestionPy packages"
 authors = ["innoCampus <info@isis.tu-berlin.de>"]
 license = "MIT"
 homepage = "https://questionpy.org"
-version = "0.2.4"
+version = "0.2.5"
 packages = [
     { include = "questionpy" },
     { include = "questionpy_sdk" }
@@ -28,7 +28,7 @@ python = "^3.11"
 aiohttp = "^3.9.3"
 pydantic = "^2.6.4"
 PyYAML = "^6.0.1"
-questionpy-server = { git = "https://github.com/questionpy-org/questionpy-server.git", rev = "a50b6b33229f22368f85e7af6d4a79f71814f81b" }
+questionpy-server = { git = "https://github.com/questionpy-org/questionpy-server.git", rev = "763c15bcf3906ebb80d8d0bd9c15e842de4f8b0c" }
 jinja2 = "^3.1.3"
 aiohttp-jinja2 = "^1.6"
 lxml = "~5.1.0"
