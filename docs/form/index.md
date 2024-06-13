@@ -16,5 +16,18 @@
             - select
             - static_text
             - text_input
+            - CheckboxElement
+            - CheckboxGroupElement
             - FormModel
+            - FormSection
+            - GroupElement
+            - HiddenElement
+            - Option
             - OptionEnum
+            - OptionsFormDefinition
+            - RadioGroupElement
+            - RepetitionElement
+            - SelectElement
+            - StaticTextElement
+            - TextAreaElement
+            - TextInputElement
