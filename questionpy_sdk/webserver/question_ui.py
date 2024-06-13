@@ -136,6 +136,7 @@ class QuestionUIRenderer:
         seed: int | None = None,
         attempt: dict | None = None,
     ) -> None:
+        """General renderer for the question UI except for the formulation part."""
         self._xml = etree.ElementTree(etree.fromstring(xml))
         self._xpath = etree.XPathDocumentEvaluator(self._xml)
         self._xpath.register_namespace("xhtml", self.XHTML_NAMESPACE)
@@ -144,56 +145,26 @@ class QuestionUIRenderer:
         self._options = options
         self._random = Random(seed)
         self._attempt = attempt
-
-    def get_metadata(self) -> QuestionMetadata:
-        """Extracts metadata from the question UI."""
-        question_metadata = QuestionMetadata()
-        namespaces: dict[str, str] = {"xhtml": self.XHTML_NAMESPACE, "qpy": self.QPY_NAMESPACE}
-
-        # Extract correct responses
-        for element in self._xml.findall(".//*[@qpy:correct-response]", namespaces=namespaces):
-            name = element.get("name")
-            if not name:
-                continue
-
-            if element.tag.endswith("input") and element.get("type") == "radio":
-                value = element.get("value")
-            else:
-                value = element.get(f"{{{self.QPY_NAMESPACE}}}correct-response")
-
-            if not value:
-                continue
-
-            question_metadata.correct_response[name] = value
-
-        # Extract other metadata
-        for element_type in ["input", "select", "textarea", "button"]:
-            for element in self._xml.findall(f".//xhtml:{element_type}", namespaces=namespaces):
-                name = element.get("name")
-                if not name:
-                    continue
-
-                question_metadata.expected_data[name] = "Any"
-                if element.get("required") is not None:
-                    question_metadata.required_fields.append(name)
-
-        return question_metadata
+        self._transformed_xml: str | None = None
 
     def render(self) -> str:
-        """Applies transformations and returns the resulting HTML."""
-        self._resolve_placeholders()
-        self._hide_unwanted_feedback()
-        self._hide_if_role()
-        self._set_input_values_and_readonly()
-        self._soften_validation()
-        self._defuse_buttons()
-        self._shuffle_contents()
-        self._add_styles()
-        self._format_floats()
-        # TODO: mangle_ids_and_names
-        self._clean_up()
+        """Applies transformations and returns the resulting HTML. Must be called only once."""
+        if not self._transformed_xml:
+            self._resolve_placeholders()
+            self._hide_unwanted_feedback()
+            self._hide_if_role()
+            self._set_input_values_and_readonly()
+            self._soften_validation()
+            self._defuse_buttons()
+            self._shuffle_contents()
+            self._add_styles()
+            self._format_floats()
+            # TODO: mangle_ids_and_names
+            self._clean_up()
 
-        return etree.tostring(self._xml, pretty_print=True).decode()
+            self._transformed_xml = etree.tostring(self._xml, pretty_print=True).decode()
+
+        return self._transformed_xml
 
     def _resolve_placeholders(self) -> None:
         """Replace placeholder PIs such as `<?p my_key plain?>` with the appropriate value from `self.placeholders`.
@@ -465,5 +436,49 @@ class QuestionUIRenderer:
                 parent.remove(element)
 
 
-class FormulationElementMissingError(Exception):
-    """Exception raised when a `qpy:formulation` element is missing from the XML."""
+class QuestionFormulationUIRenderer(QuestionUIRenderer):
+    def __init__(
+        self,
+        xml: str,
+        placeholders: dict[str, str],
+        options: QuestionDisplayOptions,
+        seed: int | None = None,
+        attempt: dict | None = None,
+    ) -> None:
+        """Renderer for the formulation UI part that provides metadata."""
+        super().__init__(xml, placeholders, options, seed, attempt)
+        self.metadata = self._get_metadata()
+
+    def _get_metadata(self) -> QuestionMetadata:
+        """Extracts metadata from the question UI."""
+        question_metadata = QuestionMetadata()
+        namespaces: dict[str, str] = {"xhtml": self.XHTML_NAMESPACE, "qpy": self.QPY_NAMESPACE}
+
+        # Extract correct responses
+        for element in self._xml.findall(".//*[@qpy:correct-response]", namespaces=namespaces):
+            name = element.get("name")
+            if not name:
+                continue
+
+            if element.tag.endswith("input") and element.get("type") == "radio":
+                value = element.get("value")
+            else:
+                value = element.get(f"{{{self.QPY_NAMESPACE}}}correct-response")
+
+            if not value:
+                continue
+
+            question_metadata.correct_response[name] = value
+
+        # Extract other metadata
+        for element_type in ["input", "select", "textarea", "button"]:
+            for element in self._xml.findall(f".//xhtml:{element_type}", namespaces=namespaces):
+                name = element.get("name")
+                if not name:
+                    continue
+
+                question_metadata.expected_data[name] = "Any"
+                if element.get("required") is not None:
+                    question_metadata.required_fields.append(name)
+
+        return question_metadata
