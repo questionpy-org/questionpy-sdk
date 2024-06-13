@@ -4,8 +4,12 @@
 
 from typing import Literal, TypedDict
 
-from questionpy_common.api.attempt import AttemptModel, AttemptScoredModel, AttemptUi
-from questionpy_sdk.webserver.question_ui import QuestionDisplayOptions, QuestionUIRenderer
+from questionpy_common.api.attempt import AttemptModel, AttemptScoredModel
+from questionpy_sdk.webserver.question_ui import (
+    QuestionDisplayOptions,
+    QuestionFormulationUIRenderer,
+    QuestionUIRenderer,
+)
 from questionpy_server.api.models import AttemptStarted
 
 
@@ -22,12 +26,6 @@ class _AttemptRenderContext(TypedDict):
     general_feedback: str | None
     specific_feedback: str | None
     right_answer: str | None
-
-
-def _render_part(
-    ui: AttemptUi, part: str, last_attempt_data: dict, display_options: QuestionDisplayOptions, seed: int
-) -> str:
-    return QuestionUIRenderer(part, ui.placeholders, display_options, seed, last_attempt_data).render()
 
 
 def get_attempt_render_context(
@@ -50,7 +48,9 @@ def get_attempt_render_context(
         "attempt_state": attempt_state,
         "options": display_options.model_dump(exclude={"context", "readonly"}),
         "form_disabled": disabled,
-        "formulation": _render_part(attempt.ui, attempt.ui.formulation, last_attempt_data, display_options, seed),
+        "formulation": QuestionFormulationUIRenderer(
+            attempt.ui.formulation, attempt.ui.placeholders, display_options, seed, last_attempt_data
+        ).render(),
         "attempt": attempt,
         "general_feedback": None,
         "specific_feedback": None,
@@ -58,16 +58,16 @@ def get_attempt_render_context(
     }
 
     if display_options.general_feedback and attempt.ui.general_feedback:
-        context["general_feedback"] = _render_part(
-            attempt.ui, attempt.ui.general_feedback, last_attempt_data, display_options, seed
-        )
+        context["general_feedback"] = QuestionUIRenderer(
+            attempt.ui.general_feedback, attempt.ui.placeholders, display_options, seed, last_attempt_data
+        ).render()
     if display_options.feedback and attempt.ui.specific_feedback:
-        context["specific_feedback"] = _render_part(
-            attempt.ui, attempt.ui.specific_feedback, last_attempt_data, display_options, seed
-        )
+        context["specific_feedback"] = QuestionUIRenderer(
+            attempt.ui.specific_feedback, attempt.ui.placeholders, display_options, seed, last_attempt_data
+        ).render()
     if display_options.right_answer and attempt.ui.right_answer:
-        context["right_answer"] = _render_part(
-            attempt.ui, attempt.ui.right_answer, last_attempt_data, display_options, seed
-        )
+        context["right_answer"] = QuestionUIRenderer(
+            attempt.ui.right_answer, attempt.ui.placeholders, display_options, seed, last_attempt_data
+        ).render()
 
     return context

@@ -6,7 +6,12 @@ from typing import Any
 
 import pytest
 
-from questionpy_sdk.webserver.question_ui import QuestionDisplayOptions, QuestionMetadata, QuestionUIRenderer
+from questionpy_sdk.webserver.question_ui import (
+    QuestionDisplayOptions,
+    QuestionFormulationUIRenderer,
+    QuestionMetadata,
+    QuestionUIRenderer,
+)
 from tests.webserver.conftest import assert_xhtml_is_equal
 
 
@@ -44,8 +49,8 @@ def result(request: pytest.FixtureRequest, xml_content: str | None) -> str:
 
 @pytest.mark.ui_file("metadata")
 def test_should_extract_correct_metadata(xml_content: str) -> None:
-    ui_renderer = QuestionUIRenderer(xml_content, {}, QuestionDisplayOptions())
-    question_metadata = ui_renderer.get_metadata()
+    ui_renderer = QuestionFormulationUIRenderer(xml_content, {}, QuestionDisplayOptions())
+    question_metadata = ui_renderer.metadata
 
     expected_metadata = QuestionMetadata()
     expected_metadata.correct_response = {
