@@ -31,7 +31,7 @@ References:
     - Within `foo`, get the element `bar`.
     - Ensure that `bar` is a valid target for `is_checked`, i.e. a checkbox. Otherwise, the reference is invalid.
 
-    All conditions in an [`OptionsFormDefinition`][questionpy_common.elements.OptionsFormDefinition] are validated by
+    All conditions in an [`OptionsFormDefinition`][questionpy.form.OptionsFormDefinition] are validated by
     [`validate_form`][questionpy.form.validation.validate_form], which is notably called by
     [`QuestionType.__init_subclass__`][questionpy.QuestionType].
 """

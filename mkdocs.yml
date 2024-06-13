@@ -1,9 +1,8 @@
-site_name: reference/sdk
+site_name: reference/questionpy
 
 nav:
   - questionpy:
-    - questionpy/index.md
-    - form:
-      - questionpy/form/index.md
-      - questionpy/form/validation.md
-  - questionpy_sdk.md
+      - index.md
+      - form:
+          - form/index.md
+          - form/validation.md
