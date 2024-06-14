@@ -44,7 +44,7 @@ def result(request: pytest.FixtureRequest, xml_content: str | None) -> str:
         renderer_kwargs |= marker.kwargs
 
     renderer = QuestionUIRenderer(**renderer_kwargs)
-    return renderer.render()
+    return renderer.xml
 
 
 @pytest.mark.ui_file("metadata")
@@ -149,7 +149,7 @@ def test_element_visibility_based_on_role(user_context: str, expected: str, xml_
     options.context["role"] = user_context
 
     renderer = QuestionUIRenderer(xml_content, {}, options)
-    result = renderer.render()
+    result = renderer.xml
 
     assert_xhtml_is_equal(result, expected)
 
@@ -262,7 +262,7 @@ def test_should_format_floats_in_en(result: str) -> None:
 def test_should_shuffle_the_same_way_in_same_attempt(result: str, xml_content: str) -> None:
     for _ in range(10):
         renderer = QuestionUIRenderer(xml_content, {}, QuestionDisplayOptions(), seed=42)
-        other_result = renderer.render()
+        other_result = renderer.xml
         assert result == other_result, "Shuffled order should remain consistent across renderings with the same seed"
 
 

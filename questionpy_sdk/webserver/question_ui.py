@@ -2,6 +2,7 @@
 #  The QuestionPy SDK is free software released under terms of the MIT license. See LICENSE.md.
 #  (c) Technische Universität Berlin, innoCampus <info@isis.tu-berlin.de>
 
+from functools import cached_property
 from random import Random
 from typing import Any
 
@@ -145,26 +146,25 @@ class QuestionUIRenderer:
         self._options = options
         self._random = Random(seed)
         self._attempt = attempt
-        self._transformed_xml: str | None = None
 
-    def render(self) -> str:
-        """Applies transformations and returns the resulting HTML. Must be called only once."""
-        if not self._transformed_xml:
-            self._resolve_placeholders()
-            self._hide_unwanted_feedback()
-            self._hide_if_role()
-            self._set_input_values_and_readonly()
-            self._soften_validation()
-            self._defuse_buttons()
-            self._shuffle_contents()
-            self._add_styles()
-            self._format_floats()
-            # TODO: mangle_ids_and_names
-            self._clean_up()
+    @cached_property
+    def xml(self) -> str:
+        self._render()
+        return etree.tostring(self._xml, pretty_print=True).decode()
 
-            self._transformed_xml = etree.tostring(self._xml, pretty_print=True).decode()
-
-        return self._transformed_xml
+    def _render(self) -> None:
+        """Applies transformations to the xml."""
+        self._resolve_placeholders()
+        self._hide_unwanted_feedback()
+        self._hide_if_role()
+        self._set_input_values_and_readonly()
+        self._soften_validation()
+        self._defuse_buttons()
+        self._shuffle_contents()
+        self._add_styles()
+        self._format_floats()
+        # TODO: mangle_ids_and_names
+        self._clean_up()
 
     def _resolve_placeholders(self) -> None:
         """Replace placeholder PIs such as `<?p my_key plain?>` with the appropriate value from `self.placeholders`.
@@ -361,7 +361,7 @@ class QuestionUIRenderer:
 
         etree.cleanup_namespaces(self._xml, top_nsmap={None: self.XHTML_NAMESPACE})  # type: ignore[dict-item]
 
-    def add_class_names(self, element: etree._Element, *class_names: str) -> None:
+    def _add_class_names(self, element: etree._Element, *class_names: str) -> None:
         """Adds the given class names to the elements `class` attribute if not already present."""
         existing_classes = element.get("class", "").split()
         for class_name in class_names:
@@ -379,7 +379,7 @@ class QuestionUIRenderer:
                 | //xhtml:select | //xhtml:textarea
                 """)
         ):
-            self.add_class_names(element, "form-control", "qpy-input")
+            self._add_class_names(element, "form-control", "qpy-input")
 
         # Second group: input (button, submit, reset), button
         for element in _assert_element_list(
@@ -388,11 +388,11 @@ class QuestionUIRenderer:
                 | //xhtml:button
                 """)
         ):
-            self.add_class_names(element, "btn", "btn-primary", "qpy-input")
+            self._add_class_names(element, "btn", "btn-primary", "qpy-input")
 
         # Third group: input (checkbox, radio)
         for element in _assert_element_list(self._xpath("//xhtml:input[@type = 'checkbox' or @type = 'radio']")):
-            self.add_class_names(element, "qpy-input")
+            self._add_class_names(element, "qpy-input")
 
     def _format_floats(self) -> None:
         """Handles `qpy:format-float`.
