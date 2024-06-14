@@ -8,6 +8,7 @@ import pytest
 
 from questionpy_sdk.webserver.question_ui import (
     QuestionDisplayOptions,
+    QuestionDisplayRole,
     QuestionFormulationUIRenderer,
     QuestionMetadata,
     QuestionUIRenderer,
@@ -122,14 +123,23 @@ def test_should_show_inline_feedback(result: str) -> None:
 
 
 @pytest.mark.parametrize(
-    ("user_context", "expected"),
+    ("options", "expected"),
     [
         (
-            "guest",
+            QuestionDisplayOptions(roles=set()),
             "<div></div>",
         ),
         (
-            "admin",
+            QuestionDisplayOptions(roles={QuestionDisplayRole.SCORER}),
+            """
+                <div>
+                    <div>You're a scorer!</div>
+                    <div>You're any of the above!</div>
+                </div>
+            """,
+        ),
+        (
+            QuestionDisplayOptions(),
             """
                 <div>
                     <div>You're a teacher!</div>
@@ -143,10 +153,7 @@ def test_should_show_inline_feedback(result: str) -> None:
     ],
 )
 @pytest.mark.ui_file("if-role")
-def test_element_visibility_based_on_role(user_context: str, expected: str, xml_content: str) -> None:
-    options = QuestionDisplayOptions()
-    options.context["role"] = user_context
-
+def test_element_visibility_based_on_role(options: QuestionDisplayOptions, expected: str, xml_content: str) -> None:
     renderer = QuestionUIRenderer(xml_content, {}, options)
     result = renderer.html
 
