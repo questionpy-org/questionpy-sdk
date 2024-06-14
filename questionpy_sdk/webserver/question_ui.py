@@ -4,6 +4,7 @@
 from __future__ import annotations
 
 import re
+from enum import StrEnum
 from functools import cached_property
 from random import Random
 from typing import Any
@@ -149,11 +150,23 @@ class QuestionMetadata:
         self.required_fields: list[str] = []
 
 
+class QuestionDisplayRole(StrEnum):
+    DEVELOPER = "DEVELOPER"
+    PROCTOR = "PROCTOR"
+    SCORER = "SCORER"
+    TEACHER = "TEACHER"
+
+
 class QuestionDisplayOptions(BaseModel):
     general_feedback: bool = True
     feedback: bool = True
     right_answer: bool = True
-    context: dict = {}
+    roles: set[QuestionDisplayRole] = {
+        QuestionDisplayRole.DEVELOPER,
+        QuestionDisplayRole.PROCTOR,
+        QuestionDisplayRole.SCORER,
+        QuestionDisplayRole.TEACHER,
+    }
     readonly: bool = False
 
 
@@ -262,20 +275,14 @@ class QuestionUIRenderer:
     def _hide_if_role(self) -> None:
         """Hides elements based on user role.
 
-        Removes elements with `qpy:if-role` attributes if the user matches none of the given roles in this context.
+        Removes elements with `qpy:if-role` attributes if the user matches none of the roles.
         """
-        if self._options.context.get("role") == "admin":
-            return
-
         for element in _assert_element_list(self._xpath("//*[@qpy:if-role]")):
-            attr = element.attrib.get(f"{{{self.QPY_NAMESPACE}}}if-role")
-            if attr is None:
-                continue
-            allowed_roles = attr.split()
+            if attr := element.get(f"{{{self.QPY_NAMESPACE}}}if-role"):
+                allowed_roles = [role.upper() for role in re.split(r"[\s|]+", attr)]
+                has_role = any(role in allowed_roles and role in self._options.roles for role in QuestionDisplayRole)
 
-            if self._options.context.get("role") not in allowed_roles:
-                parent = element.getparent()
-                if parent is not None:
+                if not has_role and (parent := element.getparent()) is not None:
                     parent.remove(element)
 
     def _set_input_values_and_readonly(self) -> None:
