@@ -127,6 +127,7 @@ class QuestionDisplayOptions(BaseModel):
 
 
 class QuestionUIRenderer:
+    """General renderer for the question UI except for the formulation part."""
     XHTML_NAMESPACE: str = "http://www.w3.org/1999/xhtml"
     QPY_NAMESPACE: str = "http://questionpy.org/ns/question"
 
@@ -138,7 +139,6 @@ class QuestionUIRenderer:
         seed: int | None = None,
         attempt: dict | None = None,
     ) -> None:
-        """General renderer for the question UI except for the formulation part."""
         xml = self._replace_qpy_urls(xml)
         self._xml = etree.ElementTree(etree.fromstring(xml))
         self._xpath = etree.XPathDocumentEvaluator(self._xml)
@@ -150,7 +150,7 @@ class QuestionUIRenderer:
         self._attempt = attempt
 
     @cached_property
-    def xml(self) -> str:
+    def html(self) -> str:
         self._render()
         return etree.tostring(self._xml, pretty_print=True, method="html").decode()
 
@@ -443,6 +443,8 @@ class QuestionUIRenderer:
 
 
 class QuestionFormulationUIRenderer(QuestionUIRenderer):
+    """Renderer for the formulation UI part that provides metadata."""
+
     def __init__(
         self,
         xml: str,
@@ -451,7 +453,6 @@ class QuestionFormulationUIRenderer(QuestionUIRenderer):
         seed: int | None = None,
         attempt: dict | None = None,
     ) -> None:
-        """Renderer for the formulation UI part that provides metadata."""
         super().__init__(xml, placeholders, options, seed, attempt)
         self.metadata = self._get_metadata()
 

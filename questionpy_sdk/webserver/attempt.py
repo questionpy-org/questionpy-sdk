@@ -50,7 +50,7 @@ def get_attempt_render_context(
         "attempt_state": attempt_state,
         "options": display_options.model_dump(exclude={"context", "readonly"}),
         "form_disabled": disabled,
-        "formulation": QuestionFormulationUIRenderer(attempt.ui.formulation, *renderer_args).xml,
+        "formulation": QuestionFormulationUIRenderer(attempt.ui.formulation, *renderer_args).html,
         "attempt": attempt,
         "general_feedback": None,
         "specific_feedback": None,
@@ -58,10 +58,10 @@ def get_attempt_render_context(
     }
 
     if display_options.general_feedback and attempt.ui.general_feedback:
-        context["general_feedback"] = QuestionUIRenderer(attempt.ui.general_feedback, *renderer_args).xml
+        context["general_feedback"] = QuestionUIRenderer(attempt.ui.general_feedback, *renderer_args).html
     if display_options.feedback and attempt.ui.specific_feedback:
-        context["specific_feedback"] = QuestionUIRenderer(attempt.ui.specific_feedback, *renderer_args).xml
+        context["specific_feedback"] = QuestionUIRenderer(attempt.ui.specific_feedback, *renderer_args).html
     if display_options.right_answer and attempt.ui.right_answer:
-        context["right_answer"] = QuestionUIRenderer(attempt.ui.right_answer, *renderer_args).xml
+        context["right_answer"] = QuestionUIRenderer(attempt.ui.right_answer, *renderer_args).html
 
     return context
