@@ -308,3 +308,20 @@ def test_clean_up(result: str) -> None:
         </div>
     """
     assert_xhtml_is_equal(result, expected)
+
+
+@pytest.mark.ui_file("qpy-urls")
+def test_should_replace_qpy_urls(result: str) -> None:
+    expected = """
+        <div>
+            <link rel="stylesheet" href="/worker/foo/bar/file/static/style.css"/>
+            <script src="/worker/foo/bar/file/static/script.js"></script>
+            <img src="/worker/acme/example/file/static-private/some/nested/path/img.png"/>
+            <p>/worker/acme/example/file/static/some/link</p>
+            <p>/worker/acme/example/file/static-private/some/other/link</p>
+            <p>qpy://test/acme/example/broken/qpy-url</p>
+            <p>qpy://static/broken/example</p>
+        </div>
+    """
+
+    assert_xhtml_is_equal(result, expected)
