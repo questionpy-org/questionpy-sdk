@@ -1,14 +1,16 @@
 #  This file is part of the QuestionPy SDK. (https://questionpy.org)
 #  The QuestionPy SDK is free software released under terms of the MIT license. See LICENSE.md.
 #  (c) Technische Universität Berlin, innoCampus <info@isis.tu-berlin.de>
+from __future__ import annotations
 
 import re
 from functools import cached_property
 from random import Random
 from typing import Any
 
+import lxml.html
+import lxml.html.clean
 from lxml import etree
-from lxml.html.clean import Cleaner
 from pydantic import BaseModel
 
 
@@ -111,6 +113,35 @@ def _int_to_roman(index: int) -> str:
     return roman_num
 
 
+def _add_text_before(before: etree._Element, text: str) -> None:
+    """Add plain text before the given sibling.
+
+    LXML doesn't represent text as nodes, but as attributes of the parent or of the preceding node, which makes this
+    less trivial than one might expect.
+    """
+    prev = before.getprevious()
+    if prev is None:
+        parent = _require_parent(before)
+        # The parent's 'text' attribute sets the text before the first child.
+        parent.text = ("" if parent.text is None else parent.text) + text
+    else:
+        prev.tail = ("" if prev.tail is None else prev.tail) + text
+
+
+def _require_parent(node: etree._Element) -> etree._Element:
+    parent = node.getparent()
+    if parent is None:
+        msg = f"Node '{node}' on line '{node.sourceline}' somehow has no parent."
+        raise ValueError(msg)
+    return parent
+
+
+def _remove_preserving_tail(node: etree._Element) -> None:
+    if node.tail is not None:
+        _add_text_before(node, node.tail)
+    _require_parent(node).remove(node)
+
+
 class QuestionMetadata:
     def __init__(self) -> None:
         self.correct_response: dict[str, str] = {}
@@ -128,6 +159,7 @@ class QuestionDisplayOptions(BaseModel):
 
 class QuestionUIRenderer:
     """General renderer for the question UI except for the formulation part."""
+
     XHTML_NAMESPACE: str = "http://www.w3.org/1999/xhtml"
     QPY_NAMESPACE: str = "http://questionpy.org/ns/question"
 
@@ -183,7 +215,7 @@ class QuestionUIRenderer:
                 continue
             parts = p_instruction.text.strip().split()
             key = parts[0]
-            clean_option = parts[1] if len(parts) > 1 else "clean"
+            clean_option = parts[1].lower() if len(parts) > 1 else "clean"
 
             parent = p_instruction.getparent()
             if parent is None:
@@ -195,32 +227,24 @@ class QuestionUIRenderer:
 
             raw_value = self._placeholders[key]
 
-            if clean_option.lower() not in {"clean", "noclean"}:
-                if clean_option.lower() != "plain":
-                    msg = f"clean_option expected to have value 'plain', found '{clean_option}' instead"
-                    raise ValueError(msg)
-                # Treat the value as plain text
-                root = etree.Element("string")
-                root.text = etree.CDATA(raw_value)
-                parent.replace(p_instruction, root)
-                continue
-
-            if clean_option.lower() == "clean":
-                cleaner = Cleaner()
-                cleaned_value = etree.fromstring(cleaner.clean_html(raw_value))
-                # clean_html wraps the result in <p> or <div>
-                # Remove the wrapping from clean_html
-                content = ""
-                if cleaned_value.text:
-                    content += cleaned_value.text
-                for child in cleaned_value:
-                    content += etree.tostring(child, encoding="unicode", with_tail=True)
-                replacement = content
+            if clean_option == "plain":
+                # Treat the value as plain text.
+                _add_text_before(p_instruction, raw_value)
             else:
-                replacement = raw_value
+                # html.clean works on different element classes than etree, so we need to use different parse functions.
+                # Since the HTML elements are subclasses of the etree elements though, we can reuse them without dumping
+                # and reparsing.
 
-            p_instruction.addnext(etree.fromstring(f"<string>{replacement}</string>"))
-            parent.remove(p_instruction)
+                # It doesn't really matter what element we wrap the fragment with, as we'll unwrap it immediately.
+                fragment = lxml.html.fragment_fromstring(raw_value, create_parent=True)
+                if clean_option != "noclean":
+                    lxml.html.clean.clean(fragment)
+                if fragment.text is not None:
+                    _add_text_before(p_instruction, fragment.text)
+                for child in fragment:
+                    p_instruction.addprevious(child)
+
+            _remove_preserving_tail(p_instruction)
 
     def _hide_unwanted_feedback(self) -> None:
         """Hides elements marked with `qpy:feedback` if the type of feedback is disabled in `options`."""

@@ -12,7 +12,7 @@ from questionpy_sdk.webserver.question_ui import (
     QuestionMetadata,
     QuestionUIRenderer,
 )
-from tests.webserver.conftest import assert_xhtml_is_equal
+from tests.webserver.conftest import assert_html_is_equal
 
 
 @pytest.fixture
@@ -83,20 +83,19 @@ def test_should_extract_correct_metadata(xml_content: str) -> None:
     }
 )
 def test_should_resolve_placeholders(result: str) -> None:
-    # TODO: remove <string> surrounding the resolved placeholder
     expected = """
     <div>
-        <div><string>My simple description.</string></div>
-        <span>By default cleaned parameter: <string>Value of param <b>one</b>.</string></span>
-        <span>Explicitly cleaned parameter: <string>Value of param <b>one</b>.</string></span>
-        <span>Noclean parameter: <string>Value of param <b>one</b>.<script>'Oh no, danger!'</script></string></span>
+        <div>My simple description.</div>
+        <span>By default cleaned parameter: Value of param <b>one</b>.</span>
+        <span>Explicitly cleaned parameter: Value of param <b>one</b>.</span>
+        <span>Noclean parameter: Value of param <b>one</b>.<script>'Oh no, danger!'</script></span>
         <span>Plain parameter:
-            <string><![CDATA[Value of param <b>one</b>.<script>'Oh no, danger!'</script>]]></string>
+            Value of param &lt;b>one&lt;/b>.&lt;script>'Oh no, danger!'&lt;/script>
         </span>
     </div>
     """
 
-    assert_xhtml_is_equal(result, expected)
+    assert_html_is_equal(result, expected)
 
 
 @pytest.mark.ui_file("feedbacks")
@@ -107,7 +106,7 @@ def test_should_hide_inline_feedback(result: str) -> None:
             <span>No feedback</span>
         </div>
     """
-    assert_xhtml_is_equal(result, expected)
+    assert_html_is_equal(result, expected)
 
 
 @pytest.mark.ui_file("feedbacks")
@@ -119,7 +118,7 @@ def test_should_show_inline_feedback(result: str) -> None:
             <span>Specific feedback</span>
         </div>
     """
-    assert_xhtml_is_equal(result, expected)
+    assert_html_is_equal(result, expected)
 
 
 @pytest.mark.parametrize(
@@ -151,7 +150,7 @@ def test_element_visibility_based_on_role(user_context: str, expected: str, xml_
     renderer = QuestionUIRenderer(xml_content, {}, options)
     result = renderer.html
 
-    assert_xhtml_is_equal(result, expected)
+    assert_html_is_equal(result, expected)
 
 
 @pytest.mark.ui_file("inputs")
@@ -180,7 +179,7 @@ def test_should_set_input_values(result: str) -> None:
             <input name="my_radio" type="radio" value="radio_value_2" class="qpy-input" checked="checked"/>
         </div>
     """
-    assert_xhtml_is_equal(result, expected)
+    assert_html_is_equal(result, expected)
 
 
 @pytest.mark.ui_file("inputs")
@@ -201,7 +200,7 @@ def test_should_disable_inputs(result: str) -> None:
             <input name="my_radio" type="radio" value="radio_value_2" disabled="disabled" class="qpy-input"/>
         </div>
     """
-    assert_xhtml_is_equal(result, expected)
+    assert_html_is_equal(result, expected)
 
 
 @pytest.mark.ui_file("validations")
@@ -220,7 +219,7 @@ def test_should_soften_validations(result: str) -> None:
         </div>
     """
 
-    assert_xhtml_is_equal(result, expected)
+    assert_html_is_equal(result, expected)
 
 
 @pytest.mark.ui_file("buttons")
@@ -236,7 +235,7 @@ def test_should_defuse_buttons(result: str) -> None:
             <input class="btn btn-primary qpy-input" type="button" value="Button"/>
         </div>
     """
-    assert_xhtml_is_equal(result, expected)
+    assert_html_is_equal(result, expected)
 
 
 @pytest.mark.skip("""1. The text directly in the root of <qpy:formulation> is not copied in render_part.
@@ -254,7 +253,7 @@ def test_should_format_floats_in_en(result: str) -> None:
             Strip zeros: <span>1.1</span>
         </div>
     """
-    assert_xhtml_is_equal(result, expected)
+    assert_html_is_equal(result, expected)
 
 
 @pytest.mark.ui_file("shuffle")
@@ -287,7 +286,7 @@ def test_should_replace_shuffled_index(result: str) -> None:
             </fieldset>
         </div>
         """
-    assert_xhtml_is_equal(result, expected)
+    assert_html_is_equal(result, expected)
 
 
 @pytest.mark.render_params(
@@ -307,7 +306,7 @@ def test_clean_up(result: str) -> None:
             <regular>Normal Content</regular>
         </div>
     """
-    assert_xhtml_is_equal(result, expected)
+    assert_html_is_equal(result, expected)
 
 
 @pytest.mark.ui_file("qpy-urls")
@@ -324,4 +323,4 @@ def test_should_replace_qpy_urls(result: str) -> None:
         </div>
     """
 
-    assert_xhtml_is_equal(result, expected)
+    assert_html_is_equal(result, expected)
