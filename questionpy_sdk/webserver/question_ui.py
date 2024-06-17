@@ -2,6 +2,7 @@
 #  The QuestionPy SDK is free software released under terms of the MIT license. See LICENSE.md.
 #  (c) Technische Universität Berlin, innoCampus <info@isis.tu-berlin.de>
 
+import re
 from functools import cached_property
 from random import Random
 from typing import Any
@@ -138,6 +139,7 @@ class QuestionUIRenderer:
         attempt: dict | None = None,
     ) -> None:
         """General renderer for the question UI except for the formulation part."""
+        xml = self._replace_qpy_urls(xml)
         self._xml = etree.ElementTree(etree.fromstring(xml))
         self._xpath = etree.XPathDocumentEvaluator(self._xml)
         self._xpath.register_namespace("xhtml", self.XHTML_NAMESPACE)
@@ -165,6 +167,10 @@ class QuestionUIRenderer:
         self._format_floats()
         # TODO: mangle_ids_and_names
         self._clean_up()
+
+    def _replace_qpy_urls(self, xml: str) -> str:
+        """Replace QPY-URLs to package files with SDK-URLs."""
+        return re.sub(r"qpy://(static|static-private)/((?:[a-z_][a-z0-9_]{0,126}/){2})", r"/worker/\2file/\1/", xml)
 
     def _resolve_placeholders(self) -> None:
         """Replace placeholder PIs such as `<?p my_key plain?>` with the appropriate value from `self.placeholders`.
