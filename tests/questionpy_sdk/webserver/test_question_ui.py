@@ -12,7 +12,7 @@ from questionpy_sdk.webserver.question_ui import (
     QuestionMetadata,
     QuestionUIRenderer,
 )
-from tests.webserver.conftest import assert_html_is_equal
+from tests.questionpy_sdk.webserver.conftest import assert_html_is_equal
 
 
 @pytest.fixture
@@ -23,7 +23,7 @@ def xml_content(request: pytest.FixtureRequest) -> str | None:
         return None
 
     filename = f"{marker.args[0]}.xhtml"
-    ui_files = resources.files("tests.webserver.question_uis")
+    ui_files = resources.files("tests.questionpy_sdk.webserver.test_data")
 
     try:
         return next(path for path in ui_files.iterdir() if path.name == filename).read_text()
