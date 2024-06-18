@@ -9,7 +9,6 @@ from pathlib import Path
 
 import pytest
 from aiohttp import web
-from lxml import etree
 from selenium import webdriver
 
 from questionpy_sdk.webserver.app import WebServer
@@ -54,32 +53,3 @@ def _start_runner_thread(sdk_web_server: WebServer, port: int) -> None:
     app_thread = threading.Thread(target=start_runner, args=(sdk_web_server.web_app, port))
     app_thread.daemon = True  # Set the thread as a daemon to automatically stop when main thread exits
     app_thread.start()
-
-
-def normalize_element(element: etree._Element) -> etree._Element:
-    """Recursively normalize an XML element by sorting attributes and normalizing whitespace."""
-    if element.text:
-        element.text = " ".join(element.text.split())
-    if element.tail:
-        element.tail = " ".join(element.tail.split())
-
-    if element.attrib:
-        attributes = sorted(element.attrib.items())
-        element.attrib.clear()
-        element.attrib.update(attributes)
-
-    for child in element:
-        normalize_element(child)
-
-    return element
-
-
-def assert_html_is_equal(actual: str, expected: str) -> None:
-    parser = etree.HTMLParser(remove_blank_text=True)
-    actual_tree = etree.fromstring(actual, parser)
-    expected_tree = etree.fromstring(expected, parser)
-
-    normalize_element(actual_tree)
-    normalize_element(expected_tree)
-
-    assert etree.tostring(actual_tree, method="c14n") == etree.tostring(expected_tree, method="c14n")

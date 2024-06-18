@@ -8,7 +8,7 @@ from click.testing import CliRunner
 
 from questionpy_common.constants import DIST_DIR, MANIFEST_FILENAME
 from questionpy_sdk.commands.run import run
-from tests.cli.conftest import long_running_cmd
+from tests.questionpy_sdk.commands.conftest import long_running_cmd
 
 
 def test_run_no_arguments(runner: CliRunner) -> None:

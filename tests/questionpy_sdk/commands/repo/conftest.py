@@ -12,7 +12,7 @@ from questionpy_sdk.commands.package import package
 from questionpy_sdk.constants import PACKAGE_CONFIG_FILENAME
 from questionpy_sdk.models import PackageConfig
 from questionpy_sdk.package._helper import create_normalized_filename
-from tests.cli.conftest import default_ctx_obj
+from tests.questionpy_sdk.commands.conftest import default_ctx_obj
 
 
 def assert_same_structure(directory: Path, expected: tuple[Path, ...]) -> None:
