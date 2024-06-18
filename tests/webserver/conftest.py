@@ -3,7 +3,6 @@
 #  (c) Technische Universität Berlin, innoCampus <info@isis.tu-berlin.de>
 
 import asyncio
-import tempfile
 import threading
 from collections.abc import Callable, Iterator
 from pathlib import Path
@@ -17,10 +16,9 @@ from questionpy_sdk.webserver.app import WebServer
 
 
 @pytest.fixture
-def sdk_web_server(request: pytest.FixtureRequest) -> Iterator[WebServer]:
+def sdk_web_server(tmp_path: Path, request: pytest.FixtureRequest) -> WebServer:
     # We DON'T want state files to persist between tests, so we use a temp dir which is removed after each test.
-    with tempfile.TemporaryDirectory() as state_storage_tempdir:
-        yield WebServer(request.function.qpy_package_location, state_storage_path=Path(state_storage_tempdir))
+    return WebServer(request.function.qpy_package_location, state_storage_path=tmp_path)
 
 
 @pytest.fixture
