@@ -152,7 +152,7 @@ class QuestionUIRenderer:
     @cached_property
     def xml(self) -> str:
         self._render()
-        return etree.tostring(self._xml, pretty_print=True).decode()
+        return etree.tostring(self._xml, pretty_print=True, method="html").decode()
 
     def _render(self) -> None:
         """Applies transformations to the xml."""
