@@ -116,22 +116,22 @@ class PackageBuilderBase(AbstractContextManager):
 
     def _run_hook(self, cmd: str, hook_name: BuildHookName, num: int) -> None:
         log.info("Running %s hook[%d]: '%s'", hook_name, num, cmd)
-        proc = subprocess.Popen(
+        with subprocess.Popen(
             cmd,
             cwd=self._source.path,
             shell=True,  # noqa: S602
             stdout=subprocess.PIPE,
             stderr=subprocess.STDOUT,
             text=True,
-        )
-        if proc.stdout:
-            while True:
-                line = proc.stdout.readline()
-                if not line:
-                    break
-                log.info("%s hook[%d]: %s", hook_name, num, line.rstrip())
-        return_code = proc.wait()
-        if return_code != 0:
+        ) as proc:
+            if proc.stdout:
+                while True:
+                    line = proc.stdout.readline()
+                    if not line:
+                        break
+                    log.info("%s hook[%d]: %s", hook_name, num, line.rstrip())
+
+        if proc.returncode != 0:
             log.error("%s hook[%d] failed: '%s'", hook_name, num, cmd)
             msg = f"{hook_name} hook[{num}] failed: '{cmd}'"
             raise PackageBuildError(msg)
