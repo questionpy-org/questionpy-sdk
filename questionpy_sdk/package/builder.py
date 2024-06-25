@@ -44,6 +44,7 @@ class PackageBuilderBase(AbstractContextManager):
         Raises:
             PackageBuildError: If the package failed to build.
         """
+        self._prepare()
         self._run_build_hooks("pre")
         self._install_questionpy()
         self._install_requirements()
@@ -52,6 +53,9 @@ class PackageBuilderBase(AbstractContextManager):
         if self._copy_sources:
             self._copy_source_files()
         self._run_build_hooks("post")
+
+    def _prepare(self) -> None:
+        pass
 
     def _run_build_hooks(self, hook_name: BuildHookName) -> None:
         commands = self._source.config.build_hooks.get(hook_name, [])
@@ -181,6 +185,14 @@ class DirPackageBuilder(PackageBuilderBase):
             source: Package source.
         """
         super().__init__(source, copy_sources=False)
+
+    def _prepare(self) -> None:
+        super()._prepare()
+
+        # clear dist dir before building
+        dist_path = self._source.path / DIST_DIR
+        if dist_path.is_dir():
+            shutil.rmtree(dist_path)
 
     def _write_file(self, source_path: Path, dest_path: Path) -> None:
         if not source_path.is_dir():

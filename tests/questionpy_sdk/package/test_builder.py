@@ -221,3 +221,15 @@ def test_dir_package_builder(tmp_path: Path, source_path: Path) -> None:
     assert (dist_dir / MANIFEST_FILENAME).is_file()
     assert (dist_dir / "python" / "local" / "minimal_example" / "__init__.py").is_file()
     assert (dist_dir / "dependencies" / "site-packages" / "questionpy" / "__init__.py").is_file()
+
+
+def test_dir_package_builder_clears_dist(tmp_path: Path, source_path: Path) -> None:
+    dist_dir = source_path / DIST_DIR
+    (dist_dir / "static").mkdir(parents=True)
+    some_file_path = dist_dir / "static" / "some_file.txt"
+    some_file_path.touch()
+
+    with DirPackageBuilder(PackageSource(source_path)) as builder:
+        builder.write_package()
+
+    assert not some_file_path.exists()
