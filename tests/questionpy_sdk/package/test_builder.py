@@ -115,8 +115,8 @@ def test_invalid_requirement_raises_error(source_path: Path, tmp_path: Path, mon
 def test_writes_package_files(qpy_pkg_path: Path) -> None:
     with ZipFile(qpy_pkg_path) as zipfile:
         assert zipfile.getinfo(f"{DIST_DIR}/python/local/static_files_example/__init__.py")
-        assert zipfile.getinfo(f"{DIST_DIR}/css/styles.css")
-        assert zipfile.getinfo(f"{DIST_DIR}/js/test.js")
+        assert zipfile.getinfo(f"{DIST_DIR}/static/css/styles.css")
+        assert zipfile.getinfo(f"{DIST_DIR}/static/js/test.js")
 
 
 @pytest.mark.source_pkg("static-files")
