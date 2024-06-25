@@ -1,7 +1,6 @@
 #  This file is part of the QuestionPy SDK. (https://questionpy.org)
 #  The QuestionPy SDK is free software released under terms of the MIT license. See LICENSE.md.
 #  (c) Technische Universität Berlin, innoCampus <info@isis.tu-berlin.de>
-import importlib.util
 import zipfile
 from pathlib import Path
 
@@ -15,7 +14,6 @@ from questionpy_sdk.package.errors import PackageBuildError, PackageSourceValida
 from questionpy_sdk.package.source import PackageSource
 from questionpy_server.worker.runtime.package_location import (
     DirPackageLocation,
-    FunctionPackageLocation,
     PackageLocation,
     ZipPackageLocation,
 )
@@ -35,7 +33,7 @@ def build_dir_package(source_path: Path) -> None:
         raise click.ClickException(msg) from exc
 
 
-def infer_package_kind(pkg_string: str) -> PackageLocation:
+def get_package_location(pkg_string: str) -> PackageLocation:
     pkg_path = Path(pkg_string)
 
     if pkg_path.is_dir():
@@ -54,24 +52,7 @@ def infer_package_kind(pkg_string: str) -> PackageLocation:
     if zipfile.is_zipfile(pkg_path):
         return ZipPackageLocation(pkg_path)
 
-    if ":" in pkg_string:
-        # Explicitly provided init function name.
-        module_name, function_name = pkg_string.rsplit(":", maxsplit=1)
-    else:
-        # Default init function name.
-        module_name, function_name = pkg_string, "init"
-
-    # https://stackoverflow.com/a/14050282/5390250
-    try:
-        module_spec = importlib.util.find_spec(module_name)
-    except ModuleNotFoundError:
-        # find_spec returns None when the leaf package isn't found, but it raises if any of the parent packages aren't.
-        module_spec = None
-
-    if module_spec:
-        return FunctionPackageLocation(module_name, function_name)
-
-    msg = f"'{pkg_string}' doesn't look like a QPy package zip file, directory or module"
+    msg = f"'{pkg_string}' doesn't look like a QPy package zip file or directory."
     raise click.ClickException(msg)
 
 
