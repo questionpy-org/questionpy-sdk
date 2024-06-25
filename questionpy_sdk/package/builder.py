@@ -70,7 +70,8 @@ class PackageBuilderBase(AbstractContextManager):
         """Adds the `questionpy` module to the package."""
         # getfile returns the path to the package's __init__.py
         package_dir = Path(inspect.getfile(questionpy)).parent
-        self._write_glob(package_dir, "**/*", prefix=f"{DIST_DIR}/dependencies/site-packages/{questionpy.__name__}")
+        prefix = Path(DIST_DIR) / "dependencies" / "site-packages" / questionpy.__name__
+        self._write_glob(package_dir, "**/*", prefix)
 
     def _install_requirements(self) -> None:
         """Adds package requirements."""
@@ -92,17 +93,18 @@ class PackageBuilderBase(AbstractContextManager):
         try:
             with TemporaryDirectory(prefix=f"qpy_{config.short_name}") as tempdir:
                 subprocess.run(["pip", "install", "--target", tempdir, *pip_args], check=True, capture_output=True)  # noqa: S603, S607
-                self._write_glob(Path(tempdir), "**/*", prefix=f"{DIST_DIR}/dependencies/site-packages")
+                self._write_glob(Path(tempdir), "**/*", Path(DIST_DIR) / "dependencies" / "site-packages")
         except subprocess.CalledProcessError as exc:
             msg = f"Failed to install requirements: {exc.stderr.decode()}"
             raise PackageBuildError(msg) from exc
 
     def _write_package_files(self) -> None:
         """Writes custom package files."""
-        self._write_glob(self._source.path, "python/**/*", prefix=DIST_DIR)
-        self._write_glob(self._source.path, "css/**/*", prefix=DIST_DIR, add_to_static_files=True)
-        self._write_glob(self._source.path, "js/**/*", prefix=DIST_DIR, add_to_static_files=True)
-        self._write_glob(self._source.path, "static/**/*", prefix=DIST_DIR, add_to_static_files=True)
+        static_path = Path(DIST_DIR) / "static"
+        self._write_glob(self._source.path, "python/**/*", DIST_DIR)
+        self._write_glob(self._source.path, "css/**/*", static_path, add_to_static_files=True)
+        self._write_glob(self._source.path, "js/**/*", static_path, add_to_static_files=True)
+        self._write_glob(self._source.path, "static/**/*", DIST_DIR, add_to_static_files=True)
 
     def _write_manifest(self) -> None:
         """Writes package manifest."""
@@ -142,7 +144,9 @@ class PackageBuilderBase(AbstractContextManager):
             log.debug("%s: %s", source_file, path_in_pkg)
             self._write_file(source_file, path_in_pkg)
 
-    def _write_glob(self, source_dir: Path, glob: str, prefix: str = "", *, add_to_static_files: bool = False) -> None:
+    def _write_glob(
+        self, source_dir: Path, glob: str, prefix: str | Path = "", *, add_to_static_files: bool = False
+    ) -> None:
         for source_file in source_dir.glob(glob):
             if self._skip_file(source_file):
                 continue
@@ -154,7 +158,7 @@ class PackageBuilderBase(AbstractContextManager):
             if add_to_static_files:
                 mime_type = guess_type(source_file)[0]
                 file_size = source_file.stat().st_size
-                path_in_dist = str(path_in_pkg.relative_to(*path_in_pkg.parts[:1]))
+                path_in_dist = str(path_in_pkg.relative_to(Path(DIST_DIR, "static")))
                 self._static_files[path_in_dist] = PackageFile(mime_type=mime_type, size=file_size)
 
     @staticmethod
