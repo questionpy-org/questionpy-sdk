@@ -1200,7 +1200,7 @@ files = [
 
 [[package]]
 name = "questionpy-server"
-version = "0.2.5"
+version = "0.2.6"
 description = "QuestionPy application server"
 optional = false
 python-versions = "^3.11"
@@ -1220,8 +1220,8 @@ watchdog = "^4.0.0"
 [package.source]
 type = "git"
 url = "https://github.com/questionpy-org/questionpy-server.git"
-reference = "763c15bcf3906ebb80d8d0bd9c15e842de4f8b0c"
-resolved_reference = "763c15bcf3906ebb80d8d0bd9c15e842de4f8b0c"
+reference = "263750b29fb5ac3b883422141bed13cdb3bd0706"
+resolved_reference = "263750b29fb5ac3b883422141bed13cdb3bd0706"
 
 [[package]]
 name = "ruff"
@@ -1551,4 +1551,4 @@ multidict = ">=4.0"
 [metadata]
 lock-version = "2.0"
 python-versions = "^3.11"
-content-hash = "f1da0050fb6b89dc4e61b25719cf0363b1a7e8052c8c8322732bdb2f5f8046d6"
+content-hash = "0d8d0b2c13c96867ebe1e0311cc33e109c48dc4a9538987388f6bce355a82b7f"

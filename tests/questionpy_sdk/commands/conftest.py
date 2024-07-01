@@ -2,15 +2,17 @@
 #  The QuestionPy SDK is free software released under terms of the MIT license. See LICENSE.md.
 #  (c) Technische Universität Berlin, innoCampus <info@isis.tu-berlin.de>
 
+import asyncio
 import contextlib
 import os
 import signal
-import subprocess
 import sys
-from collections.abc import Iterator
+from asyncio.subprocess import PIPE, Process
+from collections.abc import AsyncIterator, Iterable, Iterator
 from pathlib import Path
 from typing import Any
 
+import aiohttp
 import pytest
 from click.testing import CliRunner, Result
 
@@ -60,13 +62,41 @@ def cwd(isolated_runner: tuple[CliRunner, Path]) -> Path:
     return isolated_runner[1]
 
 
+@pytest.fixture
+async def client_session() -> AsyncIterator[aiohttp.ClientSession]:
+    async with aiohttp.ClientSession() as session:
+        yield session
+
+
 # can't test long-running processes with `CliRunner` (https://github.com/pallets/click/issues/2171)
-@contextlib.contextmanager
-def long_running_cmd(args: list[str]) -> Iterator[subprocess.Popen]:
+@contextlib.asynccontextmanager
+async def long_running_cmd(args: Iterable[str], timeout: float = 5) -> AsyncIterator[Process]:
     try:
         popen_args = [sys.executable, "-m", "questionpy_sdk", "--", *args]
-        proc = subprocess.Popen(popen_args, stdin=subprocess.PIPE, stdout=subprocess.PIPE, stderr=subprocess.PIPE)
+        proc = await asyncio.create_subprocess_exec(*popen_args, stdin=PIPE, stdout=PIPE, stderr=PIPE)
+
+        # ensure tests don't hang indefinitely
+        async def kill_after_timeout() -> None:
+            await asyncio.sleep(timeout)
+            proc.send_signal(signal.SIGINT)
+
+        kill_task = asyncio.create_task(kill_after_timeout())
         yield proc
+
     finally:
+        if kill_task:
+            kill_task.cancel()
         proc.send_signal(signal.SIGINT)
-        proc.wait()
+        await proc.wait()
+
+
+async def assert_webserver_is_up(session: aiohttp.ClientSession, url: str = "http://localhost:8080/") -> None:
+    for _ in range(50):  # allow 5 sec to come up
+        try:
+            async with session.get(url) as response:
+                assert response.status == 200
+                return
+        except aiohttp.ClientConnectionError:
+            await asyncio.sleep(0.1)
+
+    pytest.fail("Webserver didn't come up")
