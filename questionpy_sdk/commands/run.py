@@ -2,6 +2,8 @@
 #  The QuestionPy SDK is free software released under terms of the MIT license. See LICENSE.md.
 #  (c) Technische Universität Berlin, innoCampus <info@isis.tu-berlin.de>
 
+from pathlib import Path
+
 import click
 
 from questionpy_sdk.commands._helper import get_package_location
@@ -19,5 +21,6 @@ def run(package: str) -> None:
     - a dist directory, or
     - a source directory (built on-the-fly).
     """  # noqa: D301
-    web_server = WebServer(get_package_location(package))
+    pkg_path = Path(package).resolve()
+    web_server = WebServer(get_package_location(package, pkg_path))
     web_server.start_server()

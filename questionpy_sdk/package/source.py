@@ -2,6 +2,7 @@
 #  The QuestionPy SDK is free software released under terms of the MIT license. See LICENSE.md.
 #  (c) Technische Universität Berlin, innoCampus <info@isis.tu-berlin.de>
 
+from functools import cached_property
 from pathlib import Path
 
 import yaml
@@ -28,7 +29,6 @@ class PackageSource:
             PackageSourceValidationError: If the package source could not be validated.
         """
         self._path = path
-        self._config = self._read_yaml_config()
         self._validate()
 
     def _validate(self) -> None:
@@ -36,33 +36,13 @@ class PackageSource:
 
     def _check_required_paths(self) -> None:
         # check for `python/NAMESPACE/SHORTNAME/__init__.py`
-        package_init_path = self._path / "python" / self._config.namespace / self._config.short_name / "__init__.py"
-        try:
-            package_init_path.stat()
-        except FileNotFoundError as exc:
-            msg = f"Expected '{package_init_path}' to exist"
-            raise PackageSourceValidationError(msg) from exc
+        package_init_path = self._path / "python" / self.config.namespace / self.config.short_name / "__init__.py"
         if not package_init_path.is_file():
-            msg = f"Expected '{package_init_path}' to be a file"
+            msg = f"Expected '{package_init_path}' to exist"
             raise PackageSourceValidationError(msg)
 
-    @property
+    @cached_property
     def config(self) -> PackageConfig:
-        return self._config
-
-    @property
-    def config_path(self) -> Path:
-        return self._path / PACKAGE_CONFIG_FILENAME
-
-    @property
-    def normalized_filename(self) -> str:
-        return create_normalized_filename(self._config)
-
-    @property
-    def path(self) -> Path:
-        return self._path
-
-    def _read_yaml_config(self) -> PackageConfig:
         try:
             with self.config_path.open() as config_file:
                 return PackageConfig.model_validate(yaml.safe_load(config_file))
@@ -76,3 +56,15 @@ class PackageSource:
             # TODO: pretty error feedback (https://docs.pydantic.dev/latest/errors/errors/#customize-error-messages)
             msg = f"Failed to validate package config '{self.config_path}': {exc}"
             raise PackageSourceValidationError(msg) from exc
+
+    @property
+    def config_path(self) -> Path:
+        return self._path / PACKAGE_CONFIG_FILENAME
+
+    @property
+    def normalized_filename(self) -> str:
+        return create_normalized_filename(self.config)
+
+    @property
+    def path(self) -> Path:
+        return self._path
