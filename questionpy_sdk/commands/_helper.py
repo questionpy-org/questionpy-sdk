@@ -39,23 +39,17 @@ def infer_package_kind(pkg_string: str) -> PackageLocation:
     pkg_path = Path(pkg_string)
 
     if pkg_path.is_dir():
+        # Always rebuild package.
+        build_dir_package(pkg_path)
+        click.echo(f"Successfully built package '{pkg_string}'.")
         try:
             manifest_path = pkg_path / DIST_DIR / MANIFEST_FILENAME
-            try:
-                manifest_fp = manifest_path.open()
-            except FileNotFoundError:
-                # build package if needed
-                build_dir_package(pkg_path)
-                click.echo(f"Successfully built package '{pkg_string}'.")
-                manifest_fp = manifest_path.open()
-            manifest = Manifest.model_validate_json(manifest_fp.read())
+            with manifest_path.open() as manifest_fp:
+                manifest = Manifest.model_validate_json(manifest_fp.read())
             return DirPackageLocation(pkg_path, manifest)
         except (OSError, ValidationError, ValueError) as exc:
             msg = f"Failed to read package manifest:\n{exc}"
             raise click.ClickException(msg) from exc
-        finally:
-            if manifest_fp:
-                manifest_fp.close()
 
     if zipfile.is_zipfile(pkg_path):
         return ZipPackageLocation(pkg_path)
