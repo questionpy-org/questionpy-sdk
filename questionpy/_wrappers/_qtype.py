@@ -22,15 +22,15 @@ class QuestionTypeWrapper(QuestionTypeInterface):
         *,
         wrap_question: Callable[[Question], QuestionInterface] = QuestionWrapper,
     ) -> None:
-        """Uses the given question class to provide the [QuestionTypeInterface].
+        """Uses the given question class to provide the [QuestionTypeInterface][questionpy.QuestionTypeInterface].
 
         Args:
             question_class: Your question subclass.
             package: Package to retrieve metadata from, usually the one owning the question, which is passed to your
                      `init` function.
             wrap_question: Supplying a different question wrapper allows you to customize the question and attempt
-                           functionality.
-                           This will probably, but not necessarily, be a subclass of the default [QuestionWrapper].
+                           functionality. This will probably, but not necessarily, be a subclass of the default
+                           [QuestionWrapper][questionpy.QuestionWrapper].
         """
         self._question_class = question_class
         self._package = package
