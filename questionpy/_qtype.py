@@ -6,7 +6,7 @@ from typing import ClassVar, Generic, Self, TypeVar
 
 from pydantic import BaseModel, JsonValue, ValidationError
 
-from questionpy_common.api.qtype import OptionsFormValidationError
+from questionpy_common.api.qtype import InvalidQuestionStateError, OptionsFormValidationError
 from questionpy_common.api.question import ScoringMethod, SubquestionModel
 from questionpy_common.environment import get_qpy_environment
 
@@ -59,39 +59,72 @@ class Question(ABC):
         return cls.options_class.qpy_form
 
     @classmethod
-    def from_options(cls, old_qswv: QuestionStateWithVersion | None, form_data: dict[str, JsonValue]) -> Self:
+    def new_from_options(cls, form_data: dict[str, JsonValue]) -> Self:
+        """Create a new question from the given options.
+
+        The default implementation of [update_from_options][] also delegates to this method.
+        """
+        options = cls.validate_options(form_data)
+        question_state = cls.make_question_state(options)
+
+        env = get_qpy_environment()
+        new_qswv: QuestionStateWithVersion = QuestionStateWithVersion(
+            package_name=f"{env.main_package.manifest.namespace}.{env.main_package.manifest.short_name}",
+            package_version=env.main_package.manifest.version,
+            options=options,
+            state=question_state,
+        )
+
+        return cls(new_qswv)
+
+    def update_from_options(self, form_data: dict[str, JsonValue]) -> Self:
+        """Update this question with the given form data. By default, this just creates a new question."""
+        return self.new_from_options(form_data)
+
+    @classmethod
+    def from_plain_state(cls, plain_state: dict[str, JsonValue]) -> Self:
+        """Validate the given plain QSVW and return a question.
+
+        This is the reverse operation of [to_plain_state][], so `Q.from_plain_state(q.to_plain_state())` should always
+        be equivalent to `q`.
+
+        Raises:
+            InvalidQuestionStateError: If the given state is semantically or syntactically invalid for this question.
+        """
         try:
-            parsed_form_data = cls.options_class.model_validate(form_data)
+            return cls(cls.question_state_with_version_class.model_validate(plain_state))
+        except ValidationError as e:
+            raise InvalidQuestionStateError from e
+
+    def to_plain_state(self) -> dict[str, JsonValue]:
+        """Return a jsonable representation of this question's QSWV.
+
+        This is the reverse operation of [from_plain_state][], so `Q.from_plain_state(s).to_plain_state()` should always
+        be equivalent to `s`.
+        """
+        return self.question_state_with_version.model_dump(mode="json")
+
+    @classmethod
+    def make_question_state(cls, options: FormModel) -> BaseQuestionState:
+        """Create your question state.
+
+        Override if your question state has attributes whose values depend on the options. Note that you needn't
+        override this method if you merely need access to the options in the future, they are accessible separately
+        through the [options][] property.
+        """
+        return cls.question_state_class()
+
+    @classmethod
+    def validate_options(cls, form_data: dict[str, JsonValue]) -> FormModel:
+        """Validate/parse the given plain form data into your [FormModel][] subclass."""
+        try:
+            return cls.options_class.model_validate(form_data)
         except ValidationError as e:
             error_dict = {".".join(map(str, error["loc"])): error["msg"] for error in e.errors()}
             raise OptionsFormValidationError(error_dict) from e
 
-        if old_qswv:
-            new_qswv = old_qswv.model_copy(update={"options": parsed_form_data})
-        else:
-            env = get_qpy_environment()
-            new_qswv = QuestionStateWithVersion(
-                package_name=f"{env.main_package.manifest.namespace}.{env.main_package.manifest.short_name}",
-                package_version=env.main_package.manifest.version,
-                options=parsed_form_data,
-                state=cls.make_question_state(parsed_form_data),
-            )
-
-        return cls(new_qswv)
-
-    @classmethod
-    def from_state(cls, qswv: QuestionStateWithVersion) -> Self:
-        return cls(qswv)
-
-    @classmethod
-    def make_question_state(cls, options: FormModel) -> BaseQuestionState:
-        return cls.question_state_class()
-
-    @classmethod
-    def validate_options(cls, raw_options: dict[str, JsonValue]) -> FormModel:
-        return cls.options_class.model_validate(raw_options)
-
     def get_options_form(self) -> tuple[OptionsFormDefinition, dict[str, JsonValue]]:
+        """Return the options form and field values for viewing or editing this question."""
         return self.options_class.qpy_form, self.options.model_dump()
 
     def start_attempt(self, variant: int) -> Attempt:

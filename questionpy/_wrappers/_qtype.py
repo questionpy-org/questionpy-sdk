@@ -1,9 +1,11 @@
 #  This file is part of the QuestionPy SDK. (https://questionpy.org)
 #  The QuestionPy SDK is free software released under terms of the MIT license. See LICENSE.md.
 #  (c) Technische Universität Berlin, innoCampus <info@isis.tu-berlin.de>
+import json
 from collections.abc import Callable, Mapping
+from json import JSONDecodeError
 
-from pydantic import JsonValue, ValidationError
+from pydantic import JsonValue
 
 from questionpy import Question
 from questionpy._wrappers._question import QuestionWrapper
@@ -37,13 +39,13 @@ class QuestionTypeWrapper(QuestionTypeInterface):
 
         self._wrap_question = wrap_question
 
-    def _get_question_internal(self, qswv: str) -> Question:
+    def _get_question_internal(self, json_state: str) -> Question:
         try:
-            parsed_qswv = self._question_class.question_state_with_version_class.model_validate_json(qswv)
-        except ValidationError as e:
+            plain_state = json.loads(json_state)
+        except JSONDecodeError as e:
             raise InvalidQuestionStateError from e
 
-        return self._question_class.from_state(parsed_qswv)
+        return self._question_class.from_plain_state(plain_state)
 
     def get_options_form(self, question_state: str | None) -> tuple[OptionsFormDefinition, dict[str, JsonValue]]:
         if question_state is not None:
@@ -53,11 +55,13 @@ class QuestionTypeWrapper(QuestionTypeInterface):
         return self._question_class.get_new_question_options_form(), {}
 
     def create_question_from_options(self, old_state: str | None, form_data: dict[str, JsonValue]) -> QuestionInterface:
-        parsed_old_state = None
-        if old_state is not None:
-            parsed_old_state = self._question_class.question_state_with_version_class.model_validate_json(old_state)
+        if old_state is None:
+            question = self._question_class.new_from_options(form_data)
+        else:
+            old_question = self._get_question_internal(old_state)
+            question = old_question.update_from_options(form_data)
 
-        return self._wrap_question(self._question_class.from_options(parsed_old_state, form_data))
+        return self._wrap_question(question)
 
     def create_question_from_state(self, question_state: str) -> QuestionInterface:
         return self._wrap_question(self._get_question_internal(question_state))
