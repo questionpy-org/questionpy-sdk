@@ -15,7 +15,7 @@ COMPRESS_TYPE = zipfile.ZIP_DEFLATED
 
 def create_example_zip() -> None:
     """Creates the minimal_example.zip required by the `create` command."""
-    minimal_example = Path("examples/minimal")
+    minimal_example = Path(__file__).parent / "examples" / "minimal"
     with zipfile.ZipFile(EXAMPLE_PACKAGE, "w", COMPRESS_TYPE) as zip_file:
         for file in minimal_example.rglob("*"):
             if "__pycache__" not in file.parts:
