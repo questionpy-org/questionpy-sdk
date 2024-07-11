@@ -10,7 +10,7 @@ from questionpy_common.api.qtype import InvalidQuestionStateError, OptionsFormVa
 from questionpy_common.api.question import ScoringMethod, SubquestionModel
 from questionpy_common.environment import get_qpy_environment
 
-from ._attempt import Attempt, BaseAttemptState, BaseScoringState
+from ._attempt import Attempt
 from ._util import get_mro_type_hint
 from .form import FormModel, OptionsFormDefinition
 
@@ -128,16 +128,21 @@ class Question(ABC):
         return self.options_class.qpy_form, self.options.model_dump()
 
     def start_attempt(self, variant: int) -> Attempt:
-        attempt_state = self.attempt_class.attempt_state_class(variant=variant)
+        attempt_state = self.attempt_class.make_attempt_state(self, variant)
         return self.attempt_class(self, attempt_state)
 
     def get_attempt(
         self,
-        attempt_state: BaseAttemptState,
-        scoring_state: BaseScoringState | None = None,
+        attempt_state: dict[str, JsonValue],
+        scoring_state: dict[str, JsonValue] | None = None,
         response: dict[str, JsonValue] | None = None,
     ) -> Attempt:
-        return self.attempt_class(self, attempt_state, scoring_state, response)
+        parsed_attempt_state = self.attempt_class.attempt_state_class.model_validate(attempt_state)
+        parsed_scoring_state = None
+        if scoring_state is not None:
+            parsed_scoring_state = self.attempt_class.scoring_state_class.model_validate(scoring_state)
+
+        return self.attempt_class(self, parsed_attempt_state, parsed_scoring_state, response)
 
     def __init_subclass__(cls, *args: object, **kwargs: object) -> None:
         super().__init_subclass__(*args, **kwargs)

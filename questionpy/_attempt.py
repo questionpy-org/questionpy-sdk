@@ -139,6 +139,21 @@ class Attempt(ABC):
         else:
             self.scoring_code = ScoringCode.AUTOMATICALLY_SCORED
 
+    def to_plain_attempt_state(self) -> dict[str, JsonValue]:
+        """Return a jsonable representation of this attempt's state."""
+        return self.attempt_state.model_dump(mode="json")
+
+    def to_plain_scoring_state(self) -> dict[str, JsonValue] | None:
+        """Return a jsonable representation of this attempt's scoring state, if any."""
+        if self.scoring_state is None:
+            return None
+        return self.scoring_state.model_dump(mode="json")
+
+    @classmethod
+    def make_attempt_state(cls, question: "Question", variant: int) -> BaseAttemptState:
+        """Create your attempt state."""
+        return cls.attempt_state_class(variant=variant)
+
     @abstractmethod
     def _compute_score(self) -> float:
         pass
