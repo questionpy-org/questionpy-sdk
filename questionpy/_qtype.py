@@ -103,9 +103,6 @@ class Question(ABC):
         attempt_state: BaseAttemptState,
         scoring_state: BaseScoringState | None = None,
         response: dict[str, JsonValue] | None = None,
-        *,
-        compute_score: bool = False,
-        generate_hint: bool = False,
     ) -> Attempt:
         return self.attempt_class(self, attempt_state, scoring_state, response)
 
