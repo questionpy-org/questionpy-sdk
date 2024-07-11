@@ -84,9 +84,6 @@ class QuestionWrapper(QuestionInterface):
         attempt_state: str,
         scoring_state: str | None = None,
         response: dict[str, JsonValue] | None = None,
-        *,
-        compute_score: bool = False,
-        generate_hint: bool = False,
     ) -> Attempt:
         parsed_attempt_state = self._question.attempt_class.attempt_state_class.model_validate_json(attempt_state)
         parsed_scoring_state = None
@@ -96,9 +93,7 @@ class QuestionWrapper(QuestionInterface):
         return self._question.get_attempt(
             parsed_attempt_state,
             parsed_scoring_state,
-            response,
-            compute_score=compute_score,
-            generate_hint=generate_hint,
+            response
         )
 
     def get_attempt(
@@ -115,9 +110,7 @@ class QuestionWrapper(QuestionInterface):
         try_scoring_with_countback: bool = False,
         try_giving_hint: bool = False,
     ) -> AttemptScoredModel:
-        attempt = self._get_attempt_internal(
-            attempt_state, scoring_state, response, compute_score=True, generate_hint=try_giving_hint
-        )
+        attempt = self._get_attempt_internal(attempt_state, scoring_state, response)
         attempt.score_response(try_scoring_with_countback=try_scoring_with_countback, try_giving_hint=try_giving_hint)
         return AttemptScoredModel(**_export_attempt(attempt).model_dump(), **_export_score(attempt).model_dump())
 
