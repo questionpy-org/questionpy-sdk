@@ -67,8 +67,6 @@ class Attempt(ABC):
     attempt_state_class: ClassVar[type[BaseAttemptState]]
     scoring_state_class: ClassVar[type[BaseScoringState]]
 
-    cache_control = CacheControl.PRIVATE_CACHE
-
     def __init__(
         self,
         question: "Question",
@@ -81,6 +79,7 @@ class Attempt(ABC):
         self.response = response
         self.scoring_state = scoring_state
 
+        self.cache_control = CacheControl.PRIVATE_CACHE
         self.placeholders: dict[str, str] = {}
         self.css_files: list[str] = []
         self.files: dict[str, AttemptFile] = {}

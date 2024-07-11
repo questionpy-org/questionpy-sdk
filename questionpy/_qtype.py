@@ -35,8 +35,6 @@ class Question(ABC):
     options: FormModel
     question_state: BaseQuestionState
 
-    scoring_method = ScoringMethod.AUTOMATICALLY_SCORABLE
-
     options_class: ClassVar[type[FormModel]]
     question_state_class: ClassVar[type[BaseQuestionState]]
     question_state_with_version_class: ClassVar[type[QuestionStateWithVersion]]
@@ -47,6 +45,7 @@ class Question(ABC):
         self.num_variants = 1
         self.score_min: float = 0
         self.score_max: float = 1
+        self.scoring_method = ScoringMethod.AUTOMATICALLY_SCORABLE
         self.penalty: float | None = None
         self.random_guess_score: float | None = None
         self.response_analysis_by_variant = False
