@@ -61,8 +61,9 @@ def _export_attempt(attempt: Attempt) -> AttemptModel:
 
 
 def _export_score(attempt: Attempt) -> ScoreModel:
+    plain_scoring_state = attempt.to_plain_scoring_state()
     return ScoreModel(
-        scoring_state=attempt.scoring_state.model_dump_json() if attempt.scoring_state else None,
+        scoring_state=None if plain_scoring_state is None else json.dumps(plain_scoring_state),
         scoring_code=attempt.scoring_code,
         score=attempt.score,
         score_final=attempt.score_final,
@@ -77,8 +78,9 @@ class QuestionWrapper(QuestionInterface):
 
     def start_attempt(self, variant: int) -> AttemptStartedModel:
         attempt = self._question.start_attempt(variant)
+        plain_attempt_state = attempt.to_plain_attempt_state()
         return AttemptStartedModel(
-            **_export_attempt(attempt).model_dump(), attempt_state=attempt.attempt_state.model_dump_json()
+            **_export_attempt(attempt).model_dump(), attempt_state=json.dumps(plain_attempt_state)
         )
 
     def _get_attempt_internal(
@@ -87,12 +89,12 @@ class QuestionWrapper(QuestionInterface):
         scoring_state: str | None = None,
         response: dict[str, JsonValue] | None = None,
     ) -> Attempt:
-        parsed_attempt_state = self._question.attempt_class.attempt_state_class.model_validate_json(attempt_state)
-        parsed_scoring_state = None
+        plain_attempt_state = json.loads(attempt_state)
+        plain_scoring_state = None
         if scoring_state:
-            parsed_scoring_state = self._question.attempt_class.scoring_state_class.model_validate_json(scoring_state)
+            plain_scoring_state = json.loads(scoring_state)
 
-        return self._question.get_attempt(parsed_attempt_state, parsed_scoring_state, response)
+        return self._question.get_attempt(plain_attempt_state, plain_scoring_state, response)
 
     def get_attempt(
         self, attempt_state: str, scoring_state: str | None = None, response: dict[str, JsonValue] | None = None
