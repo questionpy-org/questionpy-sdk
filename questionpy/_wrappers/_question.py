@@ -1,6 +1,8 @@
 #  This file is part of the QuestionPy SDK. (https://questionpy.org)
 #  The QuestionPy SDK is free software released under terms of the MIT license. See LICENSE.md.
 #  (c) Technische Universität Berlin, innoCampus <info@isis.tu-berlin.de>
+import json
+
 from pydantic import JsonValue
 
 from questionpy import Attempt, Question
@@ -90,11 +92,7 @@ class QuestionWrapper(QuestionInterface):
         if scoring_state:
             parsed_scoring_state = self._question.attempt_class.scoring_state_class.model_validate_json(scoring_state)
 
-        return self._question.get_attempt(
-            parsed_attempt_state,
-            parsed_scoring_state,
-            response
-        )
+        return self._question.get_attempt(parsed_attempt_state, parsed_scoring_state, response)
 
     def get_attempt(
         self, attempt_state: str, scoring_state: str | None = None, response: dict[str, JsonValue] | None = None
@@ -115,7 +113,8 @@ class QuestionWrapper(QuestionInterface):
         return AttemptScoredModel(**_export_attempt(attempt).model_dump(), **_export_score(attempt).model_dump())
 
     def export_question_state(self) -> str:
-        return self._question.question_state_with_version.model_dump_json()
+        plain_state = self._question.to_plain_state()
+        return json.dumps(plain_state)
 
     def export(self) -> QuestionModel:
         return _export_question(self._question)
