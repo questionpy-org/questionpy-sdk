@@ -48,7 +48,7 @@ def get_attempt_render_context(
             else "In progress"
         ),
         "attempt_state": attempt_state,
-        "options": display_options.model_dump(exclude={"context", "readonly"}),
+        "options": display_options.model_dump(include={"general_feedback", "feedback", "right_answer"}),
         "form_disabled": disabled,
         "formulation": QuestionFormulationUIRenderer(attempt.ui.formulation, *renderer_args).html,
         "attempt": attempt,
