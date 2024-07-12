@@ -2,6 +2,7 @@
 #  The QuestionPy SDK is free software released under terms of the MIT license. See LICENSE.md.
 #  (c) Technische Universität Berlin, innoCampus <info@isis.tu-berlin.de>
 import traceback
+from enum import StrEnum
 from functools import cached_property
 from pathlib import Path
 from typing import TYPE_CHECKING
@@ -35,11 +36,19 @@ async def _invalid_question_state_middleware(request: web.Request, handler: Hand
     try:
         return await handler(request)
     except InvalidQuestionStateError as e:
-        question_state = webserver.load_question_state()
+        question_state = webserver.read_state_file(StateFilename.QUESTION_STATE)
         context = {"stacktrace": "".join(traceback.format_exception(e)), "manifest": request.app[MANIFEST_APP_KEY]}
         if question_state is not None:
             context["question_state"] = question_state
         return aiohttp_jinja2.render_template("invalid_question_state.html.jinja2", request, context, status=500)
+
+
+class StateFilename(StrEnum):
+    QUESTION_STATE = "question_state.txt"
+    ATTEMPT_STATE = "attempt_state.txt"
+    ATTEMPT_SEED = "attempt_seed.txt"
+    SCORE = "score.json"
+    LAST_ATTEMPT_DATA = "last_attempt_data.json"
 
 
 class WebServer:
@@ -54,7 +63,7 @@ class WebServer:
         from questionpy_sdk.webserver.routes.worker import routes as worker_routes  # noqa: PLC0415
 
         self.package_location = package_location
-        self._state_storage_path = state_storage_path
+        self._state_storage_root = state_storage_path
 
         self.web_app = web.Application()
         self.web_app[SDK_WEBSERVER_APP_KEY] = self
@@ -71,26 +80,30 @@ class WebServer:
         aiohttp_jinja2.setup(self.web_app, loader=PackageLoader(__package__), extensions=jinja2_extensions)
         self.worker_pool: WorkerPool = WorkerPool(1, 500 * MiB, worker_type=ThreadWorker)
 
-    def save_question_state(self, question_state: str) -> None:
-        self._state_storage_path.mkdir(parents=True, exist_ok=True)
-        self._state_file_path.write_text(question_state)
+    def read_state_file(self, filename: StateFilename) -> str | None:
+        try:
+            return (self._package_state_dir / filename).read_text()
+        except FileNotFoundError:
+            return None
 
-    def load_question_state(self) -> str | None:
-        path = self._state_file_path
-        if path.exists():
-            return path.read_text()
-        return None
+    def write_state_file(self, filename: StateFilename, data: str) -> None:
+        self._package_state_dir.mkdir(parents=True, exist_ok=True)
+        (self._package_state_dir / filename).write_text(data)
 
-    def delete_question_state(self) -> None:
-        self._state_file_path.unlink(missing_ok=True)
-
-    @cached_property
-    def _state_file_path(self) -> Path:
-        manifest = self.web_app[MANIFEST_APP_KEY]
-        return self._state_storage_path / f"{manifest.namespace}-{manifest.short_name}-{manifest.version}.txt"
+    def delete_state_files(self, filename_1: StateFilename, *filenames: StateFilename) -> None:
+        for filename in (filename_1, *filenames):
+            (self._package_state_dir / filename).unlink(missing_ok=True)
+        if not any(self._package_state_dir.iterdir()):
+            # Remove package state dir if it's now empty.
+            self._package_state_dir.rmdir()
 
     def start_server(self) -> None:
         web.run_app(self.web_app)
+
+    @cached_property
+    def _package_state_dir(self) -> Path:
+        manifest = self.web_app[MANIFEST_APP_KEY]
+        return self._state_storage_root / f"{manifest.namespace}-{manifest.short_name}-{manifest.version}"
 
 
 SDK_WEBSERVER_APP_KEY = web.AppKey("sdk_webserver_app", WebServer)

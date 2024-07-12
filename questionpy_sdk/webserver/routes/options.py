@@ -9,7 +9,7 @@ from aiohttp import web
 
 from questionpy_common.environment import RequestUser
 from questionpy_sdk.webserver._form_data import get_nested_form_data, parse_form_data
-from questionpy_sdk.webserver.app import SDK_WEBSERVER_APP_KEY, WebServer
+from questionpy_sdk.webserver.app import SDK_WEBSERVER_APP_KEY, StateFilename, WebServer
 from questionpy_sdk.webserver.context import contextualize
 
 if TYPE_CHECKING:
@@ -22,7 +22,7 @@ routes = web.RouteTableDef()
 async def render_options(request: web.Request) -> web.Response:
     """Gets the options form definition that allows a question creator to customize a question."""
     webserver = request.app[SDK_WEBSERVER_APP_KEY]
-    question_state = webserver.load_question_state()
+    question_state = webserver.read_state_file(StateFilename.QUESTION_STATE)
 
     worker: Worker
     async with webserver.worker_pool.get_worker(webserver.package_location, 0, None) as worker:
@@ -38,12 +38,12 @@ async def render_options(request: web.Request) -> web.Response:
 
 
 async def _save_updated_form_data(form_data: dict, webserver: "WebServer") -> None:
-    old_state = webserver.load_question_state()
+    old_state = webserver.read_state_file(StateFilename.QUESTION_STATE)
     worker: Worker
     async with webserver.worker_pool.get_worker(webserver.package_location, 0, None) as worker:
         question = await worker.create_question_from_options(RequestUser(["de", "en"]), old_state, form_data=form_data)
 
-    webserver.save_question_state(question.question_state)
+    webserver.write_state_file(StateFilename.QUESTION_STATE, question.question_state)
 
 
 @routes.post("/submit")
@@ -53,7 +53,7 @@ async def submit_form(request: web.Request) -> web.Response:
     form_data = parse_form_data(await request.json())
     await _save_updated_form_data(form_data, webserver)
 
-    return web.Response(status=201)
+    return web.Response()
 
 
 @routes.post("/repeat")
@@ -86,5 +86,7 @@ async def remove_element(request: web.Request) -> Never:
 @routes.post("/delete-question-state")
 async def delete_question_state(request: web.Request) -> Never:
     webserver = request.app[SDK_WEBSERVER_APP_KEY]
-    webserver.delete_question_state()
+    # When deleting a question, it seems sensible to also delete any attempts at that question, so we delete all state
+    # files.
+    webserver.delete_state_files(*StateFilename)
     raise web.HTTPFound("/")  # noqa: EM101

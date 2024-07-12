@@ -12,7 +12,7 @@ from pydantic import TypeAdapter
 
 from questionpy_common.api.attempt import AttemptScoredModel, ScoreModel
 from questionpy_common.environment import RequestUser
-from questionpy_sdk.webserver.app import SDK_WEBSERVER_APP_KEY
+from questionpy_sdk.webserver.app import SDK_WEBSERVER_APP_KEY, StateFilename
 from questionpy_sdk.webserver.attempt import get_attempt_render_context
 from questionpy_sdk.webserver.question_ui import QuestionDisplayOptions
 
@@ -22,27 +22,32 @@ if TYPE_CHECKING:
 routes = web.RouteTableDef()
 
 
-def _set_cookie(
-    response: web.Response, name: str, value: str, max_age: int | None = 3600, same_site: str | None = "Strict"
+def _set_display_options(
+    response: web.Response, value: str, max_age: int | None = 3600, same_site: str | None = "Strict"
 ) -> None:
-    response.set_cookie(name=name, value=value, max_age=max_age, samesite=same_site)
+    response.set_cookie(name="display_options", value=value, max_age=max_age, samesite=same_site)
 
 
 @routes.get("/attempt")
 async def get_attempt(request: web.Request) -> web.Response:
     webserver = request.app[SDK_WEBSERVER_APP_KEY]
-    question_state = webserver.load_question_state()
+    question_state = webserver.read_state_file(StateFilename.QUESTION_STATE)
     if question_state is None:
         # Redirect to the options so the user can create the question.
         raise web.HTTPFound("/")  # noqa: EM101
 
     display_options = QuestionDisplayOptions.model_validate_json(request.cookies.get("display_options", "{}"))
 
-    seed = int(request.cookies["attempt_seed"]) if "attempt_seed" in request.cookies else random.randint(0, 10)
+    seed_str = webserver.read_state_file(StateFilename.ATTEMPT_SEED)
+    if seed_str:
+        seed = int(seed_str)
+    else:
+        seed = random.randint(0, 1000)
+        webserver.write_state_file(StateFilename.ATTEMPT_SEED, str(seed))
 
-    attempt_state = request.cookies.get("attempt_state")
-    score_json = request.cookies.get("score")
-    last_attempt_data = json.loads(request.cookies.get("last_attempt_data", "{}"))
+    attempt_state = webserver.read_state_file(StateFilename.ATTEMPT_STATE)
+    score_json = webserver.read_state_file(StateFilename.SCORE)
+    last_attempt_data = json.loads(webserver.read_state_file(StateFilename.LAST_ATTEMPT_DATA) or "{}")
 
     score = None
     if score_json:
@@ -68,7 +73,9 @@ async def get_attempt(request: web.Request) -> web.Response:
             attempt = await worker.start_attempt(
                 request_user=RequestUser(["de", "en"]), question_state=question_state, variant=1
             )
-            attempt_state = attempt.attempt_state
+
+        attempt_state = attempt.attempt_state
+        webserver.write_state_file(StateFilename.ATTEMPT_STATE, attempt_state)
 
     if not score:
         # TODO: Allow manually set display options to override this.
@@ -84,16 +91,13 @@ async def get_attempt(request: web.Request) -> web.Response:
         disabled=score is not None,
     )
 
-    response = aiohttp_jinja2.render_template("attempt.html.jinja2", request, context)
-    _set_cookie(response, "attempt_state", attempt_state)
-    _set_cookie(response, "attempt_seed", str(seed))
-    return response
+    return aiohttp_jinja2.render_template("attempt.html.jinja2", request, context)
 
 
 async def _score_attempt(request: web.Request, data: dict) -> web.Response:
     webserver = request.app[SDK_WEBSERVER_APP_KEY]
 
-    question_state = webserver.load_question_state()
+    question_state = webserver.read_state_file(StateFilename.QUESTION_STATE)
     if question_state is None:
         # Redirect to the options so the user can create the question.
         raise web.HTTPFound("/")  # noqa: EM101
@@ -101,11 +105,11 @@ async def _score_attempt(request: web.Request, data: dict) -> web.Response:
     display_options = QuestionDisplayOptions.model_validate_json(request.cookies.get("display_options", "{}"))
     display_options.readonly = True
 
-    attempt_state = request.cookies.get("attempt_state")
+    attempt_state = webserver.read_state_file(StateFilename.ATTEMPT_STATE)
     if not attempt_state:
         raise web.HTTPNotFound(reason="Attempt has to be started before being submitted. Try reloading the page.")
 
-    score_json = request.cookies.get("score")
+    score_json = webserver.read_state_file(StateFilename.SCORE)
     score = ScoreModel.model_validate_json(score_json) if score_json else None
 
     worker: Worker
@@ -118,23 +122,28 @@ async def _score_attempt(request: web.Request, data: dict) -> web.Response:
             scoring_state=score.scoring_state if score else None,
         )
 
-    response = web.Response(status=201)
-    _set_cookie(response, "display_options", display_options.model_dump_json())
-    _set_cookie(response, "score", TypeAdapter(ScoreModel).dump_json(attempt_scored).decode())
+    webserver.write_state_file(StateFilename.SCORE, TypeAdapter(ScoreModel).dump_json(attempt_scored).decode())
+
+    response = web.Response()
+    _set_display_options(response, display_options.model_dump_json())
     return response
 
 
 @routes.post("/attempt")
 async def submit_attempt(request: web.Request) -> web.Response:
+    webserver = request.app[SDK_WEBSERVER_APP_KEY]
+
     data = await request.json()
     response = await _score_attempt(request, data)
-    _set_cookie(response, "last_attempt_data", json.dumps(data))
+
+    webserver.write_state_file(StateFilename.LAST_ATTEMPT_DATA, json.dumps(data))
     return response
 
 
 @routes.post("/attempt/rescore")
 async def rescore_attempt(request: web.Request) -> web.Response:
-    data_json = request.cookies.get("last_attempt_data")
+    webserver = request.app[SDK_WEBSERVER_APP_KEY]
+    data_json = webserver.read_state_file(StateFilename.LAST_ATTEMPT_DATA)
     data = json.loads(data_json) if data_json else None
     return await _score_attempt(request, data)
 
@@ -146,33 +155,29 @@ async def submit_display_options(request: web.Request) -> web.Response:
     display_options_dict.update(data)
     display_options = QuestionDisplayOptions.model_validate(display_options_dict)
 
-    response = web.Response(status=201)
-    _set_cookie(response, "display_options", display_options.model_dump_json())
+    response = web.Response()
+    _set_display_options(response, display_options.model_dump_json())
     return response
 
 
 @routes.post("/attempt/restart")
 async def restart_attempt(request: web.Request) -> web.Response:
     """Restarts the attempt by deleting the attempt scored state and last attempt data and by resetting the seed."""
-    response = web.Response(status=201)
-    response.del_cookie("attempt_state")
-    response.del_cookie("score")
-    response.del_cookie("last_attempt_data")
-    response.del_cookie("attempt_seed")
-    return response
+    request.app[SDK_WEBSERVER_APP_KEY].delete_state_files(
+        StateFilename.ATTEMPT_STATE, StateFilename.SCORE, StateFilename.LAST_ATTEMPT_DATA, StateFilename.ATTEMPT_SEED
+    )
+    return web.Response()
 
 
 @routes.post("/attempt/edit")
 async def edit_last_attempt(request: web.Request) -> web.Response:
     """Removes the attempt scored state."""
-    response = web.Response(status=201)
-    response.del_cookie("score")
-    return response
+    request.app[SDK_WEBSERVER_APP_KEY].delete_state_files(StateFilename.SCORE)
+    return web.Response()
 
 
 @routes.post("/attempt/save")
 async def save_attempt(request: web.Request) -> web.Response:
     last_attempt_data = await request.json()
-    response = web.Response(status=201)
-    _set_cookie(response, "last_attempt_data", json.dumps(last_attempt_data))
-    return response
+    request.app[SDK_WEBSERVER_APP_KEY].write_state_file(StateFilename.LAST_ATTEMPT_DATA, json.dumps(last_attempt_data))
+    return web.Response()
