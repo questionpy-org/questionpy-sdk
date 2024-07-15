@@ -158,7 +158,7 @@ class PackageBuilderBase(AbstractContextManager):
             if add_to_static_files:
                 mime_type = guess_type(source_file)[0]
                 file_size = source_file.stat().st_size
-                path_in_dist = str(path_in_pkg.relative_to(Path(DIST_DIR, "static")))
+                path_in_dist = str(path_in_pkg.relative_to(DIST_DIR))
                 self._static_files[path_in_dist] = PackageFile(mime_type=mime_type, size=file_size)
 
     @staticmethod

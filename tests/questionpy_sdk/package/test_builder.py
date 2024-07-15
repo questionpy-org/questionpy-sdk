@@ -125,10 +125,10 @@ def test_writes_manifest(qpy_pkg_path: Path) -> None:
         manifest = Manifest.model_validate_json(manifest_file.read())
 
     assert manifest.short_name == "static_files_example"
-    assert manifest.static_files["css/styles.css"].mime_type == "text/css"
-    assert manifest.static_files["css/styles.css"].size > 0
-    assert manifest.static_files["js/test.js"].mime_type == "text/javascript"
-    assert manifest.static_files["js/test.js"].size > 0
+    assert manifest.static_files["static/css/styles.css"].mime_type == "text/css"
+    assert manifest.static_files["static/css/styles.css"].size > 0
+    assert manifest.static_files["static/js/test.js"].mime_type == "text/javascript"
+    assert manifest.static_files["static/js/test.js"].size > 0
 
 
 def test_runs_pre_build_hook(tmp_path: Path, source_path: Path) -> None:
