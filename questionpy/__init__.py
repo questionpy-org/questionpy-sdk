@@ -1,6 +1,7 @@
 #  This file is part of the QuestionPy SDK. (https://questionpy.org)
 #  The QuestionPy SDK is free software released under terms of the MIT license. See LICENSE.md.
 #  (c) Technische Universität Berlin, innoCampus <info@isis.tu-berlin.de>
+from collections.abc import Callable
 
 from questionpy_common.api.attempt import (
     AttemptFile,
@@ -87,5 +88,12 @@ __all__ = [
     "WorkerResourceLimits",
     "create_jinja2_environment",
     "get_qpy_environment",
+    "make_question_type_init",
     "set_qpy_environment",
 ]
+
+
+def make_question_type_init(
+    question_class: type[Question], *, wrap_question: Callable[[Question], QuestionInterface] = QuestionWrapper
+) -> PackageInitFunction:
+    return lambda package, env: QuestionTypeWrapper(question_class, package, wrap_question=wrap_question)
