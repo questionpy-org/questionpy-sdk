@@ -1,7 +1,5 @@
-from questionpy import Package, QuestionTypeWrapper
+from questionpy import make_question_type_init
 
 from .question_type import ExampleQuestion
 
-
-def init(package: Package) -> QuestionTypeWrapper:
-    return QuestionTypeWrapper(ExampleQuestion, package)
+init = make_question_type_init(ExampleQuestion)
