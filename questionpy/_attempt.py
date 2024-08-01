@@ -87,8 +87,9 @@ class Attempt(ABC):
         self.scoring_code: ScoringCode | None = None
         """When scoring is completed, set this to the outcome.
 
-        This is set by :meth:`score_response` depending on if :meth:`_compute_score` and :meth:`_compute_final_score`
-        raise any errors.
+        This is set by [score_response][questionpy.Attempt.score_response] depending on if
+        [_compute_score][questionpy.Attempt._compute_score] and
+        [_compute_final_score][questionpy.Attempt._compute_final_score] raise any errors.
 
         Note that when rescoring an attempt, the previous scoring information is not filled in and this field should
         only be viewed as an output.
@@ -100,13 +101,13 @@ class Attempt(ABC):
         only be viewed as an output.
         """
         self.score: float | None = None
-        """Score calculated by :meth:`_score_response`.
+        """Score calculated by [_score_response][questionpy.Attempt._score_response].
 
         Note that when rescoring an attempt, the previous scoring information is not filled in and this field should
         only be viewed as an output.
         """
         self.score_final: float | None = None
-        """Score calculated by :meth:`_score_final_response`.
+        """Score calculated by [_score_final_response][questionpy.Attempt._score_response].
 
         Note that when rescoring an attempt, the previous scoring information is not filled in and this field should
         only be viewed as an output.
