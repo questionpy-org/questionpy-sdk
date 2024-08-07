@@ -3,7 +3,9 @@
 #  (c) Technische Universität Berlin, innoCampus <info@isis.tu-berlin.de>
 import json
 
-from questionpy import QuestionTypeWrapper, QuestionWrapper
+import pytest
+
+from questionpy import OptionsFormValidationError, QuestionTypeWrapper, QuestionWrapper
 from questionpy_common.elements import OptionsFormDefinition, TextInputElement
 from questionpy_common.environment import Package
 from tests.questionpy.wrappers.conftest import (
@@ -40,6 +42,16 @@ def test_should_create_question_from_options(package: Package) -> None:
 
     assert isinstance(question, QuestionWrapper)
     assert json.loads(question.export_question_state()) == QUESTION_STATE_DICT
+
+
+def test_should_raise_options_form_validation_error_when_creating_question_from_invalid_options(
+    package: Package,
+) -> None:
+    qtype = QuestionTypeWrapper(QuestionUsingMyQuestionState, package)
+    with pytest.raises(OptionsFormValidationError) as exc_info:
+        qtype.create_question_from_options(None, {"input": 1})
+
+    assert exc_info.value.errors == {"input": "Input should be a valid string"}
 
 
 def test_should_create_question_from_state(package: Package) -> None:
