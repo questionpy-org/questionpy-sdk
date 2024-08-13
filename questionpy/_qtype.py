@@ -87,7 +87,7 @@ def _get_state_class(question_class: type[Question]) -> type[BaseQuestionState]:
     state_class = get_mro_type_hint(question_class, "state", BaseQuestionState)
 
     if state_class is BaseQuestionState:
-        return state_class[get_mro_type_hint(question_class, "options", FormModel)]  # type: ignore[misc]
+        return state_class[get_mro_type_hint(question_class, "options", FormModel)]  # type: ignore[return-value]
 
     return state_class
 
