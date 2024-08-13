@@ -1,18 +1,22 @@
 #  This file is part of the QuestionPy SDK. (https://questionpy.org)
 #  The QuestionPy SDK is free software released under terms of the MIT license. See LICENSE.md.
 #  (c) Technische Universität Berlin, innoCampus <info@isis.tu-berlin.de>
+import re
 from importlib import resources
-from typing import Any
+from typing import Any, cast
 
 import pytest
 
 from questionpy_sdk.webserver.question_ui import (
+    InvalidAttributeValueError,
     QuestionDisplayOptions,
     QuestionDisplayRole,
     QuestionFormulationUIRenderer,
     QuestionMetadata,
     QuestionUIRenderer,
+    XMLSyntaxError,
 )
+from questionpy_sdk.webserver.question_ui.errors import RenderError
 from tests.questionpy_sdk.webserver.conftest import assert_html_is_equal
 
 
@@ -33,7 +37,7 @@ def xml_content(request: pytest.FixtureRequest) -> str | None:
 
 
 @pytest.fixture
-def result(request: pytest.FixtureRequest, xml_content: str | None) -> str:
+def renderer(request: pytest.FixtureRequest, xml_content: str | None) -> QuestionUIRenderer:
     renderer_kwargs: dict[str, Any] = {
         "placeholders": {},
         "xml": xml_content,
@@ -45,7 +49,9 @@ def result(request: pytest.FixtureRequest, xml_content: str | None) -> str:
         renderer_kwargs |= marker.kwargs
 
     renderer = QuestionUIRenderer(**renderer_kwargs)
-    return renderer.html
+    # Force rendering so that renderer.errors will be populated.
+    (lambda: renderer.html)()  # noqa: PLC3002
+    return renderer
 
 
 @pytest.mark.ui_file("metadata")
@@ -83,7 +89,7 @@ def test_should_extract_correct_metadata(xml_content: str) -> None:
         "description": "My simple description.",
     }
 )
-def test_should_resolve_placeholders(result: str) -> None:
+def test_should_resolve_placeholders(renderer: QuestionUIRenderer) -> None:
     expected = """
     <div>
         <div>My simple description.</div>
@@ -96,22 +102,24 @@ def test_should_resolve_placeholders(result: str) -> None:
     </div>
     """
 
-    assert_html_is_equal(result, expected)
+    assert len(renderer.errors) == 0
+    assert_html_is_equal(renderer.html, expected)
 
 
 @pytest.mark.ui_file("feedbacks")
 @pytest.mark.render_params(options=QuestionDisplayOptions(general_feedback=False, feedback=False))
-def test_should_hide_inline_feedback(result: str) -> None:
+def test_should_hide_inline_feedback(renderer: QuestionUIRenderer) -> None:
     expected = """
         <div>
             <span>No feedback</span>
         </div>
     """
-    assert_html_is_equal(result, expected)
+    assert len(renderer.errors) == 0
+    assert_html_is_equal(renderer.html, expected)
 
 
 @pytest.mark.ui_file("feedbacks")
-def test_should_show_inline_feedback(result: str) -> None:
+def test_should_show_inline_feedback(renderer: QuestionUIRenderer) -> None:
     expected = """
         <div>
             <span>No feedback</span>
@@ -119,7 +127,8 @@ def test_should_show_inline_feedback(result: str) -> None:
             <span>Specific feedback</span>
         </div>
     """
-    assert_html_is_equal(result, expected)
+    assert len(renderer.errors) == 0
+    assert_html_is_equal(renderer.html, expected)
 
 
 @pytest.mark.parametrize(
@@ -155,9 +164,8 @@ def test_should_show_inline_feedback(result: str) -> None:
 @pytest.mark.ui_file("if-role")
 def test_element_visibility_based_on_role(options: QuestionDisplayOptions, expected: str, xml_content: str) -> None:
     renderer = QuestionUIRenderer(xml_content, {}, options)
-    result = renderer.html
-
-    assert_html_is_equal(result, expected)
+    assert len(renderer.errors) == 0
+    assert_html_is_equal(renderer.html, expected)
 
 
 @pytest.mark.ui_file("inputs")
@@ -170,7 +178,7 @@ def test_element_visibility_based_on_role(options: QuestionDisplayOptions, expec
         "my_radio": "radio_value_2",
     }
 )
-def test_should_set_input_values(result: str) -> None:
+def test_should_set_input_values(renderer: QuestionUIRenderer) -> None:
     expected = """
         <div>
             <button name="my_button" type="button" class="btn btn-primary qpy-input">Button</button>
@@ -186,12 +194,13 @@ def test_should_set_input_values(result: str) -> None:
             <input name="my_radio" type="radio" value="radio_value_2" class="qpy-input" checked="checked"/>
         </div>
     """
-    assert_html_is_equal(result, expected)
+    assert len(renderer.errors) == 0
+    assert_html_is_equal(renderer.html, expected)
 
 
 @pytest.mark.ui_file("inputs")
 @pytest.mark.render_params(options=QuestionDisplayOptions(readonly=True))
-def test_should_disable_inputs(result: str) -> None:
+def test_should_disable_inputs(renderer: QuestionUIRenderer) -> None:
     expected = """
         <div>
             <button name="my_button" type="button" disabled="disabled" class="btn btn-primary qpy-input">Button</button>
@@ -207,11 +216,12 @@ def test_should_disable_inputs(result: str) -> None:
             <input name="my_radio" type="radio" value="radio_value_2" disabled="disabled" class="qpy-input"/>
         </div>
     """
-    assert_html_is_equal(result, expected)
+    assert len(renderer.errors) == 0
+    assert_html_is_equal(renderer.html, expected)
 
 
 @pytest.mark.ui_file("validations")
-def test_should_soften_validations(result: str) -> None:
+def test_should_soften_validations(renderer: QuestionUIRenderer) -> None:
     expected = """
         <div>
             <input data-qpy_required="true" aria-required="true"/>
@@ -225,12 +235,12 @@ def test_should_soften_validations(result: str) -> None:
                 aria-valuemin="17" data-qpy_max="42" aria-valuemax="42"/>
         </div>
     """
-
-    assert_html_is_equal(result, expected)
+    assert len(renderer.errors) == 0
+    assert_html_is_equal(renderer.html, expected)
 
 
 @pytest.mark.ui_file("buttons")
-def test_should_defuse_buttons(result: str) -> None:
+def test_should_defuse_buttons(renderer: QuestionUIRenderer) -> None:
     expected = """
         <div>
             <button class="btn btn-primary qpy-input" type="button">Submit</button>
@@ -242,13 +252,14 @@ def test_should_defuse_buttons(result: str) -> None:
             <input class="btn btn-primary qpy-input" type="button" value="Button"/>
         </div>
     """
-    assert_html_is_equal(result, expected)
+    assert len(renderer.errors) == 0
+    assert_html_is_equal(renderer.html, expected)
 
 
 @pytest.mark.skip("""1. The text directly in the root of <qpy:formulation> is not copied in render_part.
                      2. format_floats adds decimal 0 to numbers without decimal part""")
 @pytest.mark.ui_file("format-floats")
-def test_should_format_floats_in_en(result: str) -> None:
+def test_should_format_floats_in_en(renderer: QuestionUIRenderer) -> None:
     expected = """
         <div>
             Just the decsep: <span>1.23456</span>
@@ -260,21 +271,24 @@ def test_should_format_floats_in_en(result: str) -> None:
             Strip zeros: <span>1.1</span>
         </div>
     """
-    assert_html_is_equal(result, expected)
+    assert len(renderer.errors) == 0
+    assert_html_is_equal(renderer.html, expected)
 
 
 @pytest.mark.ui_file("shuffle")
 @pytest.mark.render_params(seed=42)
-def test_should_shuffle_the_same_way_in_same_attempt(result: str, xml_content: str) -> None:
+def test_should_shuffle_the_same_way_in_same_attempt(renderer: QuestionUIRenderer, xml_content: str) -> None:
     for _ in range(10):
-        renderer = QuestionUIRenderer(xml_content, {}, QuestionDisplayOptions(), seed=42)
-        other_result = renderer.html
-        assert result == other_result, "Shuffled order should remain consistent across renderings with the same seed"
+        other_renderer = QuestionUIRenderer(xml_content, {}, QuestionDisplayOptions(), seed=42)
+        assert len(renderer.errors) == 0
+        assert renderer.html == other_renderer.html, (
+            "Shuffled order should remain consistent across renderings with " "the same seed"
+        )
 
 
 @pytest.mark.ui_file("shuffled-index")
 @pytest.mark.render_params(seed=42)
-def test_should_replace_shuffled_index(result: str) -> None:
+def test_should_replace_shuffled_index(renderer: QuestionUIRenderer) -> None:
     expected = """
         <div>
             <fieldset>
@@ -293,7 +307,8 @@ def test_should_replace_shuffled_index(result: str) -> None:
             </fieldset>
         </div>
         """
-    assert_html_is_equal(result, expected)
+    assert len(renderer.errors) == 0
+    assert_html_is_equal(renderer.html, expected)
 
 
 @pytest.mark.render_params(
@@ -306,18 +321,19 @@ def test_should_replace_shuffled_index(result: str) -> None:
         </div>
     """
 )
-def test_clean_up(result: str) -> None:
+def test_clean_up(renderer: QuestionUIRenderer) -> None:
     expected = """
         <div>
             <element>Content</element>
             <regular>Normal Content</regular>
         </div>
     """
-    assert_html_is_equal(result, expected)
+    assert len(renderer.errors) == 0
+    assert_html_is_equal(renderer.html, expected)
 
 
 @pytest.mark.ui_file("qpy-urls")
-def test_should_replace_qpy_urls(result: str) -> None:
+def test_should_replace_qpy_urls(renderer: QuestionUIRenderer) -> None:
     expected = """
         <div>
             <link rel="stylesheet" href="/worker/foo/bar/file/static/style.css"/>
@@ -329,5 +345,35 @@ def test_should_replace_qpy_urls(result: str) -> None:
             <p>qpy://static/broken/example</p>
         </div>
     """
+    assert len(renderer.errors) == 0
+    assert_html_is_equal(renderer.html, expected)
 
-    assert_html_is_equal(result, expected)
+
+@pytest.mark.ui_file("faulty")
+def test_errors_should_be_collected(renderer: QuestionUIRenderer) -> None:
+    expected = """
+        <div>
+            <span>Missing attribute value.</span>
+        </div>
+    """
+    assert len(renderer.errors) == 3
+
+    invalid_attribute_error_message = re.compile(
+        r"Invalid value .+unknown.+ for attribute .+qpy:feedback.+ on element " r".+span.+. Expected one of \[.+]."
+    )
+    expected_errors: list[tuple[type[RenderError], re.Pattern, int]] = [
+        # Even though the syntax error occurs after an invalid attribute value error, it should be listed first.
+        (XMLSyntaxError, re.compile(".+"), 3),
+        (InvalidAttributeValueError, invalid_attribute_error_message, 2),
+        (InvalidAttributeValueError, invalid_attribute_error_message, 4),
+    ]
+
+    for position, actual_error in enumerate(renderer.errors):
+        actual_error = cast(RenderError, actual_error)
+        error_type, message, line = expected_errors[position]
+        assert actual_error.line == line
+        assert isinstance(actual_error, error_type)
+        assert message.match(actual_error.message) is not None
+        assert message.match(actual_error.html_message) is not None
+
+    assert_html_is_equal(renderer.html, expected)

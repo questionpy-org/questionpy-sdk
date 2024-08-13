@@ -14,6 +14,12 @@ import lxml.html.clean
 from lxml import etree
 from pydantic import BaseModel
 
+from questionpy_sdk.webserver.question_ui.errors import (
+    InvalidAttributeValueError,
+    RenderErrorCollection,
+    XMLSyntaxError,
+)
+
 
 def _assert_element_list(query: Any) -> list[etree._Element]:
     """Checks if the XPath query result is a list of Elements.
@@ -185,7 +191,16 @@ class QuestionUIRenderer:
         attempt: dict | None = None,
     ) -> None:
         xml = self._replace_qpy_urls(xml)
-        self._xml = etree.ElementTree(etree.fromstring(xml))
+        self.errors = RenderErrorCollection()
+
+        try:
+            root = etree.fromstring(xml)
+        except etree.XMLSyntaxError as error:
+            parser = etree.XMLParser(recover=True)
+            root = etree.fromstring(xml, parser=parser)
+            self.errors.insert(XMLSyntaxError(error=error))
+
+        self._xml = etree.ElementTree(root)
         self._xpath = etree.XPathDocumentEvaluator(self._xml)
         self._xpath.register_namespace("xhtml", self.XHTML_NAMESPACE)
         self._xpath.register_namespace("qpy", self.QPY_NAMESPACE)
@@ -265,12 +280,20 @@ class QuestionUIRenderer:
             feedback_type = element.get(f"{{{self.QPY_NAMESPACE}}}feedback")
 
             # Check conditions to remove the element
-            if (feedback_type == "general" and not self._options.general_feedback) or (
-                feedback_type == "specific" and not self._options.feedback
+            if not (
+                (feedback_type == "general" and self._options.general_feedback)
+                or (feedback_type == "specific" and self._options.feedback)
             ):
                 parent = element.getparent()
                 if parent is not None:
                     parent.remove(element)
+
+            expected = ("general", "specific")
+            if feedback_type not in expected:
+                error = InvalidAttributeValueError(
+                    element=element, attribute="qpy:feedback", value=feedback_type or "", expected=expected
+                )
+                self.errors.insert(error)
 
     def _hide_if_role(self) -> None:
         """Hides elements based on user role.
