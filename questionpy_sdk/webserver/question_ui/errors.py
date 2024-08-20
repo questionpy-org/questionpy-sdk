@@ -7,7 +7,6 @@ from abc import ABC, abstractmethod
 from bisect import insort
 from collections.abc import Iterable, Iterator, Sized
 from dataclasses import dataclass
-from functools import cached_property
 from operator import attrgetter
 from typing import TypeAlias
 
@@ -20,22 +19,22 @@ _log = logging.getLogger(__name__)
 class RenderError(ABC):
     """Represents a generic error which occurred during rendering."""
 
-    @cached_property
+    @property
     @abstractmethod
     def line(self) -> int | None:
         """Original line number where the error occurred or None if unknown."""
 
-    @cached_property
+    @property
     def order(self) -> int:
         """Can be used to order multiple errors."""
         return self.line or 0
 
-    @cached_property
+    @property
     @abstractmethod
     def message(self) -> str:
         pass
 
-    @cached_property
+    @property
     def html_message(self) -> str:
         return html.escape(self.message)
 
@@ -44,13 +43,13 @@ class RenderError(ABC):
 class RenderElementError(RenderError, ABC):
     element: etree._Element
 
-    @cached_property
+    @property
     def element_representation(self) -> str:
         # Create the prefix of an element. We do not want to keep 'html' as a prefix.
         prefix = f"{self.element.prefix}:" if self.element.prefix and self.element.prefix != "html" else ""
         return prefix + etree.QName(self.element).localname
 
-    @cached_property
+    @property
     def line(self) -> int | None:
         """Original line number as found by the parser or None if unknown."""
         return self.element.sourceline  # type: ignore[return-value]
@@ -81,11 +80,11 @@ class InvalidAttributeValueError(RenderElementError):
             f"on element {opening}{self.element_representation}{closing}.{expected}"
         )
 
-    @cached_property
+    @property
     def message(self) -> str:
         return self._message(as_html=False)
 
-    @cached_property
+    @property
     def html_message(self) -> str:
         return self._message(as_html=True)
 
@@ -96,20 +95,20 @@ class XMLSyntaxError(RenderError):
 
     error: etree.XMLSyntaxError
 
-    @cached_property
+    @property
     def line(self) -> int | None:
         return self.error.lineno
 
-    @cached_property
+    @property
     def order(self) -> int:
         # Syntax errors can lead to a multitude of other errors therefore we want them to be the first in order.
         return -1
 
-    @cached_property
+    @property
     def message(self) -> str:
         return f"Syntax error: {self.error.msg}"
 
-    @cached_property
+    @property
     def html_message(self) -> str:
         return f"Invalid syntax: <samp>{html.escape(self.error.msg)}</samp>"
 

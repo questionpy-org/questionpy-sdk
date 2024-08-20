@@ -41,7 +41,7 @@ def get_attempt_render_context(
 ) -> _AttemptRenderContext:
     renderer_args = (attempt.ui.placeholders, display_options, seed, last_attempt_data)
 
-    formulation_renderer = QuestionFormulationUIRenderer(attempt.ui.formulation, *renderer_args)
+    html, errors = QuestionFormulationUIRenderer(attempt.ui.formulation, *renderer_args).render()
 
     context: _AttemptRenderContext = {
         "attempt_status": (
@@ -54,7 +54,7 @@ def get_attempt_render_context(
         "attempt_state": attempt_state,
         "options": display_options.model_dump(include={"general_feedback", "feedback", "right_answer"}),
         "form_disabled": disabled,
-        "formulation": formulation_renderer.html,
+        "formulation": html,
         "attempt": attempt,
         "general_feedback": None,
         "specific_feedback": None,
@@ -62,20 +62,20 @@ def get_attempt_render_context(
         "render_errors": {},
     }
 
-    if formulation_renderer.errors:
-        context["render_errors"]["Formulation"] = formulation_renderer.errors
+    if errors:
+        context["render_errors"]["Formulation"] = errors
     if display_options.general_feedback and attempt.ui.general_feedback:
-        renderer = QuestionUIRenderer(attempt.ui.general_feedback, *renderer_args)
-        context["general_feedback"] = renderer.html
-        context["render_errors"]["General Feedback"] = renderer.errors
+        html, errors = QuestionUIRenderer(attempt.ui.general_feedback, *renderer_args).render()
+        context["general_feedback"] = html
+        context["render_errors"]["General Feedback"] = errors
     if display_options.feedback and attempt.ui.specific_feedback:
-        renderer = QuestionUIRenderer(attempt.ui.specific_feedback, *renderer_args)
-        context["specific_feedback"] = renderer.html
-        context["render_errors"]["Specific Feedback"] = renderer.errors
+        html, errors = QuestionUIRenderer(attempt.ui.specific_feedback, *renderer_args).render()
+        context["specific_feedback"] = html
+        context["render_errors"]["Specific Feedback"] = errors
     if display_options.right_answer and attempt.ui.right_answer:
-        renderer = QuestionUIRenderer(attempt.ui.right_answer, *renderer_args)
-        context["right_answer"] = renderer.html
-        context["render_errors"]["Right Answer"] = renderer.errors
+        html, errors = QuestionUIRenderer(attempt.ui.right_answer, *renderer_args).render()
+        context["right_answer"] = html
+        context["render_errors"]["Right Answer"] = errors
 
     log_render_errors(context["render_errors"])
 
