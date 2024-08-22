@@ -14,8 +14,12 @@ from lxml import etree
 from pydantic import BaseModel
 
 from questionpy_sdk.webserver.question_ui.errors import (
+    ConversionError,
     InvalidAttributeValueError,
+    InvalidCleanOptionError,
+    PlaceholderReferenceError,
     RenderErrorCollection,
+    UnknownElementError,
     XMLSyntaxError,
 )
 
@@ -69,7 +73,7 @@ def _set_element_value(element: etree._Element, value: str, name: str, xpath: et
         element.set("value", value)
 
 
-def _replace_shuffled_indices(element: etree._Element, index: int) -> None:
+def _replace_shuffled_indices(element: etree._Element, index: int, error_collection: RenderErrorCollection) -> None:
     for index_element in _assert_element_list(
         element.xpath(".//qpy:shuffled-index", namespaces={"qpy": QuestionUIRenderer.QPY_NAMESPACE})
     ):
@@ -86,7 +90,9 @@ def _replace_shuffled_indices(element: etree._Element, index: int) -> None:
         elif format_style == "III":
             index_str = _int_to_roman(index).upper()
         else:
-            index_str = str(index)
+            error_collection.insert(InvalidAttributeValueError(index_element, "format", format_style))
+            _remove_element(index_element)
+            continue
 
         # Replace the index element with the new index string
         new_text_node = etree.Element("span")  # Using span to replace the custom element
@@ -146,6 +152,12 @@ def _remove_preserving_tail(node: etree._Element) -> None:
     if node.tail is not None:
         _add_text_before(node, node.tail)
     _require_parent(node).remove(node)
+
+
+def _remove_element(node: etree._Element) -> None:
+    parent = node.getparent()
+    if parent is not None:
+        parent.remove(node)
 
 
 class QuestionMetadata:
@@ -236,6 +248,39 @@ class QuestionUIRenderer:
         """Replace QPY-URLs to package files with SDK-URLs."""
         return re.sub(r"qpy://(static|static-private)/((?:[a-z_][a-z0-9_]{0,126}/){2})", r"/worker/\2file/\1/", xml)
 
+    def _validate_placeholder(self, p_instruction: etree._Element) -> tuple[str, str] | None:
+        """Collects potential render errors for the placeholder PIs.
+
+        Returns:
+            If no error occurred, a tuple consisting of the placeholder key and the cleaning option.
+            value. Else, None.
+        """
+        parsing_error = False
+        if not p_instruction.text:
+            # TODO: Show an error message?
+            return None
+
+        parts = p_instruction.text.strip().split(maxsplit=1)
+        max_parts = 2
+        key = parts[0]
+        clean_option = parts[1].lower() if len(parts) == max_parts else "clean"
+        expected = ("plain", "clean", "noclean")
+        if clean_option not in expected:
+            option_error = InvalidCleanOptionError(element=p_instruction, option=clean_option, expected=expected)
+            self._errors.insert(option_error)
+            parsing_error = True
+
+        if key not in self._placeholders:
+            reference_error = PlaceholderReferenceError(
+                element=p_instruction, placeholder=key, available=self._placeholders
+            )
+            self._errors.insert(reference_error)
+            parsing_error = True
+
+        if parsing_error:
+            return None
+        return key, clean_option
+
     def _resolve_placeholders(self) -> None:
         """Replace placeholder PIs such as `<?p my_key plain?>` with the appropriate value from `self.placeholders`.
 
@@ -243,20 +288,12 @@ class QuestionUIRenderer:
         last.
         """
         for p_instruction in _assert_element_list(self._xpath("//processing-instruction('p')")):
-            if not p_instruction.text:
-                continue
-            parts = p_instruction.text.strip().split()
-            key = parts[0]
-            clean_option = parts[1].lower() if len(parts) > 1 else "clean"
-
-            parent = p_instruction.getparent()
-            if parent is None:
+            data = self._validate_placeholder(p_instruction)
+            if data is None:
+                _remove_element(p_instruction)
                 continue
 
-            if key not in self._placeholders:
-                parent.remove(p_instruction)
-                continue
-
+            key, clean_option = data
             raw_value = self._placeholders[key]
 
             if clean_option == "plain":
@@ -288,9 +325,7 @@ class QuestionUIRenderer:
                 (feedback_type == "general" and self._options.general_feedback)
                 or (feedback_type == "specific" and self._options.feedback)
             ):
-                parent = element.getparent()
-                if parent is not None:
-                    parent.remove(element)
+                _remove_element(element)
 
             expected = ("general", "specific")
             if feedback_type not in expected:
@@ -307,6 +342,18 @@ class QuestionUIRenderer:
         for element in _assert_element_list(self._xpath("//*[@qpy:if-role]")):
             if attr := element.get(f"{{{self.QPY_NAMESPACE}}}if-role"):
                 allowed_roles = [role.upper() for role in re.split(r"[\s|]+", attr)]
+                expected = list(QuestionDisplayRole)
+                if unexpected := [role for role in allowed_roles if role not in expected]:
+                    error = InvalidAttributeValueError(
+                        element=element,
+                        attribute="qpy:if-role",
+                        value=unexpected,
+                        expected=expected,
+                    )
+                    self._errors.insert(error)
+                    _remove_element(element)
+                    continue
+
                 has_role = any(role in allowed_roles and role in self._options.roles for role in QuestionDisplayRole)
 
                 if not has_role and (parent := element.getparent()) is not None:
@@ -394,16 +441,16 @@ class QuestionUIRenderer:
 
             # Reinsert shuffled elements, preserving non-element nodes
             for i, child in enumerate(child_elements):
-                _replace_shuffled_indices(child, i + 1)
+                _replace_shuffled_indices(child, i + 1, self._errors)
                 # Move each child element back to its parent at the correct position
                 element.append(child)
 
     def _clean_up(self) -> None:
         """Removes remaining QuestionPy elements and attributes as well as comments and xmlns declarations."""
         for element in _assert_element_list(self._xpath("//qpy:*")):
-            parent = element.getparent()
-            if parent is not None:
-                parent.remove(element)
+            error = UnknownElementError(element=element)
+            self._errors.insert(error)
+            _remove_element(element)
 
         # Remove attributes in the QuestionPy namespace
         for element in _assert_element_list(self._xpath("//*")):
@@ -413,9 +460,7 @@ class QuestionUIRenderer:
 
         # Remove comments
         for comment in _assert_element_list(self._xpath("//comment()")):
-            parent = comment.getparent()
-            if parent is not None:
-                parent.remove(comment)
+            _remove_element(comment)
 
         # Remove namespaces from all elements. (QPy elements should all have been consumed previously anyhow.)
         for element in _assert_element_list(self._xpath("//*")):
@@ -458,6 +503,63 @@ class QuestionUIRenderer:
         for element in _assert_element_list(self._xpath("//xhtml:input[@type = 'checkbox' or @type = 'radio']")):
             self._add_class_names(element, "qpy-input")
 
+    def _validate_format_float_element(self, element: etree._Element) -> tuple[float, int | None, str] | None:
+        """Collects potential render errors for the `qpy:format-float` element.
+
+        Returns:
+            If no error occurred, a tuple consisting of the float value, the precision, and the thousands separator
+            value. Else, None.
+        """
+        parsing_error = False
+
+        if element.text is None:
+            # TODO: Show an error message?
+            return None
+
+        # As PHP parses floats and ints differently then Python, we make the format more strict.
+        # E.g. parsing '20_000' or '1d1'  results in:
+        # Python ->     20000       Error
+        # PHP    ->     20          1
+        if re.match(r"^\s*((\d+\.?\d*)|(\d*\.\d+)|(\d+e\d+))\s*$", element.text) is None:
+            float_error = ConversionError(element=element, value=element.text, to_type=float)
+            self._errors.insert(float_error)
+            parsing_error = True
+
+        precision_text: str | None = element.get("precision")
+        precision = None
+        if precision_text is not None:
+            if not precision_text or (precision_text[0] == "-" and precision_text[1:].isnumeric()):
+                # Empty or negative value.
+                precision_error = InvalidAttributeValueError(
+                    element=element, attribute="precision", value=precision_text
+                )
+                self._errors.insert(precision_error)
+                parsing_error = True
+            elif precision_text.isnumeric():
+                # We disallow the usage of underscores to separate numeric literals, see above for an explanation.
+                precision = int(precision_text)
+            else:
+                conversion_error = ConversionError(
+                    element=element, value=precision_text, to_type=int, attribute="precision"
+                )
+                self._errors.insert(conversion_error)
+                parsing_error = True
+        else:
+            precision = None
+
+        thousands_sep_attr = element.get("thousands-separator", "no")
+        expected = ("yes", "no")
+        if thousands_sep_attr not in expected:
+            thousands_sep_error = InvalidAttributeValueError(
+                element=element, attribute="thousands-separator", value=thousands_sep_attr, expected=expected
+            )
+            self._errors.insert(thousands_sep_error)
+            parsing_error = True
+
+        if parsing_error:
+            return None
+        return float(element.text), precision, thousands_sep_attr
+
     def _format_floats(self) -> None:
         """Handles `qpy:format-float`.
 
@@ -467,19 +569,20 @@ class QuestionUIRenderer:
         decimal_sep = "."  # Placeholder for decimal separator
 
         for element in _assert_element_list(self._xpath("//qpy:format-float")):
-            if element.text is None:
+            data = self._validate_format_float_element(element)
+            if data is None:
+                _remove_element(element)
                 continue
-            float_val = float(element.text)
 
-            precision = int(element.get("precision", -1))
+            float_val, precision, thousands_sep_attr = data
+
             strip_zeroes = "strip-zeros" in element.attrib
 
-            formatted_str = f"{float_val:.{precision}f}" if precision >= 0 else str(float_val)
+            formatted_str = f"{float_val:.{precision}f}" if precision is not None else str(float_val)
 
             if strip_zeroes:
                 formatted_str = formatted_str.rstrip("0").rstrip(decimal_sep) if "." in formatted_str else formatted_str
 
-            thousands_sep_attr = element.get("thousands-separator", "no")
             if thousands_sep_attr == "yes":
                 parts = formatted_str.split(decimal_sep)
                 integral_part = parts[0]
@@ -495,7 +598,7 @@ class QuestionUIRenderer:
             parent = element.getparent()
 
             new_text.tail = element.tail
-            if parent:
+            if parent is not None:
                 parent.insert(parent.index(element), new_text)
                 parent.remove(element)
 
