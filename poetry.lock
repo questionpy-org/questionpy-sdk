@@ -1306,8 +1306,8 @@ watchdog = "^4.0.0"
 [package.source]
 type = "git"
 url = "https://github.com/questionpy-org/questionpy-server.git"
-reference = "8635a2ed685dbffce4564562a79effaba1751873"
-resolved_reference = "8635a2ed685dbffce4564562a79effaba1751873"
+reference = "527e02e97c9b8c8c237cd83cb520ad7c2fc8b3a5"
+resolved_reference = "527e02e97c9b8c8c237cd83cb520ad7c2fc8b3a5"
 
 [[package]]
 name = "ruff"
@@ -1660,4 +1660,4 @@ multidict = ">=4.0"
 [metadata]
 lock-version = "2.0"
 python-versions = "^3.11"
-content-hash = "731359c6c18884531635bae03f1483eda8e129da000108d91a36f3c1fc18d954"
+content-hash = "c06177cf8ef4667d0e500631fd756752c5700564ca4e4d884c815a8337049540"
