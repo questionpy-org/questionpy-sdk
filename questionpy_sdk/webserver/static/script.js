@@ -231,7 +231,7 @@ async function post_json(url, body) {
         throw error;
     }
 
-    if (!response.ok) {
+    if (!response.ok && response.status !== 422) {
         setTimeout(() => alert("An error occured, please check the SDK logs for details: " + response.statusText));
         throw response;
     }
@@ -254,15 +254,21 @@ async function handle_submit(event) {
     const route = button.getAttribute('data-route');
     const successAction = button.dataset.action;
     const json_form_data = create_json_form_data(form);
-    await post_json(route, json_form_data);
-    if (successAction === "reload") {
-        window.location.reload();
-    } else if (successAction === "redirect") {
-        window.location.href = button.getAttribute('data-redirect');
-    } else if (successAction === "success-info") {
-        document.getElementById('submit_success_info').hidden = false;
+    const response = await post_json(route, json_form_data);
+
+    if (response.status === 422) {
+        add_errors_to_form(await response.json());
+    } else {
+        if (successAction === "reload") {
+            window.location.reload();
+        } else if (successAction === "redirect") {
+            window.location.href = button.getAttribute('data-redirect');
+        } else if (successAction === "success-info") {
+            document.getElementById('submit_success_info').hidden = false;
+        }
     }
 }
+
 
 /**
  * Adds a repetition element to the repetition element parent.
@@ -281,7 +287,10 @@ async function add_repetition_element(event) {
     }
 
     const response = await post_json('/repeat', data);
-    if (response.redirected) {
+
+    if (response.status === 422) {
+        add_errors_to_form(await response.json());
+    } else if (response.redirected) {
         window.location.href = response.url;
     }
 }
@@ -302,8 +311,62 @@ async function delete_repetition_element(event) {
     }
 
     const response = await post_json('/options/remove-repetition', data);
-    if (response.redirected) {
+
+    if (response.status === 422) {
+        add_errors_to_form(await response.json());
+    } else if (response.redirected) {
         window.location.href = response.url;
+    }
+}
+
+
+/**
+ * Adds validation error messages to form inputs.
+ *
+ * @param {Object} errors
+ */
+function add_errors_to_form(errors) {
+    const get_errors_el = (element_el) => Array.from(element_el.children).find(el => el.classList.contains('errors'));
+
+    // Clear error messages
+    const options_form_el = document.getElementById('options_form');
+    if (!options_form_el) {
+        throw new Error(`Could not find options_form!`);
+    }
+    for (const element_el of options_form_el.getElementsByClassName('element')) {
+        const errors_el = get_errors_el(element_el);
+        if (errors_el) {
+            errors_el.hidden = true;
+            errors_el.textContent = '';
+        }
+    }
+
+    // Add error messages
+    for (const [field, message] of Object.entries(errors)) {
+        // Transform form model "parts" to element ID
+        const el_id = field
+            .split('.')
+            // Convert repetition index string to 1-based integers (e.g. "0" -> 1)
+            .map((part) => /^\d+$/.test(part) ? Number.parseInt(part) + 1 : part)
+            .join('_');
+
+        // Try general section...
+        let element_el = document.getElementById(`general_${el_id}`);
+        if (!element_el) {
+            // ...or use first part as section name
+            element_el = document.getElementById(el_id);
+        }
+
+        if (!element_el) {
+            throw new Error(`Could not find form field '${field}'!`);
+        }
+
+        const errors_el = get_errors_el(element_el);
+        if (!errors_el) {
+            throw new Error(`Could not find errors element for field '${field}'!`);
+        }
+        errors_el.hidden = false;
+        errors_el.textContent = message;
     }
 }
 

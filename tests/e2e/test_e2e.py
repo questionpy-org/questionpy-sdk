@@ -92,8 +92,7 @@ class TestTemplates:
         driver.get(url)
         driver.find_element(By.ID, "submit-options-button").click()
 
-        WebDriverWait(driver, 1).until(expected_conditions.alert_is_present())
-        assert driver.switch_to.alert
+        assert "Field required" in driver.find_element(By.CLASS_NAME, "errors").text
 
     @use_package(package_3_init)
     def test_repeat_element_if_present(self, driver: webdriver.Chrome, url: str) -> None:
