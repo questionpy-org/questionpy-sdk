@@ -227,3 +227,71 @@ fieldset {
     padding: 0.1rem 1rem;
     width: 100%;
 }
+
+.container-render-errors {
+    border: 2px solid red;
+    border-radius: 0.4rem;
+    padding: 0 0.2rem;
+    background-color: #ffecec;
+}
+
+.container-render-errors table {
+    width: auto;
+    max-width: 100%;
+    border-collapse: collapse;
+    margin: 0 1.2rem 1rem 1.2rem
+}
+
+/* Add spacing between each section / tbody.*/
+.container-render-errors table tbody + tbody::before {
+    content: "";
+    display: table-row;
+    height: 1.5rem;
+}
+
+.container-render-errors th, .container-render-errors td {
+    border: 1px solid darkgrey;
+}
+
+.container-render-errors table th[scope="rowgroup"] {
+    border: 0;
+    padding-bottom: 0.4rem;
+    font-size: 1.2rem;
+    text-decoration: underline;
+}
+
+.container-render-errors table tr td:first-child,
+.container-render-errors table tr th:first-child:not([scope="rowgroup"]) {
+    border-left: 0;
+    padding-right: 0.5rem;
+}
+
+.container-render-errors table tr td:first-child {
+    vertical-align: top;
+    text-align: right;
+    font-variant-numeric: lining-nums tabular-nums;
+}
+
+.container-render-errors table tr td:last-child,
+.container-render-errors table tr th:last-child:not([scope="rowgroup"]) {
+    border-right: 0;
+    padding-left: 0.5rem;
+
+}
+
+.container-render-errors table tbody th {
+    border-top: 0;
+}
+
+.container-render-errors table tbody td {
+    border-bottom: 0;
+}
+
+.container-render-errors code {
+    background-color: #ddd;
+    border-radius: 0.2rem;
+    padding: 0 0.3rem;
+    /* Whitespace should be visible as it might be the cause of an error. */
+    white-space: break-spaces;
+    overflow-wrap: anywhere;
+}

@@ -11,6 +11,31 @@
 {% endblock %}
 
 {% block content %}
+    {% if render_errors %}
+        <div class="container-render-errors">
+            <h2>Render Errors</h2>
+            <table>
+                {% for section, errors in render_errors.items() %}
+                <tbody>
+                    <tr>
+                        <th colspan="2" scope="rowgroup">{{ section }}</th>
+                    </tr>
+                    <tr>
+                        <th>Line</th>
+                        <th>Error-Message</th>
+                    </tr>
+                    {% for error in errors %}
+                    <tr>
+                        <td>{{ error.line or '' }}</td>
+                        <td>{{ error.html_message|safe }}</td>
+                    </tr>
+                    {% endfor %}
+                </tbody>
+                {% endfor %}
+            </table>
+        </div>
+    {% endif %}
+
     <div class="container-question-info">
         <p class="score">
             {{ ("Score: " ~ attempt.score) if attempt.score is defined else "Not yet scored" }}

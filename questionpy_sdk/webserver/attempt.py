@@ -1,7 +1,6 @@
 #  This file is part of the QuestionPy SDK. (https://questionpy.org)
 #  The QuestionPy SDK is free software released under terms of the MIT license. See LICENSE.md.
 #  (c) Technische Universität Berlin, innoCampus <info@isis.tu-berlin.de>
-
 from typing import Literal, TypedDict
 
 from questionpy_common.api.attempt import AttemptModel, AttemptScoredModel
@@ -10,6 +9,7 @@ from questionpy_sdk.webserver.question_ui import (
     QuestionFormulationUIRenderer,
     QuestionUIRenderer,
 )
+from questionpy_sdk.webserver.question_ui.errors import RenderErrorCollections, log_render_errors
 from questionpy_server.api.models import AttemptStarted
 
 
@@ -27,6 +27,8 @@ class _AttemptRenderContext(TypedDict):
     specific_feedback: str | None
     right_answer: str | None
 
+    render_errors: RenderErrorCollections
+
 
 def get_attempt_render_context(
     attempt: AttemptModel,
@@ -39,6 +41,8 @@ def get_attempt_render_context(
 ) -> _AttemptRenderContext:
     renderer_args = (attempt.ui.placeholders, display_options, seed, last_attempt_data)
 
+    html, errors = QuestionFormulationUIRenderer(attempt.ui.formulation, *renderer_args).render()
+
     context: _AttemptRenderContext = {
         "attempt_status": (
             "Started"
@@ -50,18 +54,29 @@ def get_attempt_render_context(
         "attempt_state": attempt_state,
         "options": display_options.model_dump(include={"general_feedback", "feedback", "right_answer"}),
         "form_disabled": disabled,
-        "formulation": QuestionFormulationUIRenderer(attempt.ui.formulation, *renderer_args).html,
+        "formulation": html,
         "attempt": attempt,
         "general_feedback": None,
         "specific_feedback": None,
         "right_answer": None,
+        "render_errors": {},
     }
 
+    if errors:
+        context["render_errors"]["Formulation"] = errors
     if display_options.general_feedback and attempt.ui.general_feedback:
-        context["general_feedback"] = QuestionUIRenderer(attempt.ui.general_feedback, *renderer_args).html
+        html, errors = QuestionUIRenderer(attempt.ui.general_feedback, *renderer_args).render()
+        context["general_feedback"] = html
+        context["render_errors"]["General Feedback"] = errors
     if display_options.feedback and attempt.ui.specific_feedback:
-        context["specific_feedback"] = QuestionUIRenderer(attempt.ui.specific_feedback, *renderer_args).html
+        html, errors = QuestionUIRenderer(attempt.ui.specific_feedback, *renderer_args).render()
+        context["specific_feedback"] = html
+        context["render_errors"]["Specific Feedback"] = errors
     if display_options.right_answer and attempt.ui.right_answer:
-        context["right_answer"] = QuestionUIRenderer(attempt.ui.right_answer, *renderer_args).html
+        html, errors = QuestionUIRenderer(attempt.ui.right_answer, *renderer_args).render()
+        context["right_answer"] = html
+        context["render_errors"]["Right Answer"] = errors
+
+    log_render_errors(context["render_errors"])
 
     return context

@@ -5,7 +5,6 @@ from __future__ import annotations
 
 import re
 from enum import StrEnum
-from functools import cached_property
 from random import Random
 from typing import Any
 
@@ -13,6 +12,12 @@ import lxml.html
 import lxml.html.clean
 from lxml import etree
 from pydantic import BaseModel
+
+from questionpy_sdk.webserver.question_ui.errors import (
+    InvalidAttributeValueError,
+    RenderErrorCollection,
+    XMLSyntaxError,
+)
 
 
 def _assert_element_list(query: Any) -> list[etree._Element]:
@@ -185,7 +190,16 @@ class QuestionUIRenderer:
         attempt: dict | None = None,
     ) -> None:
         xml = self._replace_qpy_urls(xml)
-        self._xml = etree.ElementTree(etree.fromstring(xml))
+        self._errors = RenderErrorCollection()
+
+        try:
+            root = etree.fromstring(xml)
+        except etree.XMLSyntaxError as error:
+            parser = etree.XMLParser(recover=True)
+            root = etree.fromstring(xml, parser=parser)
+            self._errors.insert(XMLSyntaxError(error=error))
+
+        self._xml = etree.ElementTree(root)
         self._xpath = etree.XPathDocumentEvaluator(self._xml)
         self._xpath.register_namespace("xhtml", self.XHTML_NAMESPACE)
         self._xpath.register_namespace("qpy", self.QPY_NAMESPACE)
@@ -193,25 +207,30 @@ class QuestionUIRenderer:
         self._options = options
         self._random = Random(seed)
         self._attempt = attempt
+        self._html: str | None = None
 
-    @cached_property
-    def html(self) -> str:
-        self._render()
-        return etree.tostring(self._xml, pretty_print=True, method="html").decode()
+    def render(self) -> tuple[str, RenderErrorCollection]:
+        """Applies transformations to the xml.
 
-    def _render(self) -> None:
-        """Applies transformations to the xml."""
-        self._resolve_placeholders()
-        self._hide_unwanted_feedback()
-        self._hide_if_role()
-        self._set_input_values_and_readonly()
-        self._soften_validation()
-        self._defuse_buttons()
-        self._shuffle_contents()
-        self._add_styles()
-        self._format_floats()
-        # TODO: mangle_ids_and_names
-        self._clean_up()
+        Returns:
+            tuple: The rendered html and a render errors collection.
+        """
+        if self._html is None:
+            self._resolve_placeholders()
+            self._hide_unwanted_feedback()
+            self._hide_if_role()
+            self._set_input_values_and_readonly()
+            self._soften_validation()
+            self._defuse_buttons()
+            self._shuffle_contents()
+            self._add_styles()
+            self._format_floats()
+            # TODO: mangle_ids_and_names
+            self._clean_up()
+
+            self._html = etree.tostring(self._xml, pretty_print=True, method="html").decode()
+
+        return self._html, self._errors
 
     def _replace_qpy_urls(self, xml: str) -> str:
         """Replace QPY-URLs to package files with SDK-URLs."""
@@ -265,12 +284,20 @@ class QuestionUIRenderer:
             feedback_type = element.get(f"{{{self.QPY_NAMESPACE}}}feedback")
 
             # Check conditions to remove the element
-            if (feedback_type == "general" and not self._options.general_feedback) or (
-                feedback_type == "specific" and not self._options.feedback
+            if not (
+                (feedback_type == "general" and self._options.general_feedback)
+                or (feedback_type == "specific" and self._options.feedback)
             ):
                 parent = element.getparent()
                 if parent is not None:
                     parent.remove(element)
+
+            expected = ("general", "specific")
+            if feedback_type not in expected:
+                error = InvalidAttributeValueError(
+                    element=element, attribute="qpy:feedback", value=feedback_type or "", expected=expected
+                )
+                self._errors.insert(error)
 
     def _hide_if_role(self) -> None:
         """Hides elements based on user role.
