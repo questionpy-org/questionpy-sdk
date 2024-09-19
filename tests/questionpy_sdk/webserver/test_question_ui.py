@@ -363,31 +363,33 @@ def test_should_replace_qpy_urls(renderer: QuestionUIRenderer) -> None:
 def test_errors_should_be_collected(renderer: QuestionUIRenderer) -> None:
     expected = """
         <div>
-            <span>Missing attribute value.</span>
+            <fieldset><label>Invalid shuffle format. . A</label></fieldset>
             <div>Missing placeholder.</div>
-            <fieldset><label>Invalid shuffle format.</label></fieldset>
+            <div>Empty placeholder.</div>
+            <span>Missing attribute value.</span>
         </div>
     """
     html, errors = renderer.render()
-    assert len(errors) == 10
+    assert len(errors) == 11
 
     expected_errors: list[tuple[type[RenderError], int]] = [
         # Even though the syntax error occurs after all the other errors, it should be listed first.
-        (XMLSyntaxError, 3),
+        (XMLSyntaxError, 14),
         (InvalidAttributeValueError, 2),
-        (UnknownElementError, 4),
-        (InvalidCleanOptionError, 5),
-        (PlaceholderReferenceError, 5),
-        (InvalidAttributeValueError, 6),
-        (ConversionError, 7),
-        (ConversionError, 7),
-        (InvalidAttributeValueError, 7),
-        (InvalidAttributeValueError, 11),
+        (UnknownElementError, 3),
+        (InvalidAttributeValueError, 4),
+        (ConversionError, 5),
+        (ConversionError, 5),
+        (InvalidAttributeValueError, 5),
+        (InvalidAttributeValueError, 9),
+        (InvalidCleanOptionError, 12),
+        (PlaceholderReferenceError, 12),
+        (PlaceholderReferenceError, 13),
     ]
 
     for actual_error, expected_error in zip(errors, expected_errors, strict=True):
         error_type, line = expected_error
-        assert actual_error.line == line
         assert isinstance(actual_error, error_type)
+        assert actual_error.line == line
 
     assert_html_is_equal(html, expected)

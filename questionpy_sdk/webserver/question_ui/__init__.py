@@ -91,7 +91,7 @@ def _replace_shuffled_indices(element: etree._Element, index: int, error_collect
             index_str = _int_to_roman(index).upper()
         else:
             error_collection.insert(InvalidAttributeValueError(index_element, "format", format_style))
-            _remove_element(index_element)
+            _remove_preserving_tail(index_element)
             continue
 
         # Replace the index element with the new index string
@@ -148,16 +148,14 @@ def _require_parent(node: etree._Element) -> etree._Element:
     return parent
 
 
-def _remove_preserving_tail(node: etree._Element) -> None:
-    if node.tail is not None:
-        _add_text_before(node, node.tail)
+def _remove_element(node: etree._Element) -> None:
     _require_parent(node).remove(node)
 
 
-def _remove_element(node: etree._Element) -> None:
-    parent = node.getparent()
-    if parent is not None:
-        parent.remove(node)
+def _remove_preserving_tail(node: etree._Element) -> None:
+    if node.tail is not None:
+        _add_text_before(node, node.tail)
+    _remove_element(node)
 
 
 class QuestionMetadata:
@@ -257,13 +255,15 @@ class QuestionUIRenderer:
         """
         parsing_error = False
         if not p_instruction.text:
-            # TODO: Show an error message?
+            reference_error = PlaceholderReferenceError(
+                element=p_instruction, placeholder=None, available=self._placeholders
+            )
+            self._errors.insert(reference_error)
             return None
 
         parts = p_instruction.text.strip().split(maxsplit=1)
-        max_parts = 2
         key = parts[0]
-        clean_option = parts[1].lower() if len(parts) == max_parts else "clean"
+        clean_option = parts[1].lower() if len(parts) == 2 else "clean"  # noqa: PLR2004
         expected = ("plain", "clean", "noclean")
         if clean_option not in expected:
             option_error = InvalidCleanOptionError(element=p_instruction, option=clean_option, expected=expected)
@@ -516,7 +516,7 @@ class QuestionUIRenderer:
             # TODO: Show an error message?
             return None
 
-        # As PHP parses floats and ints differently then Python, we make the format more strict.
+        # As PHP parses floats and integers differently than Python, we enforce a stricter format.
         # E.g. parsing '20_000' or '1d1'  results in:
         # Python ->     20000       Error
         # PHP    ->     20          1

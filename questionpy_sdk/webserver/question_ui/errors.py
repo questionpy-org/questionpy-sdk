@@ -15,7 +15,7 @@ from lxml import etree
 _log = logging.getLogger(__name__)
 
 
-def _comma_separated_values(values: Collection[str], opening: str, closing: str) -> str:
+def _format_human_readable_list(values: Collection[str], opening: str, closing: str) -> str:
     *values, last_value = values
     last_value = f"{opening}{last_value}{closing}"
     if not values:
@@ -54,21 +54,32 @@ class RenderError(ABC):
 
 @dataclass(frozen=True)
 class RenderElementError(RenderError, ABC):
-    """Represents a generic element error which occurred during rendering."""
+    """A generic element error which occurred during rendering.
+
+    Attributes:
+        element: The element where the error occurred.
+        template: A template string that defines the structure of the error message.
+            It can contain placeholders corresponding to the keys in `template_kwargs`.
+            These placeholders are identified by braces ('{' and '}'), similar to `str.format`.
+            The '{element}' placeholder is predefined and resolves to a human-readable representation of `element`.
+            Providing a value with the key 'element' in `template_kwargs` will overwrite this behaviour.
+        template_kwargs: A mapping containing the values of the placeholders in `template`.
+            If a value is of type `Collection[str]`, it will be formatted in a human-readable list.
+    """
 
     element: etree._Element
     template: str
-    kwargs: Mapping[str, str | Collection[str]] = field(default_factory=dict)
+    template_kwargs: Mapping[str, str | Collection[str]] = field(default_factory=dict)
 
     def _message(self, *, as_html: bool) -> str:
         (opening, closing) = ("<code>", "</code>") if as_html else ("'", "'")
-        kwargs = {"element": f"{opening}{self.element_representation}{closing}"}
+        template_kwargs = {"element": f"{opening}{self.element_representation}{closing}"}
 
-        for key, values in self.kwargs.items():
+        for key, values in self.template_kwargs.items():
             collection = {values} if isinstance(values, str) else values
-            kwargs[key] = _comma_separated_values(collection, opening, closing)
+            template_kwargs[key] = _format_human_readable_list(collection, opening, closing)
 
-        return self.template.format(**kwargs)
+        return self.template.format_map(template_kwargs)
 
     @property
     def message(self) -> str:
@@ -105,17 +116,17 @@ class InvalidAttributeValueError(RenderElementError):
         value: str | Collection[str],
         expected: Collection[str] | None = None,
     ):
-        kwargs = {"value": value, "attribute": attribute}
+        template_kwargs = {"value": value, "attribute": attribute}
         expected_str = ""
         if expected:
-            kwargs["expected"] = expected
+            template_kwargs["expected"] = expected
             expected_str = " Expected values are {expected}."
 
         s = "" if isinstance(value, str) or len(value) <= 1 else ""
         super().__init__(
             element=element,
             template=f"Invalid value{s} {{value}} for attribute {{attribute}} on element {{element}}.{expected_str}",
-            kwargs=kwargs,
+            template_kwargs=template_kwargs,
         )
 
 
@@ -124,32 +135,37 @@ class ConversionError(RenderElementError):
     """Could not convert a value to another type."""
 
     def __init__(self, element: etree._Element, value: str, to_type: type, attribute: str | None = None):
-        kwargs = {"value": value, "type": to_type.__name__}
+        template_kwargs = {"value": value, "type": to_type.__name__}
 
         in_attribute = ""
         if attribute:
-            kwargs["attribute"] = attribute
+            template_kwargs["attribute"] = attribute
             in_attribute = " in attribute {attribute}"
 
         template = f"Unable to convert {{value}} to {{type}}{in_attribute} at element {{element}}."
-        super().__init__(element=element, template=template, kwargs=kwargs)
+        super().__init__(element=element, template=template, template_kwargs=template_kwargs)
 
 
 @dataclass(frozen=True)
 class PlaceholderReferenceError(RenderElementError):
-    """A placeholder was referenced which was not provided."""
+    """An unknown or no placeholder was referenced."""
 
-    def __init__(self, element: etree._Element, placeholder: str, available: Collection[str]):
-        provided = "No placeholders were provided."
-        if len(available) == 1:
-            provided = "There is only one provided placeholder: {available}."
-        elif len(available) > 1:
-            provided = "These are the provided placeholders: {available}."
+    def __init__(self, element: etree._Element, placeholder: str | None, available: Collection[str]):
+        if placeholder is None:
+            template = "No placeholder was referenced."
+            template_kwargs = {}
+        else:
+            if len(available) == 0:
+                provided = "No placeholders were provided."
+            else:
+                provided = "These are the provided placeholders: {available}."
+            template = f"Referenced placeholder {{placeholder}} was not found. {provided}"
+            template_kwargs = {"placeholder": placeholder, "available": available}
 
         super().__init__(
             element=element,
-            template=f"Referenced placeholder {{placeholder}} was not found. {provided}",
-            kwargs={"placeholder": placeholder, "available": available},
+            template=template,
+            template_kwargs=template_kwargs,
         )
 
 
@@ -161,7 +177,7 @@ class InvalidCleanOptionError(RenderElementError):
         super().__init__(
             element=element,
             template="Invalid cleaning option {option}. Available options are {expected}.",
-            kwargs={"option": option, "expected": expected},
+            template_kwargs={"option": option, "expected": expected},
         )
 
 
