@@ -1,7 +1,7 @@
 from abc import ABC, abstractmethod
-from collections.abc import Sequence
+from collections.abc import Mapping, Sequence
 from functools import cached_property
-from typing import TYPE_CHECKING, ClassVar
+from typing import TYPE_CHECKING, ClassVar, Protocol
 
 import jinja2
 from pydantic import BaseModel, JsonValue
@@ -58,6 +58,80 @@ def _merge_uis(
         files=all_files,
         cache_control=cache_control,
     )
+
+
+class AttemptProtocol(Protocol):
+    """Defines the properties and methods an attempt must always contain."""
+
+    @property
+    def cache_control(self) -> CacheControl:
+        pass
+
+    @property
+    def placeholders(self) -> dict[str, str]:
+        pass
+
+    @property
+    def css_files(self) -> list[str]:
+        pass
+
+    @property
+    def files(self) -> dict[str, AttemptFile]:
+        pass
+
+    @property
+    def variant(self) -> int:
+        pass
+
+    @property
+    def formulation(self) -> str:
+        pass
+
+    @property
+    def general_feedback(self) -> str | None:
+        pass
+
+    @property
+    def specific_feedback(self) -> str | None:
+        pass
+
+    @property
+    def right_answer_description(self) -> str | None:
+        pass
+
+
+class AttemptStartedProtocol(AttemptProtocol, Protocol):
+    """In addition to [AttemptProtocol][], defines that a newly started attempt must provide its attempt state.
+
+    The attempt state is only generated at attempt start and immutable afterwards, so it must only be defined on the
+    object returned by [Question.start_attempt][].
+    """
+
+    def to_plain_attempt_state(self) -> dict[str, JsonValue]:
+        """Return a jsonable representation of this attempt's state."""
+
+
+class AttemptScoredProtocol(AttemptProtocol, Protocol):
+    """In addition to [AttemptProtocol][], defines properties and methods which must be set after scoring."""
+
+    @property
+    def scoring_code(self) -> ScoringCode:
+        pass
+
+    @property
+    def scored_inputs(self) -> Mapping[str, ScoredInputModel]:
+        pass
+
+    @property
+    def score(self) -> float | None:
+        pass
+
+    @property
+    def score_final(self) -> float | None:
+        pass
+
+    def to_plain_scoring_state(self) -> Mapping[str, JsonValue] | None:
+        """Return a jsonable representation of this attempt's scoring state, if any."""
 
 
 class Attempt(ABC):
