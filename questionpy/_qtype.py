@@ -2,7 +2,7 @@
 #  The QuestionPy SDK is free software released under terms of the MIT license. See LICENSE.md.
 #  (c) Technische Universität Berlin, innoCampus <info@isis.tu-berlin.de>
 from abc import ABC
-from typing import ClassVar, Generic, Self, TypeVar
+from typing import ClassVar, Generic, Self, TypeVar, cast
 
 from pydantic import BaseModel, JsonValue, ValidationError
 
@@ -10,7 +10,7 @@ from questionpy_common.api.qtype import InvalidQuestionStateError, OptionsFormVa
 from questionpy_common.api.question import ScoringMethod, SubquestionModel
 from questionpy_common.environment import get_qpy_environment
 
-from ._attempt import Attempt
+from ._attempt import Attempt, AttemptProtocol, AttemptScoredProtocol, AttemptStartedProtocol
 from ._util import get_mro_type_hint
 from .form import FormModel, OptionsFormDefinition
 
@@ -126,7 +126,7 @@ class Question(ABC):
         """Return the options form and field values for viewing or editing this question."""
         return self.options_class.qpy_form, self.options.model_dump(mode="json")
 
-    def start_attempt(self, variant: int) -> Attempt:
+    def start_attempt(self, variant: int) -> AttemptStartedProtocol:
         attempt_state = self.attempt_class.make_attempt_state(self, variant)
         return self.attempt_class(self, attempt_state)
 
@@ -135,13 +135,26 @@ class Question(ABC):
         attempt_state: dict[str, JsonValue],
         scoring_state: dict[str, JsonValue] | None = None,
         response: dict[str, JsonValue] | None = None,
-    ) -> Attempt:
+    ) -> AttemptProtocol:
         parsed_attempt_state = self.attempt_class.attempt_state_class.model_validate(attempt_state)
         parsed_scoring_state = None
         if scoring_state is not None:
             parsed_scoring_state = self.attempt_class.scoring_state_class.model_validate(scoring_state)
 
         return self.attempt_class(self, parsed_attempt_state, parsed_scoring_state, response)
+
+    def score_attempt(
+        self,
+        attempt_state: dict[str, JsonValue],
+        scoring_state: dict[str, JsonValue] | None,
+        response: dict[str, JsonValue] | None,
+        *,
+        try_scoring_with_countback: bool,
+        try_giving_hint: bool,
+    ) -> AttemptScoredProtocol:
+        attempt = cast(Attempt, self.get_attempt(attempt_state, scoring_state, response))
+        attempt.score_response(try_scoring_with_countback=try_scoring_with_countback, try_giving_hint=try_giving_hint)
+        return cast(AttemptScoredProtocol, attempt)
 
     def __init_subclass__(cls, *args: object, **kwargs: object) -> None:
         super().__init_subclass__(*args, **kwargs)

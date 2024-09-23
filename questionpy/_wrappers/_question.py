@@ -5,7 +5,8 @@ import json
 
 from pydantic import JsonValue
 
-from questionpy import Attempt, Question
+from questionpy import Question
+from questionpy._attempt import AttemptProtocol, AttemptScoredProtocol
 from questionpy_common.api.attempt import AttemptModel, AttemptScoredModel, AttemptStartedModel, AttemptUi
 from questionpy_common.api.question import QuestionInterface, QuestionModel
 from questionpy_common.environment import get_qpy_environment
@@ -43,10 +44,10 @@ def _export_question(question: Question) -> QuestionModel:
     )
 
 
-def _export_attempt(attempt: Attempt) -> dict:
+def _export_attempt(attempt: AttemptProtocol) -> dict:
     return {
         "lang": _get_output_lang(),
-        "variant": attempt.attempt_state.variant,
+        "variant": attempt.variant,
         "ui": AttemptUi(
             formulation=attempt.formulation,
             general_feedback=attempt.general_feedback,
@@ -60,7 +61,7 @@ def _export_attempt(attempt: Attempt) -> dict:
     }
 
 
-def _export_score(attempt: Attempt) -> dict:
+def _export_score(attempt: AttemptScoredProtocol) -> dict:
     plain_scoring_state = attempt.to_plain_scoring_state()
     return {
         "scoring_state": None if plain_scoring_state is None else json.dumps(plain_scoring_state),
@@ -81,23 +82,16 @@ class QuestionWrapper(QuestionInterface):
         plain_attempt_state = attempt.to_plain_attempt_state()
         return AttemptStartedModel(**_export_attempt(attempt), attempt_state=json.dumps(plain_attempt_state))
 
-    def _get_attempt_internal(
-        self,
-        attempt_state: str,
-        scoring_state: str | None = None,
-        response: dict[str, JsonValue] | None = None,
-    ) -> Attempt:
-        plain_attempt_state = json.loads(attempt_state)
-        plain_scoring_state = None
-        if scoring_state:
-            plain_scoring_state = json.loads(scoring_state)
-
-        return self._question.get_attempt(plain_attempt_state, plain_scoring_state, response)
-
     def get_attempt(
         self, attempt_state: str, scoring_state: str | None = None, response: dict[str, JsonValue] | None = None
     ) -> AttemptModel:
-        return AttemptModel(**_export_attempt(self._get_attempt_internal(attempt_state, scoring_state, response)))
+        parsed_attempt_state = json.loads(attempt_state)
+        parsed_scoring_state = None
+        if scoring_state:
+            parsed_scoring_state = json.loads(scoring_state)
+
+        attempt = self._question.get_attempt(parsed_attempt_state, parsed_scoring_state, response)
+        return AttemptModel(**_export_attempt(attempt))
 
     def score_attempt(
         self,
@@ -108,8 +102,18 @@ class QuestionWrapper(QuestionInterface):
         try_scoring_with_countback: bool = False,
         try_giving_hint: bool = False,
     ) -> AttemptScoredModel:
-        attempt = self._get_attempt_internal(attempt_state, scoring_state, response)
-        attempt.score_response(try_scoring_with_countback=try_scoring_with_countback, try_giving_hint=try_giving_hint)
+        parsed_attempt_state = json.loads(attempt_state)
+        parsed_scoring_state = None
+        if scoring_state:
+            parsed_scoring_state = json.loads(scoring_state)
+
+        attempt = self._question.score_attempt(
+            parsed_attempt_state,
+            parsed_scoring_state,
+            response,
+            try_scoring_with_countback=try_scoring_with_countback,
+            try_giving_hint=try_giving_hint,
+        )
         return AttemptScoredModel(**_export_attempt(attempt), **_export_score(attempt))
 
     def export_question_state(self) -> str:
