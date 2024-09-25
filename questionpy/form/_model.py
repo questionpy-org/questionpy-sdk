@@ -123,7 +123,7 @@ class _FormModelMeta(ModelMetaclass):
 
     def __new__(mcs, name: str, bases: tuple[type, ...], namespace: dict, **kwargs: Any) -> type:
         annotations = namespace.get("__annotations__", {}).copy()
-        new_namespace = {}
+        new_namespace: dict[str, Any] = {}
         form = OptionsFormDefinition()
 
         for key, value in namespace.items():
