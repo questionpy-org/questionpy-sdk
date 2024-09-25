@@ -22,11 +22,13 @@
                     </tr>
                     <tr>
                         <th>Line</th>
+                        <th>Type</th>
                         <th>Error-Message</th>
                     </tr>
                     {% for error in errors %}
                     <tr>
                         <td>{{ error.line or '' }}</td>
+                        <td>{{ error.type }}</td>
                         <td>{{ error.html_message|safe }}</td>
                     </tr>
                     {% endfor %}

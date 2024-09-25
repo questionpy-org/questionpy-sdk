@@ -5,8 +5,8 @@ import html
 import logging
 from abc import ABC, abstractmethod
 from bisect import insort
-from collections.abc import Iterable, Iterator, Sized
-from dataclasses import dataclass
+from collections.abc import Collection, Iterable, Iterator, Mapping, Sized
+from dataclasses import dataclass, field
 from operator import attrgetter
 from typing import TypeAlias
 
@@ -15,9 +15,22 @@ from lxml import etree
 _log = logging.getLogger(__name__)
 
 
+def _format_human_readable_list(values: Collection[str], opening: str, closing: str) -> str:
+    *values, last_value = values
+    last_value = f"{opening}{last_value}{closing}"
+    if not values:
+        return last_value
+
+    return opening + f"{closing}, {opening}".join(values) + f"{closing} and {last_value}"
+
+
 @dataclass(frozen=True)
 class RenderError(ABC):
     """Represents a generic error which occurred during rendering."""
+
+    @property
+    def type(self) -> str:
+        return self.__class__.__name__
 
     @property
     @abstractmethod
@@ -41,10 +54,47 @@ class RenderError(ABC):
 
 @dataclass(frozen=True)
 class RenderElementError(RenderError, ABC):
+    """A generic element error which occurred during rendering.
+
+    Attributes:
+        element: The element where the error occurred.
+        template: A template string that defines the structure of the error message.
+            It can contain placeholders corresponding to the keys in `template_kwargs`.
+            These placeholders are identified by braces ('{' and '}'), similar to `str.format`.
+            The '{element}' placeholder is predefined and resolves to a human-readable representation of `element`.
+            Providing a value with the key 'element' in `template_kwargs` will overwrite this behaviour.
+        template_kwargs: A mapping containing the values of the placeholders in `template`.
+            If a value is of type `Collection[str]`, it will be formatted as a human-readable list.
+    """
+
     element: etree._Element
+    template: str
+    template_kwargs: Mapping[str, str | Collection[str]] = field(default_factory=dict)
+
+    def _message(self, *, as_html: bool) -> str:
+        (opening, closing) = ("<code>", "</code>") if as_html else ("'", "'")
+        template_kwargs = {"element": f"{opening}{self.element_representation}{closing}"}
+
+        for key, values in self.template_kwargs.items():
+            collection = {values} if isinstance(values, str) else values
+            template_kwargs[key] = _format_human_readable_list(collection, opening, closing)
+
+        return self.template.format_map(template_kwargs)
+
+    @property
+    def message(self) -> str:
+        return self._message(as_html=False)
+
+    @property
+    def html_message(self) -> str:
+        return self._message(as_html=True)
 
     @property
     def element_representation(self) -> str:
+        # Return the whole element if it is a PI.
+        if isinstance(self.element, etree._ProcessingInstruction):
+            return str(self.element)
+
         # Create the prefix of an element. We do not want to keep 'html' as a prefix.
         prefix = f"{self.element.prefix}:" if self.element.prefix and self.element.prefix != "html" else ""
         return prefix + etree.QName(self.element).localname
@@ -57,36 +107,89 @@ class RenderElementError(RenderError, ABC):
 
 @dataclass(frozen=True)
 class InvalidAttributeValueError(RenderElementError):
-    """Invalid attribute value."""
+    """Invalid attribute value(s)."""
 
-    attribute: str
-    value: str
-    expected: Iterable[str] | None = None
+    def __init__(
+        self,
+        element: etree._Element,
+        attribute: str,
+        value: str | Collection[str],
+        expected: Collection[str] | None = None,
+    ):
+        template_kwargs = {"value": value, "attribute": attribute}
+        expected_str = ""
+        if expected:
+            template_kwargs["expected"] = expected
+            expected_str = " Expected values are {expected}."
 
-    def _message(self, *, as_html: bool) -> str:
-        if as_html:
-            (opening, closing) = ("<code>", "</code>")
-            value = html.escape(self.value)
-        else:
-            (opening, closing) = ("'", "'")
-            value = self.value
-
-        expected = ""
-        if self.expected:
-            expected = f" Expected one of [{opening}" + f"{closing}, {opening}".join(self.expected) + f"{closing}]."
-
-        return (
-            f"Invalid value {opening}{value}{closing} for attribute {opening}{self.attribute}{closing} "
-            f"on element {opening}{self.element_representation}{closing}.{expected}"
+        s = "" if isinstance(value, str) or len(value) <= 1 else ""
+        super().__init__(
+            element=element,
+            template=f"Invalid value{s} {{value}} for attribute {{attribute}} on element {{element}}.{expected_str}",
+            template_kwargs=template_kwargs,
         )
 
-    @property
-    def message(self) -> str:
-        return self._message(as_html=False)
 
-    @property
-    def html_message(self) -> str:
-        return self._message(as_html=True)
+@dataclass(frozen=True)
+class ConversionError(RenderElementError):
+    """Could not convert a value to another type."""
+
+    def __init__(self, element: etree._Element, value: str, to_type: type, attribute: str | None = None):
+        template_kwargs = {"value": value, "type": to_type.__name__}
+
+        in_attribute = ""
+        if attribute:
+            template_kwargs["attribute"] = attribute
+            in_attribute = " in attribute {attribute}"
+
+        template = f"Unable to convert {{value}} to {{type}}{in_attribute} at element {{element}}."
+        super().__init__(element=element, template=template, template_kwargs=template_kwargs)
+
+
+@dataclass(frozen=True)
+class PlaceholderReferenceError(RenderElementError):
+    """An unknown or no placeholder was referenced."""
+
+    def __init__(self, element: etree._Element, placeholder: str | None, available: Collection[str]):
+        if placeholder is None:
+            template = "No placeholder was referenced."
+            template_kwargs = {}
+        else:
+            if len(available) == 0:
+                provided = "No placeholders were provided."
+            else:
+                provided = "These are the provided placeholders: {available}."
+            template = f"Referenced placeholder {{placeholder}} was not found. {provided}"
+            template_kwargs = {"placeholder": placeholder, "available": available}
+
+        super().__init__(
+            element=element,
+            template=template,
+            template_kwargs=template_kwargs,
+        )
+
+
+@dataclass(frozen=True)
+class InvalidCleanOptionError(RenderElementError):
+    """Invalid clean option."""
+
+    def __init__(self, element: etree._Element, option: str, expected: Collection[str]):
+        super().__init__(
+            element=element,
+            template="Invalid cleaning option {option}. Available options are {expected}.",
+            template_kwargs={"option": option, "expected": expected},
+        )
+
+
+@dataclass(frozen=True)
+class UnknownElementError(RenderElementError):
+    """Unknown element with qpy-namespace."""
+
+    def __init__(self, element: etree._Element):
+        super().__init__(
+            element=element,
+            template="Unknown element {element}.",
+        )
 
 
 @dataclass(frozen=True)
@@ -106,11 +209,11 @@ class XMLSyntaxError(RenderError):
 
     @property
     def message(self) -> str:
-        return f"Syntax error: {self.error.msg}"
+        return f"{self.error.msg}"
 
     @property
     def html_message(self) -> str:
-        return f"Invalid syntax: <samp>{html.escape(self.error.msg)}</samp>"
+        return f"<samp>{html.escape(self.error.msg)}</samp>"
 
 
 class RenderErrorCollection(Iterable, Sized):
@@ -143,5 +246,7 @@ def log_render_errors(render_errors: RenderErrorCollections) -> None:
         errors_string = ""
         for error in errors:
             line = f"Line {error.line}: " if error.line else ""
-            errors_string += f"\n\t- {line}{error.message}"
-        _log.warning(f"{len(errors)} error(s) occurred while rendering {section}:{errors_string}")
+            errors_string += f"\n\t- {line}{error.type} - {error.message}"
+        error_count = len(errors)
+        s = "s" if error_count > 1 else ""
+        _log.warning(f"{error_count} error{s} occurred while rendering {section}:{errors_string}")

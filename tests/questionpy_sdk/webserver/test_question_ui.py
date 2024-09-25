@@ -1,9 +1,8 @@
 #  This file is part of the QuestionPy SDK. (https://questionpy.org)
 #  The QuestionPy SDK is free software released under terms of the MIT license. See LICENSE.md.
 #  (c) Technische Universität Berlin, innoCampus <info@isis.tu-berlin.de>
-import re
 from importlib import resources
-from typing import TYPE_CHECKING, Any
+from typing import Any
 
 import pytest
 
@@ -16,10 +15,14 @@ from questionpy_sdk.webserver.question_ui import (
     QuestionUIRenderer,
     XMLSyntaxError,
 )
+from questionpy_sdk.webserver.question_ui.errors import (
+    ConversionError,
+    InvalidCleanOptionError,
+    PlaceholderReferenceError,
+    RenderError,
+    UnknownElementError,
+)
 from tests.questionpy_sdk.webserver.conftest import assert_html_is_equal
-
-if TYPE_CHECKING:
-    from questionpy_sdk.webserver.question_ui.errors import RenderError
 
 
 @pytest.fixture
@@ -320,7 +323,6 @@ def test_should_replace_shuffled_index(renderer: QuestionUIRenderer) -> None:
 @pytest.mark.render_params(
     xml="""
         <div xmlns:qpy="http://questionpy.org/ns/question">
-            <qpy:element>Text</qpy:element>
             <element qpy:attribute="value">Content</element>
             <!-- Comment -->
             <regular xmlns:qpy="http://questionpy.org/ns/question">Normal Content</regular>
@@ -361,27 +363,33 @@ def test_should_replace_qpy_urls(renderer: QuestionUIRenderer) -> None:
 def test_errors_should_be_collected(renderer: QuestionUIRenderer) -> None:
     expected = """
         <div>
+            <fieldset><label>Invalid shuffle format. . A</label></fieldset>
+            <div>Missing placeholder.</div>
+            <div>Empty placeholder.</div>
             <span>Missing attribute value.</span>
         </div>
     """
     html, errors = renderer.render()
-    assert len(errors) == 3
+    assert len(errors) == 11
 
-    invalid_attribute_error_message = re.compile(
-        r"Invalid value .+unknown.+ for attribute .+qpy:feedback.+ on element " r".+span.+. Expected one of \[.+]."
-    )
-    expected_errors: list[tuple[type[RenderError], re.Pattern, int]] = [
-        # Even though the syntax error occurs after an invalid attribute value error, it should be listed first.
-        (XMLSyntaxError, re.compile(".+"), 3),
-        (InvalidAttributeValueError, invalid_attribute_error_message, 2),
-        (InvalidAttributeValueError, invalid_attribute_error_message, 4),
+    expected_errors: list[tuple[type[RenderError], int]] = [
+        # Even though the syntax error occurs after all the other errors, it should be listed first.
+        (XMLSyntaxError, 14),
+        (InvalidAttributeValueError, 2),
+        (UnknownElementError, 3),
+        (InvalidAttributeValueError, 4),
+        (ConversionError, 5),
+        (ConversionError, 5),
+        (InvalidAttributeValueError, 5),
+        (InvalidAttributeValueError, 9),
+        (InvalidCleanOptionError, 12),
+        (PlaceholderReferenceError, 12),
+        (PlaceholderReferenceError, 13),
     ]
 
     for actual_error, expected_error in zip(errors, expected_errors, strict=True):
-        error_type, message, line = expected_error
-        assert actual_error.line == line
+        error_type, line = expected_error
         assert isinstance(actual_error, error_type)
-        assert message.match(actual_error.message) is not None
-        assert message.match(actual_error.html_message) is not None
+        assert actual_error.line == line
 
     assert_html_is_equal(html, expected)
