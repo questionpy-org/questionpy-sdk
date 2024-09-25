@@ -64,7 +64,7 @@ class RenderElementError(RenderError, ABC):
             The '{element}' placeholder is predefined and resolves to a human-readable representation of `element`.
             Providing a value with the key 'element' in `template_kwargs` will overwrite this behaviour.
         template_kwargs: A mapping containing the values of the placeholders in `template`.
-            If a value is of type `Collection[str]`, it will be formatted in a human-readable list.
+            If a value is of type `Collection[str]`, it will be formatted as a human-readable list.
     """
 
     element: etree._Element
