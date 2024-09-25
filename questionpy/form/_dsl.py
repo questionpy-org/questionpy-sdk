@@ -3,7 +3,7 @@
 #  (c) Technische Universität Berlin, innoCampus <info@isis.tu-berlin.de>
 from typing import Any, Literal, Optional, TypeAlias, TypeVar, cast, overload
 
-from pydantic import Field
+from pydantic.fields import FieldInfo
 from pydantic_core import PydanticUndefined
 
 from questionpy_common.conditions import Condition, DoesNotEqual, Equals, In, IsChecked, IsNotChecked
@@ -133,7 +133,10 @@ def text_input(
             disable_if=_listify(disable_if),
             hide_if=_listify(hide_if),
         ),
-        pydantic_field_info=Field(default=None if not required or disable_if or hide_if else PydanticUndefined),
+        pydantic_field_info=FieldInfo(
+            default=None if not required or disable_if or hide_if else PydanticUndefined,
+            min_length=1 if required else None,
+        ),
     )
 
 
@@ -229,7 +232,10 @@ def text_area(
             disable_if=_listify(disable_if),
             hide_if=_listify(hide_if),
         ),
-        pydantic_field_info=Field(default=None if not required or disable_if or hide_if else PydanticUndefined),
+        pydantic_field_info=FieldInfo(
+            default=None if not required or disable_if or hide_if else PydanticUndefined,
+            min_length=1 if required else None,
+        ),
     )
 
 
@@ -355,7 +361,7 @@ def checkbox(
             disable_if=_listify(disable_if),
             hide_if=_listify(hide_if),
         ),
-        pydantic_field_info=Field(default=False if not required or disable_if or hide_if else PydanticUndefined),
+        pydantic_field_info=FieldInfo(default=False if not required or disable_if or hide_if else PydanticUndefined),
     )
 
 
@@ -446,7 +452,7 @@ def radio_group(
             disable_if=_listify(disable_if),
             hide_if=_listify(hide_if),
         ),
-        pydantic_field_info=Field(default=None if not required or disable_if or hide_if else PydanticUndefined),
+        pydantic_field_info=FieldInfo(default=None if not required or disable_if or hide_if else PydanticUndefined),
     )
 
 
@@ -570,7 +576,7 @@ def select(
             disable_if=_listify(disable_if),
             hide_if=_listify(hide_if),
         ),
-        pydantic_field_info=Field(default=default),
+        pydantic_field_info=FieldInfo(default=default),
     )
 
 
@@ -627,7 +633,7 @@ def hidden(value: _S, *, disable_if: _ZeroOrMoreConditions = None, hide_if: _Zer
             build=lambda name: HiddenElement(
                 name=name, value=value, disable_if=_listify(disable_if), hide_if=_listify(hide_if)
             ),
-            pydantic_field_info=Field(default=None if disable_if or hide_if else PydanticUndefined),
+            pydantic_field_info=FieldInfo(default=None if disable_if or hide_if else PydanticUndefined),
         ),
     )
 
@@ -714,7 +720,7 @@ def group(
             # since it would occur in a separate validation. Instead, we use an empty dict as default and tell Pydantic
             # to validate it, which will allow Pydantic to use the full location in case of error, while leading to
             # the same result if there isn't a validation error.
-            pydantic_field_info=Field(default={}, validate_default=True),
+            pydantic_field_info=FieldInfo(default={}, validate_default=True),
         ),
     )
 
