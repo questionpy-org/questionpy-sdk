@@ -227,10 +227,12 @@ def test_should_parse_correctly_when_input_is_valid(
         # text_input
         (str, form.text_input("", required=True), ...),
         (str, form.text_input("", required=True), None),
+        (str, form.text_input("", required=True), ""),
         (str | None, form.text_input(""), {}),
         # text_area
         (str, form.text_area("", required=True), ...),
         (str, form.text_area("", required=True), None),
+        (str, form.text_area("", required=True), ""),
         (str | None, form.text_area(""), {}),
         # checkbox
         (bool, form.checkbox("", "", required=False), 42),
@@ -327,12 +329,15 @@ def test_group_without_required_fields_can_be_omitted() -> None:
     assert parsed.grp.optional is None
 
 
-def test_group_with_required_field_cannot_be_omitted() -> None:
+def test_group_with_required_field_cannot_be_omitted_and_error_loc_is_correct() -> None:
     class Inner(form.FormModel):
-        optional: str = form.text_input("", required=True)
+        required: str = form.text_input("", required=True)
 
     class Outer(form.FormModel):
         grp: Inner = form.group("", Inner)
 
-    with pytest.raises(ValidationError):
+    with pytest.raises(ValidationError) as exc_info:
         Outer.model_validate({})
+
+    assert len(exc_info.value.errors()) == 1
+    assert exc_info.value.errors()[0]["loc"] == ("grp", "required")
