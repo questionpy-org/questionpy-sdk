@@ -61,6 +61,10 @@ extend = "ruff_defaults.toml"
 [tool.ruff.lint.pep8-naming]
 extend-ignore-names = ["mcs", "test_*"]
 
+[tool.ruff.lint.extend-per-file-ignores]
+# Allow f-string without an `f` prefix for our custom error formatter.
+"**/questionpy_sdk/webserver/question_ui/errors.py" = ["RUF027"]
+
 [tool.ruff.lint.pylint]
 allow-dunder-method-names = ["__get_pydantic_core_schema__"]
 
