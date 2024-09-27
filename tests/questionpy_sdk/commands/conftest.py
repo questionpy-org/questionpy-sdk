@@ -7,6 +7,7 @@ import contextlib
 import os
 import signal
 import sys
+import tempfile
 from asyncio.subprocess import PIPE, Process
 from collections.abc import AsyncIterator, Iterable, Iterator
 from pathlib import Path
@@ -71,23 +72,26 @@ async def client_session() -> AsyncIterator[aiohttp.ClientSession]:
 # can't test long-running processes with `CliRunner` (https://github.com/pallets/click/issues/2171)
 @contextlib.asynccontextmanager
 async def long_running_cmd(args: Iterable[str], timeout: float = 5) -> AsyncIterator[Process]:
-    try:
-        popen_args = [sys.executable, "-m", "questionpy_sdk", "--", *args]
-        proc = await asyncio.create_subprocess_exec(*popen_args, stdin=PIPE, stdout=PIPE, stderr=PIPE)
+    with tempfile.TemporaryDirectory("qpy-state-storage") as state_dir:
+        try:
+            popen_args = [sys.executable, "-m", "questionpy_sdk", "--", *args]
+            proc = await asyncio.create_subprocess_exec(
+                *popen_args, stdin=PIPE, stdout=PIPE, stderr=PIPE, env={"QPY_STATE_STORAGE_PATH": state_dir}
+            )
 
-        # ensure tests don't hang indefinitely
-        async def kill_after_timeout() -> None:
-            await asyncio.sleep(timeout)
+            # ensure tests don't hang indefinitely
+            async def kill_after_timeout() -> None:
+                await asyncio.sleep(timeout)
+                proc.send_signal(signal.SIGINT)
+
+            kill_task = asyncio.create_task(kill_after_timeout())
+            yield proc
+
+        finally:
+            if kill_task:
+                kill_task.cancel()
             proc.send_signal(signal.SIGINT)
-
-        kill_task = asyncio.create_task(kill_after_timeout())
-        yield proc
-
-    finally:
-        if kill_task:
-            kill_task.cancel()
-        proc.send_signal(signal.SIGINT)
-        await proc.wait()
+            await proc.wait()
 
 
 async def assert_webserver_is_up(session: aiohttp.ClientSession, url: str = "http://localhost:8080/") -> None:
