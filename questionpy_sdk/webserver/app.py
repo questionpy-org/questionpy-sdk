@@ -51,11 +51,14 @@ class StateFilename(StrEnum):
     LAST_ATTEMPT_DATA = "last_attempt_data.json"
 
 
+DEFAULT_STATE_STORAGE_PATH = Path(__file__).parent / "question_state_storage"
+
+
 class WebServer:
     def __init__(
         self,
         package_location: PackageLocation,
-        state_storage_path: Path = Path(__file__).parent / "question_state_storage",
+        state_storage_path: Path,
     ) -> None:
         # We import here, so we don't have to work around circular imports.
         from questionpy_sdk.webserver.routes.attempt import routes as attempt_routes  # noqa: PLC0415
