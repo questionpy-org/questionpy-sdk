@@ -4,7 +4,7 @@
 
 import json
 import random
-from typing import TYPE_CHECKING
+from typing import TYPE_CHECKING, Any
 
 import aiohttp_jinja2
 from aiohttp import web
@@ -94,7 +94,7 @@ async def get_attempt(request: web.Request) -> web.Response:
     return aiohttp_jinja2.render_template("attempt.html.jinja2", request, context)
 
 
-async def _score_attempt(request: web.Request, data: dict) -> web.Response:
+async def _score_attempt(request: web.Request, data: Any) -> web.Response:
     webserver = request.app[SDK_WEBSERVER_APP_KEY]
 
     question_state = webserver.read_state_file(StateFilename.QUESTION_STATE)
