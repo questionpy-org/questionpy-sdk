@@ -109,7 +109,7 @@ def create_qpy_package(
 
     try:
         # Use temp file, otherwise we risk overwriting `out_path` in case of a build error.
-        temp_file = tempfile.NamedTemporaryFile(delete=False)
+        temp_file = tempfile.NamedTemporaryFile(delete=False)  # noqa: SIM115
         temp_file_path = Path(temp_file.name)
 
         try:

@@ -53,13 +53,13 @@ def isolated_runner(monkeypatch: pytest.MonkeyPatch, tmp_path: Path) -> Iterator
             os.chdir(cwd_orig)
 
 
-@pytest.fixture  # noqa: FURB118
-def runner(isolated_runner: tuple[CliRunner, Path]) -> CliRunner:
+@pytest.fixture
+def runner(isolated_runner: tuple[CliRunner, Path]) -> CliRunner:  # noqa: FURB118
     return isolated_runner[0]
 
 
-@pytest.fixture  # noqa: FURB118
-def cwd(isolated_runner: tuple[CliRunner, Path]) -> Path:
+@pytest.fixture
+def cwd(isolated_runner: tuple[CliRunner, Path]) -> Path:  # noqa: FURB118
     return isolated_runner[1]
 
 
