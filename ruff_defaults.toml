@@ -72,6 +72,12 @@ extend-select = [
 ]
 
 ignore = [
+  # builtin-module-shadowing (relative module names such as 'abc' or 'types' are pretty normal)
+  "A005",
+
+  # allow async functions with timeout parameter
+  "ASYNC109",
+
   # Relax on missing docstrings
   "D1",
 
@@ -109,7 +115,6 @@ pydocstyle = { convention = "google" }
 [lint.per-file-ignores]
 "**/scripts/*" = ["INP001", "T201"]
 "**/tests/**/*" = ["PLC1901", "PLC2701", "PLR2004", "S", "TID252", "FBT"]
-"**/question_ui/errors.py" = ["RUF027"] # Allow f-string without an `f` prefix for our custom error formatter.
 
 [lint.flake8-builtins]
 # help: (guess it's ok since built-in `help()` is for interactive use and no collisions are expected)

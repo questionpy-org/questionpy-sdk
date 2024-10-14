@@ -1,8 +1,10 @@
 #  This file is part of the QuestionPy SDK. (https://questionpy.org)
 #  The QuestionPy SDK is free software released under terms of the MIT license. See LICENSE.md.
 #  (c) Technische Universität Berlin, innoCampus <info@isis.tu-berlin.de>
-
 from typing import Any, Literal, Optional, TypeAlias, TypeVar, cast, overload
+
+from pydantic.fields import FieldInfo
+from pydantic_core import PydanticUndefined
 
 from questionpy_common.conditions import Condition, DoesNotEqual, Equals, In, IsChecked, IsNotChecked
 from questionpy_common.elements import (
@@ -120,7 +122,8 @@ def text_input(
         An internal object containing metadata about the field.
     """
     return _FieldInfo(
-        lambda name: TextInputElement(
+        type=str | None if not required or disable_if or hide_if else str,
+        build=lambda name: TextInputElement(
             name=name,
             label=label,
             required=required,
@@ -130,8 +133,10 @@ def text_input(
             disable_if=_listify(disable_if),
             hide_if=_listify(hide_if),
         ),
-        str | None if not required or disable_if or hide_if else str,
-        None if not required or disable_if or hide_if else ...,
+        pydantic_field_info=FieldInfo(
+            default=None if not required or disable_if or hide_if else PydanticUndefined,
+            min_length=1 if required else None,
+        ),
     )
 
 
@@ -216,7 +221,8 @@ def text_area(
         An internal object containing metadata about the field.
     """
     return _FieldInfo(
-        lambda name: TextAreaElement(
+        type=str | None if not required or disable_if or hide_if else str,
+        build=lambda name: TextAreaElement(
             name=name,
             label=label,
             required=required,
@@ -226,8 +232,10 @@ def text_area(
             disable_if=_listify(disable_if),
             hide_if=_listify(hide_if),
         ),
-        str | None if not required or disable_if or hide_if else str,
-        None if not required or disable_if or hide_if else ...,
+        pydantic_field_info=FieldInfo(
+            default=None if not required or disable_if or hide_if else PydanticUndefined,
+            min_length=1 if required else None,
+        ),
     )
 
 
@@ -342,7 +350,8 @@ def checkbox(
         An internal object containing metadata about the field.
     """
     return _FieldInfo(
-        lambda name: CheckboxElement(
+        type=bool if not required or disable_if or hide_if else Literal[True],
+        build=lambda name: CheckboxElement(
             name=name,
             left_label=left_label,
             right_label=right_label,
@@ -352,8 +361,7 @@ def checkbox(
             disable_if=_listify(disable_if),
             hide_if=_listify(hide_if),
         ),
-        bool if not required or disable_if or hide_if else Literal[True],
-        False if not required or disable_if or hide_if else ...,
+        pydantic_field_info=FieldInfo(default=False if not required or disable_if or hide_if else PydanticUndefined),
     )
 
 
@@ -434,7 +442,8 @@ def radio_group(
     options = [Option(label=variant.label, value=variant.value, selected=variant.selected) for variant in enum]
 
     return _FieldInfo(
-        lambda name: RadioGroupElement(
+        type=enum | None if not required or disable_if or hide_if else enum,
+        build=lambda name: RadioGroupElement(
             name=name,
             label=label,
             options=options,
@@ -443,8 +452,7 @@ def radio_group(
             disable_if=_listify(disable_if),
             hide_if=_listify(hide_if),
         ),
-        enum | None if not required or disable_if or hide_if else enum,
-        None if not required or disable_if or hide_if else ...,
+        pydantic_field_info=FieldInfo(default=None if not required or disable_if or hide_if else PydanticUndefined),
     )
 
 
@@ -548,16 +556,17 @@ def select(
     default: object
     if multiple:
         expected_type = set[enum]  # type: ignore[valid-type]
-        default = set() if not required or disable_if or hide_if else ...
+        default = set() if not required or disable_if or hide_if else PydanticUndefined
     elif not required or disable_if or hide_if:
         expected_type = enum | None  # type: ignore[assignment]
         default = None
     else:
         expected_type = enum
-        default = ...
+        default = PydanticUndefined
 
     return _FieldInfo(
-        lambda name: SelectElement(
+        type=expected_type,
+        build=lambda name: SelectElement(
             name=name,
             label=label,
             multiple=multiple,
@@ -567,8 +576,7 @@ def select(
             disable_if=_listify(disable_if),
             hide_if=_listify(hide_if),
         ),
-        expected_type,
-        default,
+        pydantic_field_info=FieldInfo(default=default),
     )
 
 
@@ -621,11 +629,11 @@ def hidden(value: _S, *, disable_if: _ZeroOrMoreConditions = None, hide_if: _Zer
     return cast(
         _S,
         _FieldInfo(
-            lambda name: HiddenElement(
+            type=Optional[Literal[value]] if disable_if or hide_if else Literal[value],  # noqa: UP007
+            build=lambda name: HiddenElement(
                 name=name, value=value, disable_if=_listify(disable_if), hide_if=_listify(hide_if)
             ),
-            Optional[Literal[value]] if disable_if or hide_if else Literal[value],  # noqa: UP007
-            None if disable_if or hide_if else ...,
+            pydantic_field_info=FieldInfo(default=None if disable_if or hide_if else PydanticUndefined),
         ),
     )
 
@@ -697,7 +705,8 @@ def group(
     return cast(
         _F,
         _FieldInfo(
-            lambda name: GroupElement(
+            type=model,
+            build=lambda name: GroupElement(
                 name=name,
                 label=label,
                 elements=model.qpy_form.general,
@@ -705,10 +714,13 @@ def group(
                 disable_if=_listify(disable_if),
                 hide_if=_listify(hide_if),
             ),
-            # When the group dict is not provided at all in the form data, we try to build a default model instance.
-            # If the nested model contains required fields, this will raise an error with a decent message.
-            model,
-            default_factory=model,
+            # When the group dict is not provided at all in the form data, we want Pydantic to use the default values
+            # for all grouped fields and raise if there are any required ones. Creating the nested model in a
+            # default_factory would achieve that, but the error location in the ValidationError would not be complete,
+            # since it would occur in a separate validation. Instead, we use an empty dict as default and tell Pydantic
+            # to validate it, which will allow Pydantic to use the full location in case of error, while leading to
+            # the same result if there isn't a validation error.
+            pydantic_field_info=FieldInfo(default={}, validate_default=True),
         ),
     )
 
@@ -745,7 +757,8 @@ def repeat(
     return cast(
         list[_F],
         _FieldInfo(
-            lambda name: RepetitionElement(
+            type=list[model],  # type: ignore[valid-type]
+            build=lambda name: RepetitionElement(
                 name=name,
                 initial_repetitions=initial,
                 minimum_repetitions=minimum,
@@ -753,7 +766,6 @@ def repeat(
                 button_label=button_label,
                 elements=model.qpy_form.general,
             ),
-            list[model],  # type: ignore[valid-type]
         ),
     )
 

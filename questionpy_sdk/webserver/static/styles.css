@@ -123,6 +123,10 @@ p.element-label {
     position: relative;
 }
 
+.errors {
+    color: red;
+}
+
 fieldset {
     border: none;
     padding: 0;

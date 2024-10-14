@@ -1,11 +1,14 @@
 #  This file is part of the QuestionPy SDK. (https://questionpy.org)
 #  The QuestionPy SDK is free software released under terms of the MIT license. See LICENSE.md.
 #  (c) Technische Universität Berlin, innoCampus <info@isis.tu-berlin.de>
+
+from http.client import UNPROCESSABLE_ENTITY
 from typing import TYPE_CHECKING, Never
 
 import aiohttp_jinja2
 from aiohttp import web
 
+from questionpy import OptionsFormValidationError
 from questionpy_common.environment import RequestUser
 from questionpy_sdk.webserver._form_data import get_nested_form_data, parse_form_data
 from questionpy_sdk.webserver.app import SDK_WEBSERVER_APP_KEY, StateFilename, WebServer
@@ -50,13 +53,17 @@ async def submit_form(request: web.Request) -> web.Response:
     """Stores the form_data from the Options Form in the StateStorage."""
     webserver = request.app[SDK_WEBSERVER_APP_KEY]
     form_data = parse_form_data(await request.json())
-    await _save_updated_form_data(form_data, webserver)
+
+    try:
+        await _save_updated_form_data(form_data, webserver)
+    except OptionsFormValidationError as err:
+        return web.json_response(err.errors, status=UNPROCESSABLE_ENTITY)
 
     return web.Response()
 
 
 @routes.post("/repeat")
-async def repeat_element(request: web.Request) -> Never:
+async def repeat_element(request: web.Request) -> web.Response:
     """Adds Repetitions to the referenced RepetitionElement and store the form_data in the StateStorage."""
     webserver = request.app[SDK_WEBSERVER_APP_KEY]
     data = await request.json()
@@ -65,12 +72,16 @@ async def repeat_element(request: web.Request) -> Never:
     if isinstance(repetition_list, list) and "increment" in data:
         repetition_list.extend([repetition_list[-1]] * int(data["increment"]))
 
-    await _save_updated_form_data(question_form_data, webserver)
+    try:
+        await _save_updated_form_data(question_form_data, webserver)
+    except OptionsFormValidationError as err:
+        return web.json_response(err.errors, status=UNPROCESSABLE_ENTITY)
+
     raise web.HTTPFound("/")  # noqa: EM101
 
 
 @routes.post("/options/remove-repetition")
-async def remove_element(request: web.Request) -> Never:
+async def remove_element(request: web.Request) -> web.Response:
     webserver = request.app[SDK_WEBSERVER_APP_KEY]
     data = await request.json()
     question_form_data = parse_form_data(data["form_data"])
@@ -78,7 +89,11 @@ async def remove_element(request: web.Request) -> Never:
     if isinstance(repetition_list, list) and "index" in data:
         del repetition_list[int(data["index"])]
 
-    await _save_updated_form_data(question_form_data, webserver)
+    try:
+        await _save_updated_form_data(question_form_data, webserver)
+    except OptionsFormValidationError as err:
+        return web.json_response(err.errors, status=UNPROCESSABLE_ENTITY)
+
     raise web.HTTPFound("/")  # noqa: EM101
 
 

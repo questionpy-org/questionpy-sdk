@@ -28,7 +28,7 @@ python = "^3.11"
 aiohttp = "^3.9.3"
 pydantic = "^2.6.4"
 PyYAML = "^6.0.1"
-questionpy-server = { git = "https://github.com/questionpy-org/questionpy-server.git", rev = "8635a2ed685dbffce4564562a79effaba1751873" }
+questionpy-server = { git = "https://github.com/questionpy-org/questionpy-server.git", rev = "527e02e97c9b8c8c237cd83cb520ad7c2fc8b3a5" }
 jinja2 = "^3.1.3"
 aiohttp-jinja2 = "^1.6"
 lxml = "~5.1.0"
@@ -48,7 +48,7 @@ selenium = "^4.19.0"
 lxml-stubs = "^0.5.1"
 
 [tool.poetry.group.linter]
-dependencies = { ruff = "^0.3.5" }
+dependencies = { ruff = "^0.6.3" }
 optional = true
 
 [tool.poetry.group.type-checker]
@@ -60,6 +60,10 @@ extend = "ruff_defaults.toml"
 
 [tool.ruff.lint.pep8-naming]
 extend-ignore-names = ["mcs", "test_*"]
+
+[tool.ruff.lint.extend-per-file-ignores]
+# Allow f-string without an `f` prefix for our custom error formatter.
+"**/questionpy_sdk/webserver/question_ui/errors.py" = ["RUF027"]
 
 [tool.ruff.lint.pylint]
 allow-dunder-method-names = ["__get_pydantic_core_schema__"]
