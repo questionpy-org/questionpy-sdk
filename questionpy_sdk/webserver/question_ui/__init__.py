@@ -437,7 +437,7 @@ class QuestionUIRenderer:
             child_elements = [child for child in element if isinstance(child, etree._Element)]
             self._random.shuffle(child_elements)
 
-            element.attrib.pop("{%s}shuffle-contents" % self.QPY_NAMESPACE)
+            element.attrib.pop(f"{{{self.QPY_NAMESPACE}}}shuffle-contents")
 
             # Reinsert shuffled elements, preserving non-element nodes
             for i, child in enumerate(child_elements):

@@ -122,10 +122,9 @@ class InvalidAttributeValueError(RenderElementError):
             template_kwargs["expected"] = expected
             expected_str = " Expected values are {expected}."
 
-        s = "" if isinstance(value, str) or len(value) <= 1 else ""
         super().__init__(
             element=element,
-            template=f"Invalid value{s} {{value}} for attribute {{attribute}} on element {{element}}.{expected_str}",
+            template=f"Invalid value {{value}} for attribute {{attribute}} on element {{element}}.{expected_str}",
             template_kwargs=template_kwargs,
         )
 

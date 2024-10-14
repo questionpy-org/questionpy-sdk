@@ -116,10 +116,10 @@ class PackageBuilderBase(AbstractContextManager):
 
     def _run_hook(self, cmd: str, hook_name: BuildHookName, num: int) -> None:
         log.info("Running %s hook[%d]: '%s'", hook_name, num, cmd)
-        with subprocess.Popen(
+        with subprocess.Popen(  # noqa: S602
             cmd,
             cwd=self._source.path,
-            shell=True,  # noqa: S602
+            shell=True,
             stdout=subprocess.PIPE,
             stderr=subprocess.STDOUT,
             text=True,

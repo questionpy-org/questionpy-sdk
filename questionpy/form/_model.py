@@ -125,7 +125,7 @@ class _FormModelMeta(ModelMetaclass):
 
     __slots__ = ()
 
-    def __new__(mcs, name: str, bases: tuple[type, ...], namespace: dict, **kwargs: Any) -> type:  # noqa: N804
+    def __new__(mcs, name: str, bases: tuple[type, ...], namespace: dict, **kwargs: Any) -> type:
         annotations = namespace.get("__annotations__", {}).copy()
         new_namespace = {}
         form = OptionsFormDefinition()
