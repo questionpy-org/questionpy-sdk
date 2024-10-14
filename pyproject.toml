@@ -64,6 +64,8 @@ extend-ignore-names = ["mcs", "test_*"]
 [tool.ruff.lint.extend-per-file-ignores]
 # Allow f-string without an `f` prefix for our custom error formatter.
 "**/questionpy_sdk/webserver/question_ui/errors.py" = ["RUF027"]
+# unused-async (aiohttp handlers must be async even if they don't use it)
+"**/questionpy_sdk/webserver/routes/*" = ["RUF029"]
 
 [tool.ruff.lint.pylint]
 allow-dunder-method-names = ["__get_pydantic_core_schema__"]
