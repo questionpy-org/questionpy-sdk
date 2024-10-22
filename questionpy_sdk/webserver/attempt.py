@@ -66,15 +66,18 @@ def get_attempt_render_context(
     if display_options.general_feedback and attempt.ui.general_feedback:
         html, errors = QuestionUIRenderer(attempt.ui.general_feedback, *renderer_args).render()
         context["general_feedback"] = html
-        context["render_errors"]["General Feedback"] = errors
+        if errors:
+            context["render_errors"]["General Feedback"] = errors
     if display_options.feedback and attempt.ui.specific_feedback:
         html, errors = QuestionUIRenderer(attempt.ui.specific_feedback, *renderer_args).render()
         context["specific_feedback"] = html
-        context["render_errors"]["Specific Feedback"] = errors
+        if errors:
+            context["render_errors"]["Specific Feedback"] = errors
     if display_options.right_answer and attempt.ui.right_answer:
         html, errors = QuestionUIRenderer(attempt.ui.right_answer, *renderer_args).render()
         context["right_answer"] = html
-        context["render_errors"]["Right Answer"] = errors
+        if errors:
+            context["render_errors"]["Right Answer"] = errors
 
     log_render_errors(context["render_errors"])
 
