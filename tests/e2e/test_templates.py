@@ -1,8 +1,6 @@
 #  This file is part of the QuestionPy SDK. (https://questionpy.org)
 #  The QuestionPy SDK is free software released under terms of the MIT license. See LICENSE.md.
 #  (c) Technische Universität Berlin, innoCampus <info@isis.tu-berlin.de>
-from collections.abc import Callable
-from typing import Any, TypeVar, cast
 
 import pytest
 from selenium import webdriver
@@ -10,23 +8,12 @@ from selenium.webdriver.common.by import By
 from selenium.webdriver.support import expected_conditions
 from selenium.webdriver.support.wait import WebDriverWait
 
-from questionpy import Attempt, NeedsManualScoringError, Package, Question, QuestionTypeWrapper
+from questionpy import Package, QuestionTypeWrapper
 from questionpy.form import FormModel, checkbox, repeat
 from questionpy_common.api.qtype import QuestionTypeInterface
-from questionpy_common.environment import PackageInitFunction
 from questionpy_common.manifest import Manifest
-from questionpy_server.worker.runtime.package_location import FunctionPackageLocation
 
-
-class _NoopAttempt(Attempt):
-    def _compute_score(self) -> float:
-        raise NeedsManualScoringError
-
-    formulation = ""
-
-
-class _NoopQuestion(Question):
-    attempt_class = _NoopAttempt
+from .conftest import _NoopQuestion, use_package
 
 
 def package_1_init(package: Package) -> QuestionTypeInterface:
@@ -60,17 +47,6 @@ def package_3_init(package: Package) -> QuestionTypeInterface:
         options: Package3Form
 
     return QuestionTypeWrapper(Package3Question, package)
-
-
-_C = TypeVar("_C", bound=Callable)
-
-
-def use_package(init_fun: PackageInitFunction, manifest: Manifest | None = None) -> Callable[[_C], _C]:
-    def decorator(wrapped: _C) -> _C:
-        cast(Any, wrapped).qpy_package_location = FunctionPackageLocation.from_function(init_fun, manifest)
-        return wrapped
-
-    return decorator
 
 
 @pytest.mark.usefixtures("_start_runner_thread")
