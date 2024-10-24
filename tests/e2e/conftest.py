@@ -4,13 +4,18 @@
 
 import asyncio
 import threading
-from collections.abc import Iterator
+from collections.abc import Callable, Iterator
 from pathlib import Path
+from typing import Any, TypeVar, cast
 
 import pytest
 from selenium import webdriver
 
+from questionpy import Attempt, NeedsManualScoringError, Question
+from questionpy_common.environment import PackageInitFunction
+from questionpy_common.manifest import Manifest
 from questionpy_sdk.webserver.app import WebServer
+from questionpy_server.worker.runtime.package_location import FunctionPackageLocation
 
 
 @pytest.fixture
@@ -41,3 +46,25 @@ def _start_runner_thread(sdk_web_server: WebServer) -> None:
     app_thread = threading.Thread(target=start_runner, args=(sdk_web_server,))
     app_thread.daemon = True  # Set the thread as a daemon to automatically stop when main thread exits
     app_thread.start()
+
+
+_C = TypeVar("_C", bound=Callable)
+
+
+def use_package(init_fun: PackageInitFunction, manifest: Manifest | None = None) -> Callable[[_C], _C]:
+    def decorator(wrapped: _C) -> _C:
+        cast(Any, wrapped).qpy_package_location = FunctionPackageLocation.from_function(init_fun, manifest)
+        return wrapped
+
+    return decorator
+
+
+class _NoopAttempt(Attempt):
+    def _compute_score(self) -> float:
+        raise NeedsManualScoringError
+
+    formulation = ""
+
+
+class _NoopQuestion(Question):
+    attempt_class = _NoopAttempt

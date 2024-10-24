@@ -10,12 +10,10 @@ from typing import TYPE_CHECKING, Any, ClassVar, Literal, get_args, get_origin
 
 from pydantic import BaseModel, Field
 from pydantic._internal._model_construction import ModelMetaclass  # noqa: PLC2701
+from pydantic.fields import FieldInfo
 from pydantic_core import CoreSchema, core_schema
 
 from questionpy_common.elements import FormElement, FormSection, OptionsFormDefinition
-
-if TYPE_CHECKING:
-    from pydantic.fields import FieldInfo
 
 
 @dataclass
@@ -67,15 +65,13 @@ class OptionEnum(Enum):
 
 @dataclass
 class _FieldInfo:
+    type: object
+    """The type of the field."""
     build: Callable[[str], FormElement]
     """We want to use the name of the model field as the name of the form element, but that isn't known when the dsl
     functions are called. So they provide a callable instead that takes the name and returns the complete form element.
     """
-    type: object
-    """The type of the field."""
-    default: object = ...
-    """The default value of the field, with `...` meaning no default."""
-    default_factory: Callable[[], object] | None = None
+    pydantic_field_info: FieldInfo | None = None
 
 
 @dataclass
@@ -127,21 +123,19 @@ class _FormModelMeta(ModelMetaclass):
 
     def __new__(mcs, name: str, bases: tuple[type, ...], namespace: dict, **kwargs: Any) -> type:
         annotations = namespace.get("__annotations__", {}).copy()
-        new_namespace = {}
+        new_namespace: dict[str, Any] = {}
         form = OptionsFormDefinition()
 
         for key, value in namespace.items():
             if isinstance(value, _FieldInfo):
                 expected_type = value.type
                 form.general.append(value.build(key))
-                new_namespace[key] = Field()
-                if value.default is not ...:
-                    new_namespace[key].default = value.default
-                elif value.default_factory:
-                    new_namespace[key].default_factory = value.default_factory
+                if value.pydantic_field_info is not None:
+                    new_namespace[key] = value.pydantic_field_info
             elif isinstance(value, _SectionInfo):
                 form.sections.append(FormSection(name=key, header=value.header, elements=value.model.qpy_form.general))
                 expected_type = value.model
+                new_namespace[key] = Field(default={}, validate_default=True)
             elif isinstance(value, _StaticElementInfo):
                 element = value.build(key)
                 form.general.append(element)
