@@ -56,6 +56,9 @@ class StateFilename(StrEnum):
 
 
 DEFAULT_STATE_STORAGE_PATH = Path(__file__).parent / "question_state_storage"
+DEFAULT_STATE_STORAGE_PATH = Path(__file__).parent / "question_state_storage"
+LEN_AF_INET = 2
+LEN_AF_INET6 = 4
 
 
 class WebServer:
@@ -84,6 +87,7 @@ class WebServer:
         self._runner = web.AppRunner(self._web_app)
         await self._runner.setup()
         await web.TCPSite(self._runner, self._host, self._port).start()
+        self._print_urls()
 
     async def stop_server(self) -> None:
         if self._runner:
@@ -142,6 +146,25 @@ class WebServer:
 
         manifest = self._web_app[MANIFEST_APP_KEY]
         return self._state_storage_root / f"{manifest.namespace}-{manifest.short_name}-{manifest.version}"
+
+    def _print_urls(self) -> None:
+        if self._runner is None:
+            msg = "Web app is not running"
+            raise RuntimeError(msg)
+
+        urls = []
+        for addr in self._runner.addresses:
+            # IPv4 (e.g., ('192.168.0.1', 8080))
+            if len(addr) == LEN_AF_INET:
+                urls.append(f"http://{addr[0]}:{addr[1]}")
+            # IPv6 (e.g., ('::1', 8080, 0, 0))
+            elif len(addr) == LEN_AF_INET6:
+                urls.append(f"http://[{addr[0]}]:{addr[1]}")
+            else:
+                msg = f"Unknown address format: {addr}"
+                raise ValueError(msg)
+
+        log.info("Webserver started: %s", " ".join(urls))
 
 
 SDK_WEBSERVER_APP_KEY = web.AppKey("sdk_webserver_app", WebServer)
