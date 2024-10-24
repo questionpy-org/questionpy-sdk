@@ -35,7 +35,7 @@ async def run_watcher(
     help="State storage path to use.",
 )
 @click.option(
-    "--host", "-h", "host", default="localhost", show_default=True, type=click.STRING, help="Host to listen on."
+    "--host", "-H", "host", default="localhost", show_default=True, type=click.STRING, help="Host to listen on."
 )
 @click.option(
     "--port", "-p", "port", default=8080, show_default=True, type=click.IntRange(1024, 65535), help="Port to bind to."
