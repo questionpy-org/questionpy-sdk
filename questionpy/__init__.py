@@ -11,6 +11,7 @@ from questionpy_common.api.attempt import (
     AttemptUi,
     CacheControl,
     ClassifiedResponse,
+    JsModuleCallRoleFeedback,
     ScoreModel,
     ScoringCode,
 )
@@ -63,6 +64,7 @@ __all__ = [
     "ClassifiedResponse",
     "Environment",
     "InvalidResponseError",
+    "JsModuleCallRoleFeedback",
     "Manifest",
     "NeedsManualScoringError",
     "NoEnvironmentError",

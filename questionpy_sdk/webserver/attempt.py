@@ -3,7 +3,14 @@
 #  (c) Technische Universität Berlin, innoCampus <info@isis.tu-berlin.de>
 from typing import Literal, TypedDict
 
-from questionpy_common.api.attempt import AttemptModel, AttemptScoredModel, AttemptStartedModel
+from questionpy_common.api.attempt import (
+    AttemptModel,
+    AttemptScoredModel,
+    AttemptStartedModel,
+    JsModuleCall,
+    JsModuleCallRoleFeedback,
+)
+from questionpy_common.manifest import Manifest
 from questionpy_sdk.webserver.question_ui import (
     QuestionDisplayOptions,
     QuestionFormulationUIRenderer,
@@ -15,6 +22,7 @@ from questionpy_sdk.webserver.question_ui.errors import RenderErrorCollections, 
 class _AttemptRenderContext(TypedDict):
     attempt_status: Literal["Started", "In progress", "Scored"]
 
+    manifest: Manifest
     attempt: AttemptModel
     attempt_state: str
 
@@ -26,10 +34,39 @@ class _AttemptRenderContext(TypedDict):
     specific_feedback: str | None
     right_answer: str | None
 
+    javascript_calls: list[JsModuleCall]
+
     render_errors: RenderErrorCollections
 
 
+def filter_js_calls_by_role_feedback(
+    calls: list[JsModuleCall], display_options: QuestionDisplayOptions
+) -> list[JsModuleCall]:
+    def role_feedback_allowed(call: JsModuleCall) -> bool:
+        match call.if_role_feedback:
+            case None:
+                return True
+            case (
+                JsModuleCallRoleFeedback.TEACHER
+                | JsModuleCallRoleFeedback.DEVELOPER
+                | JsModuleCallRoleFeedback.SCORER
+                | JsModuleCallRoleFeedback.PROCTOR
+            ):
+                return call.if_role_feedback in display_options.roles
+            case JsModuleCallRoleFeedback.GENERAL_FEEDBACK:
+                return display_options.general_feedback
+            case JsModuleCallRoleFeedback.SPECIFIC_FEEDBACK:
+                return display_options.specific_feedback
+            case JsModuleCallRoleFeedback.RIGHT_ANSWER:
+                return display_options.right_answer
+
+        return False
+
+    return list(filter(role_feedback_allowed, calls))
+
+
 def get_attempt_render_context(
+    manifest: Manifest,
     attempt: AttemptModel,
     attempt_state: str,
     *,
@@ -55,6 +92,8 @@ def get_attempt_render_context(
         "form_disabled": disabled,
         "formulation": html,
         "attempt": attempt,
+        "manifest": manifest,
+        "javascript_calls": filter_js_calls_by_role_feedback(attempt.ui.javascript_calls, display_options),
         "general_feedback": None,
         "specific_feedback": None,
         "right_answer": None,

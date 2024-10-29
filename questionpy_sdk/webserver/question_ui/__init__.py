@@ -4,7 +4,6 @@
 from __future__ import annotations
 
 import re
-from enum import StrEnum
 from random import Random
 from typing import Any
 
@@ -13,6 +12,7 @@ import lxml.html.clean
 from lxml import etree
 from pydantic import BaseModel
 
+from questionpy_common.api.attempt import QuestionDisplayRole
 from questionpy_sdk.webserver.question_ui.errors import (
     ConversionError,
     InvalidAttributeValueError,
@@ -163,13 +163,6 @@ class QuestionMetadata:
         self.correct_response: dict[str, str] = {}
         self.expected_data: dict[str, str] = {}
         self.required_fields: list[str] = []
-
-
-class QuestionDisplayRole(StrEnum):
-    DEVELOPER = "DEVELOPER"
-    PROCTOR = "PROCTOR"
-    SCORER = "SCORER"
-    TEACHER = "TEACHER"
 
 
 class QuestionDisplayOptions(BaseModel):

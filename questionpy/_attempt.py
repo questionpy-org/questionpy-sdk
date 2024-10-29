@@ -1,12 +1,21 @@
+import json
 from abc import ABC, abstractmethod
-from collections.abc import Mapping, Sequence
+from collections.abc import Iterable, Mapping, Sequence
 from functools import cached_property
 from typing import TYPE_CHECKING, ClassVar, Protocol
 
 import jinja2
 from pydantic import BaseModel, JsonValue
 
-from questionpy_common.api.attempt import AttemptFile, AttemptUi, CacheControl, ScoredInputModel, ScoringCode
+from questionpy_common.api.attempt import (
+    AttemptFile,
+    AttemptUi,
+    CacheControl,
+    JsModuleCall,
+    JsModuleCallRoleFeedback,
+    ScoredInputModel,
+    ScoringCode,
+)
 
 from ._ui import create_jinja2_environment
 from ._util import get_mro_type_hint
@@ -73,6 +82,10 @@ class AttemptProtocol(Protocol):
 
     @property
     def css_files(self) -> list[str]:
+        pass
+
+    @property
+    def javascript_calls(self) -> Iterable[JsModuleCall]:
         pass
 
     @property
@@ -156,6 +169,10 @@ class Attempt(ABC):
         self.cache_control = CacheControl.PRIVATE_CACHE
         self.placeholders: dict[str, str] = {}
         self.css_files: list[str] = []
+        self._javascript_calls: dict[JsModuleCall, None] = {}
+        """LMS has to call these JS modules/functions. A dict is used as a set to avoid duplicates and to preserve
+        the insertion order."""
+
         self.files: dict[str, AttemptFile] = {}
 
         self.scoring_code: ScoringCode | None = None
@@ -186,6 +203,11 @@ class Attempt(ABC):
         Note that when rescoring an attempt, the previous scoring information is not filled in and this field should
         only be viewed as an output.
         """
+
+        self._init_attempt()
+
+    def _init_attempt(self) -> None:  # noqa: B027
+        """A place for the question to initialize the attempt (set up fields, JavaScript calls, etc.)."""
 
     @property
     @abstractmethod
@@ -242,6 +264,33 @@ class Attempt(ABC):
     @property
     def variant(self) -> int:
         return self.attempt_state.variant
+
+    def call_js(
+        self,
+        module: str,
+        function: str,
+        data: JsonValue = None,
+        if_role_feedback: JsModuleCallRoleFeedback | None = None,
+    ) -> None:
+        """Call a javascript function when the LMS displays this question attempt.
+
+        Args:
+            module: JS module name specified as:
+                @[package namespace]/[package short name]/[subdir]/[module name] (full reference) or
+                TODO [subdir]/[module name] (referencing a module within the package where this class is subclassed) or
+                TODO attempt/[module name] (referencing a dynamically created module returned as an attempt file)
+            function: Name of a callable value within the JS module
+            data: arbitrary data to pass to the function
+            if_role_feedback: Function is only called if the user has this role or is allowed to view this
+                feedback type. If None, the function is always called.
+        """
+        data_json = "" if data is None else json.dumps(data)
+        call = JsModuleCall(module=module, function=function, data=data_json, if_role_feedback=if_role_feedback)
+        self._javascript_calls[call] = None
+
+    @property
+    def javascript_calls(self) -> Iterable[JsModuleCall]:
+        return self._javascript_calls.keys()
 
     def __init_subclass__(cls, *args: object, **kwargs: object):
         super().__init_subclass__(*args, **kwargs)

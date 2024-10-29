@@ -12,7 +12,7 @@ from pydantic import TypeAdapter
 
 from questionpy_common.api.attempt import AttemptScoredModel, ScoreModel
 from questionpy_common.environment import RequestUser
-from questionpy_sdk.webserver.app import SDK_WEBSERVER_APP_KEY, StateFilename
+from questionpy_sdk.webserver.app import MANIFEST_APP_KEY, SDK_WEBSERVER_APP_KEY, StateFilename
 from questionpy_sdk.webserver.attempt import get_attempt_render_context
 from questionpy_sdk.webserver.question_ui import QuestionDisplayOptions
 
@@ -83,6 +83,7 @@ async def get_attempt(request: web.Request) -> web.Response:
         display_options.general_feedback = display_options.specific_feedback = display_options.right_answer = False
 
     context = get_attempt_render_context(
+        request.app[MANIFEST_APP_KEY],
         attempt,
         attempt_state,
         last_attempt_data=last_attempt_data,

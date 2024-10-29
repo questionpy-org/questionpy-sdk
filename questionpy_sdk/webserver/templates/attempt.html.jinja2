@@ -4,6 +4,10 @@
 {% block head %}
     {{ super() }}
     <script type="module" src="static/script.js"></script>
+    <script src="static/attempt.js"></script>
+    <script src="https://cdnjs.cloudflare.com/ajax/libs/require.js/2.3.7/require.js"
+        integrity="sha512-H/RK9lhgLZE7IvypfHj5iUX0fnbaz5gA8y81NQ8F6azabccQuFAVeQdvOYDeAvAsl/WZTOGphkwhhlpCJi157A=="
+        crossorigin="anonymous" referrerpolicy="no-referrer"></script>
 {% endblock %}
 {% block title %}Question Preview{%  endblock %}
 {% block header %}
@@ -151,4 +155,30 @@
     {# TODO: Role selection (admin, teacher, student, ...) #}
     {# TODO: Locale selection #}
 
+    <script>
+        const attempt = new Attempt(
+            document.getElementById("question-preview"),
+            document.getElementById("container-general-feedback"),
+            document.getElementById("container-specific-feedback"),
+            document.getElementById("container-right-answer")
+        );
+        reqAttempt = require.config({
+            baseUrl: "/",
+            paths: {
+                "@{{ manifest.namespace }}/{{ manifest.short_name }}":
+                    "/worker/{{ manifest.namespace }}/{{ manifest.short_name }}/file/static/js",
+            }
+        });
+
+        {% for call in javascript_calls %}
+        reqAttempt(["{{ call.module }}"], function(module) {
+            module["{{ call.function }}"](
+                attempt,
+                {% if call.data %}
+                JSON.parse(htmlDecode("{{ call.data }}"))
+                {% endif %}
+            );
+        });
+        {% endfor %}
+    </script>
 {% endblock %}
