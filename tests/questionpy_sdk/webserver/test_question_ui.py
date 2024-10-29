@@ -109,7 +109,7 @@ def test_should_resolve_placeholders(renderer: QuestionUIRenderer) -> None:
 
 
 @pytest.mark.ui_file("feedbacks")
-@pytest.mark.render_params(options=QuestionDisplayOptions(general_feedback=False, feedback=False))
+@pytest.mark.render_params(options=QuestionDisplayOptions(general_feedback=False, specific_feedback=False))
 def test_should_hide_inline_feedback(renderer: QuestionUIRenderer) -> None:
     expected = """
         <div>

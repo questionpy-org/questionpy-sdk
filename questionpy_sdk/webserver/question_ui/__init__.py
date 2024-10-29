@@ -174,7 +174,7 @@ class QuestionDisplayRole(StrEnum):
 
 class QuestionDisplayOptions(BaseModel):
     general_feedback: bool = True
-    feedback: bool = True
+    specific_feedback: bool = True
     right_answer: bool = True
     roles: set[QuestionDisplayRole] = {
         QuestionDisplayRole.DEVELOPER,
@@ -323,7 +323,7 @@ class QuestionUIRenderer:
             # Check conditions to remove the element
             if not (
                 (feedback_type == "general" and self._options.general_feedback)
-                or (feedback_type == "specific" and self._options.feedback)
+                or (feedback_type == "specific" and self._options.specific_feedback)
             ):
                 _remove_element(element)
 
