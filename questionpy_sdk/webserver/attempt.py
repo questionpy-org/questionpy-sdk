@@ -68,7 +68,7 @@ def get_attempt_render_context(
         context["general_feedback"] = html
         if errors:
             context["render_errors"]["General Feedback"] = errors
-    if display_options.feedback and attempt.ui.specific_feedback:
+    if display_options.specific_feedback and attempt.ui.specific_feedback:
         html, errors = QuestionUIRenderer(attempt.ui.specific_feedback, *renderer_args).render()
         context["specific_feedback"] = html
         if errors:

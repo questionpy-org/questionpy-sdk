@@ -80,7 +80,7 @@ async def get_attempt(request: web.Request) -> web.Response:
     if not score:
         # TODO: Allow manually set display options to override this.
         display_options.readonly = False
-        display_options.general_feedback = display_options.feedback = display_options.right_answer = False
+        display_options.general_feedback = display_options.specific_feedback = display_options.right_answer = False
 
     context = get_attempt_render_context(
         attempt,
