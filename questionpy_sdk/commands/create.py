@@ -54,9 +54,11 @@ def create(short_name: str, namespace: str, out_path: Path | None) -> None:
     # Rename template name.
     with FileInput(short_name_folder / "question_type.py", inplace=True) as file:
         for line in file:
-            if file.filelineno() == 20:
-                line = line.replace("local.minimal_example", f"{namespace}.{short_name}", 1)
-            print(line, end="")
+            if file.filelineno() == 20:  # noqa: PLR2004
+                new_line = line.replace("local.minimal_example", f"{namespace}.{short_name}", 1)
+            else:
+                new_line = line
+            print(new_line, end="")  # noqa: T201
 
     config_path = out_path / PACKAGE_CONFIG_FILENAME
 
