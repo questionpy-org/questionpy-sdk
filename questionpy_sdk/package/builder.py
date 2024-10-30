@@ -249,6 +249,9 @@ class ZipPackageBuilder(PackageBuilderBase):
                 zipinfo = zipfile.ZipInfo(strpath, date_time=datetime.datetime.now(tz).timetuple()[:6])
                 zipinfo.compress_type = self.COMPRESS_TYPE
                 zipinfo.CRC = 0  # TODO: remove once bug is resolved (https://github.com/python/cpython/issues/119052)
+                # There is a great summary of the external attributes field here: https://unix.stackexchange.com/a/14727
+                zipinfo.external_attr = 0o40755 << 16  # Unix mode drwxr-xr-x
+                zipinfo.external_attr |= 0b10000  # DOS directory attribute
                 self._zipfile.mkdir(zipinfo)
 
     def __exit__(
