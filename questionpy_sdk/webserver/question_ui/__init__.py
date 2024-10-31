@@ -6,7 +6,7 @@ from __future__ import annotations
 import re
 from enum import StrEnum
 from random import Random
-from typing import Any
+from typing import TYPE_CHECKING, Any, TypeVar
 
 import lxml.html
 import lxml.html.clean
@@ -22,6 +22,13 @@ from questionpy_sdk.webserver.question_ui.errors import (
     UnknownElementError,
     XMLSyntaxError,
 )
+
+if TYPE_CHECKING:
+    from collections.abc import Callable
+
+
+_XHTML_NAMESPACE: str = "http://www.w3.org/1999/xhtml"
+_QPY_NAMESPACE: str = "http://questionpy.org/ns/question"
 
 
 def _assert_element_list(query: Any) -> list[etree._Element]:
@@ -73,9 +80,9 @@ def _set_element_value(element: etree._Element, value: str, name: str, xpath: et
         element.set("value", value)
 
 
-def _replace_shuffled_indices(element: etree._Element, index: int, error_collection: RenderErrorCollection) -> None:
+def _replace_shuffled_indices(element: etree._Element, index: int) -> None:
     for index_element in _assert_element_list(
-        element.xpath(".//qpy:shuffled-index", namespaces={"qpy": QuestionUIRenderer.QPY_NAMESPACE})
+        element.xpath(".//qpy:shuffled-index", namespaces={"qpy": _QPY_NAMESPACE})
     ):
         format_style = index_element.get("format", "123")
 
@@ -90,9 +97,7 @@ def _replace_shuffled_indices(element: etree._Element, index: int, error_collect
         elif format_style == "III":
             index_str = _int_to_roman(index).upper()
         else:
-            error_collection.insert(InvalidAttributeValueError(index_element, "format", format_style))
-            _remove_preserving_tail(index_element)
-            continue
+            index_str = str(index)
 
         # Replace the index element with the new index string
         new_text_node = etree.Element("span")  # Using span to replace the custom element
@@ -104,6 +109,20 @@ def _replace_shuffled_indices(element: etree._Element, index: int, error_collect
         parent = index_element.getparent()
         if parent is not None:
             parent.replace(index_element, new_text_node)
+
+
+_T = TypeVar("_T", bound=int | float)
+
+
+def _convert(string: str, to: Callable[[str | int], _T]) -> _T:
+    """Converts a string safely into a numeric value.
+
+    Returns the numeric value or 0 if the conversion is not possible.
+    """
+    try:
+        return to(string)
+    except ValueError:
+        return to(0)
 
 
 def _int_to_letter(index: int) -> str:
@@ -188,9 +207,6 @@ class QuestionDisplayOptions(BaseModel):
 class QuestionUIRenderer:
     """General renderer for the question UI except for the formulation part."""
 
-    XHTML_NAMESPACE: str = "http://www.w3.org/1999/xhtml"
-    QPY_NAMESPACE: str = "http://questionpy.org/ns/question"
-
     def __init__(
         self,
         xml: str,
@@ -199,25 +215,25 @@ class QuestionUIRenderer:
         seed: int | None = None,
         attempt: dict | None = None,
     ) -> None:
+        self._html: str | None = None
+
         xml = self._replace_qpy_urls(xml)
-        self._errors = RenderErrorCollection()
+        self._error_collector = _RenderErrorCollector(xml, placeholders)
 
         try:
             root = etree.fromstring(xml)
-        except etree.XMLSyntaxError as error:
+        except etree.XMLSyntaxError:
             parser = etree.XMLParser(recover=True)
             root = etree.fromstring(xml, parser=parser)
-            self._errors.insert(XMLSyntaxError(error=error))
 
         self._xml = etree.ElementTree(root)
         self._xpath = etree.XPathDocumentEvaluator(self._xml)
-        self._xpath.register_namespace("xhtml", self.XHTML_NAMESPACE)
-        self._xpath.register_namespace("qpy", self.QPY_NAMESPACE)
+        self._xpath.register_namespace("xhtml", _XHTML_NAMESPACE)
+        self._xpath.register_namespace("qpy", _QPY_NAMESPACE)
         self._placeholders = placeholders
         self._options = options
         self._random = Random(seed)
         self._attempt = attempt
-        self._html: str | None = None
 
     def render(self) -> tuple[str, RenderErrorCollection]:
         """Applies transformations to the xml.
@@ -239,61 +255,37 @@ class QuestionUIRenderer:
             self._clean_up()
 
             self._html = etree.tostring(self._xml, pretty_print=True, method="html").decode()
+            self._error_collector.collect()
 
-        return self._html, self._errors
+        return self._html, self._error_collector.errors
 
     def _replace_qpy_urls(self, xml: str) -> str:
         """Replace QPY-URLs to package files with SDK-URLs."""
         return re.sub(r"qpy://(static|static-private)/((?:[a-z_][a-z0-9_]{0,126}/){2})", r"/worker/\2file/\1/", xml)
 
-    def _validate_placeholder(self, p_instruction: etree._Element) -> tuple[str, str] | None:
-        """Collects potential render errors for the placeholder PIs.
-
-        Returns:
-            If no error occurred, a tuple consisting of the placeholder key and the cleaning option.
-            value. Else, None.
-        """
-        parsing_error = False
-        if not p_instruction.text:
-            reference_error = PlaceholderReferenceError(
-                element=p_instruction, placeholder=None, available=self._placeholders
-            )
-            self._errors.insert(reference_error)
-            return None
-
-        parts = p_instruction.text.strip().split(maxsplit=1)
-        key = parts[0]
-        clean_option = parts[1].lower() if len(parts) == 2 else "clean"  # noqa: PLR2004
-        expected = ("plain", "clean", "noclean")
-        if clean_option not in expected:
-            option_error = InvalidCleanOptionError(element=p_instruction, option=clean_option, expected=expected)
-            self._errors.insert(option_error)
-            parsing_error = True
-
-        if key not in self._placeholders:
-            reference_error = PlaceholderReferenceError(
-                element=p_instruction, placeholder=key, available=self._placeholders
-            )
-            self._errors.insert(reference_error)
-            parsing_error = True
-
-        if parsing_error:
-            return None
-        return key, clean_option
-
     def _resolve_placeholders(self) -> None:
         """Replace placeholder PIs such as `<?p my_key plain?>` with the appropriate value from `self.placeholders`.
+
+        TODD: remove comment or change call-order
 
         Since QPy transformations should not be applied to the content of the placeholders, this method should be called
         last.
         """
         for p_instruction in _assert_element_list(self._xpath("//processing-instruction('p')")):
-            data = self._validate_placeholder(p_instruction)
-            if data is None:
-                _remove_element(p_instruction)
+            if not p_instruction.text:
+                continue
+            parts = p_instruction.text.strip().split()
+            key = parts[0]
+            clean_option = parts[1].lower() if len(parts) > 1 else "clean"
+
+            parent = p_instruction.getparent()
+            if parent is None:
                 continue
 
-            key, clean_option = data
+            if key not in self._placeholders:
+                parent.remove(p_instruction)
+                continue
+
             raw_value = self._placeholders[key]
 
             if clean_option == "plain":
@@ -318,7 +310,7 @@ class QuestionUIRenderer:
     def _hide_unwanted_feedback(self) -> None:
         """Hides elements marked with `qpy:feedback` if the type of feedback is disabled in `options`."""
         for element in _assert_element_list(self._xpath("//*[@qpy:feedback]")):
-            feedback_type = element.get(f"{{{self.QPY_NAMESPACE}}}feedback")
+            feedback_type = element.get(f"{{{_QPY_NAMESPACE}}}feedback")
 
             # Check conditions to remove the element
             if not (
@@ -327,33 +319,14 @@ class QuestionUIRenderer:
             ):
                 _remove_element(element)
 
-            expected = ("general", "specific")
-            if feedback_type not in expected:
-                error = InvalidAttributeValueError(
-                    element=element, attribute="qpy:feedback", value=feedback_type or "", expected=expected
-                )
-                self._errors.insert(error)
-
     def _hide_if_role(self) -> None:
         """Hides elements based on user role.
 
         Removes elements with `qpy:if-role` attributes if the user matches none of the roles.
         """
         for element in _assert_element_list(self._xpath("//*[@qpy:if-role]")):
-            if attr := element.get(f"{{{self.QPY_NAMESPACE}}}if-role"):
+            if attr := element.get(f"{{{_QPY_NAMESPACE}}}if-role"):
                 allowed_roles = [role.upper() for role in re.split(r"[\s|]+", attr)]
-                expected = list(QuestionDisplayRole)
-                if unexpected := [role for role in allowed_roles if role not in expected]:
-                    error = InvalidAttributeValueError(
-                        element=element,
-                        attribute="qpy:if-role",
-                        value=unexpected,
-                        expected=expected,
-                    )
-                    self._errors.insert(error)
-                    _remove_element(element)
-                    continue
-
                 has_role = any(role in allowed_roles and role in self._options.roles for role in QuestionDisplayRole)
 
                 if not has_role and (parent := element.getparent()) is not None:
@@ -437,24 +410,22 @@ class QuestionUIRenderer:
             child_elements = [child for child in element if isinstance(child, etree._Element)]
             self._random.shuffle(child_elements)
 
-            element.attrib.pop(f"{{{self.QPY_NAMESPACE}}}shuffle-contents")
+            element.attrib.pop(f"{{{_QPY_NAMESPACE}}}shuffle-contents")
 
             # Reinsert shuffled elements, preserving non-element nodes
             for i, child in enumerate(child_elements):
-                _replace_shuffled_indices(child, i + 1, self._errors)
+                _replace_shuffled_indices(child, i + 1)
                 # Move each child element back to its parent at the correct position
                 element.append(child)
 
     def _clean_up(self) -> None:
         """Removes remaining QuestionPy elements and attributes as well as comments and xmlns declarations."""
         for element in _assert_element_list(self._xpath("//qpy:*")):
-            error = UnknownElementError(element=element)
-            self._errors.insert(error)
             _remove_element(element)
 
         # Remove attributes in the QuestionPy namespace
         for element in _assert_element_list(self._xpath("//*")):
-            qpy_attributes = [attr for attr in element.attrib if attr.startswith(f"{{{self.QPY_NAMESPACE}}}")]  # type: ignore[arg-type]
+            qpy_attributes = [attr for attr in element.attrib if attr.startswith(f"{{{_QPY_NAMESPACE}}}")]  # type: ignore[arg-type]
             for attr in qpy_attributes:
                 del element.attrib[attr]
 
@@ -465,10 +436,10 @@ class QuestionUIRenderer:
         # Remove namespaces from all elements. (QPy elements should all have been consumed previously anyhow.)
         for element in _assert_element_list(self._xpath("//*")):
             qname = etree.QName(element)
-            if qname.namespace == self.XHTML_NAMESPACE:
+            if qname.namespace == _XHTML_NAMESPACE:
                 element.tag = qname.localname
 
-        etree.cleanup_namespaces(self._xml, top_nsmap={None: self.XHTML_NAMESPACE})  # type: ignore[dict-item]
+        etree.cleanup_namespaces(self._xml, top_nsmap={None: _XHTML_NAMESPACE})  # type: ignore[dict-item]
 
     def _add_class_names(self, element: etree._Element, *class_names: str) -> None:
         """Adds the given class names to the elements `class` attribute if not already present."""
@@ -503,63 +474,6 @@ class QuestionUIRenderer:
         for element in _assert_element_list(self._xpath("//xhtml:input[@type = 'checkbox' or @type = 'radio']")):
             self._add_class_names(element, "qpy-input")
 
-    def _validate_format_float_element(self, element: etree._Element) -> tuple[float, int | None, str] | None:
-        """Collects potential render errors for the `qpy:format-float` element.
-
-        Returns:
-            If no error occurred, a tuple consisting of the float value, the precision, and the thousands separator
-            value. Else, None.
-        """
-        parsing_error = False
-
-        if element.text is None:
-            # TODO: Show an error message?
-            return None
-
-        # As PHP parses floats and integers differently than Python, we enforce a stricter format.
-        # E.g. parsing '20_000' or '1d1'  results in:
-        # Python ->     20000       Error
-        # PHP    ->     20          1
-        if re.match(r"^\s*((\d+\.?\d*)|(\d*\.\d+)|(\d+e\d+))\s*$", element.text) is None:
-            float_error = ConversionError(element=element, value=element.text, to_type=float)
-            self._errors.insert(float_error)
-            parsing_error = True
-
-        precision_text: str | None = element.get("precision")
-        precision = None
-        if precision_text is not None:
-            if not precision_text or (precision_text[0] == "-" and precision_text[1:].isnumeric()):
-                # Empty or negative value.
-                precision_error = InvalidAttributeValueError(
-                    element=element, attribute="precision", value=precision_text
-                )
-                self._errors.insert(precision_error)
-                parsing_error = True
-            elif precision_text.isnumeric():
-                # We disallow the usage of underscores to separate numeric literals, see above for an explanation.
-                precision = int(precision_text)
-            else:
-                conversion_error = ConversionError(
-                    element=element, value=precision_text, to_type=int, attribute="precision"
-                )
-                self._errors.insert(conversion_error)
-                parsing_error = True
-        else:
-            precision = None
-
-        thousands_sep_attr = element.get("thousands-separator", "no")
-        expected = ("yes", "no")
-        if thousands_sep_attr not in expected:
-            thousands_sep_error = InvalidAttributeValueError(
-                element=element, attribute="thousands-separator", value=thousands_sep_attr, expected=expected
-            )
-            self._errors.insert(thousands_sep_error)
-            parsing_error = True
-
-        if parsing_error:
-            return None
-        return float(element.text), precision, thousands_sep_attr
-
     def _format_floats(self) -> None:
         """Handles `qpy:format-float`.
 
@@ -569,24 +483,23 @@ class QuestionUIRenderer:
         decimal_sep = "."  # Placeholder for decimal separator
 
         for element in _assert_element_list(self._xpath("//qpy:format-float")):
-            data = self._validate_format_float_element(element)
-            if data is None:
-                _remove_element(element)
+            if element.text is None:
                 continue
-
-            float_val, precision, thousands_sep_attr = data
-
+            float_val = _convert(element.text, float)
+            precision_txt = element.get("precision", "-1")
+            precision = _convert(precision_txt, int)
             strip_zeroes = "strip-zeros" in element.attrib
 
-            formatted_str = f"{float_val:.{precision}f}" if precision is not None else str(float_val)
+            formatted_str = f"{float_val:.{precision}f}" if precision >= 0 else str(float_val)
 
             if strip_zeroes:
                 formatted_str = formatted_str.rstrip("0").rstrip(decimal_sep) if "." in formatted_str else formatted_str
 
+            thousands_sep_attr = element.get("thousands-separator", "no")
             if thousands_sep_attr == "yes":
                 parts = formatted_str.split(decimal_sep)
                 integral_part = parts[0]
-                integral_part_with_sep = f"{int(integral_part):,}".replace(",", thousands_sep)
+                integral_part_with_sep = f"{_convert(integral_part, int):,}".replace(",", thousands_sep)
 
                 if len(parts) > 1:
                     formatted_str = integral_part_with_sep + decimal_sep + parts[1]
@@ -597,6 +510,162 @@ class QuestionUIRenderer:
             new_text.text = formatted_str
             parent = element.getparent()
 
+            new_text.tail = element.tail
+            if parent is not None:
+                parent.insert(parent.index(element), new_text)
+                parent.remove(element)
+
+
+class _RenderErrorCollector:
+    """Collects render errors."""
+
+    def __init__(
+        self,
+        xml: str,
+        placeholders: dict[str, str],
+    ) -> None:
+        self.errors = RenderErrorCollection()
+
+        try:
+            root = etree.fromstring(xml)
+        except etree.XMLSyntaxError as error:
+            parser = etree.XMLParser(recover=True)
+            root = etree.fromstring(xml, parser=parser)
+            self.errors.insert(XMLSyntaxError(error=error))
+
+        self._xml = etree.ElementTree(root)
+        self._xpath = etree.XPathDocumentEvaluator(self._xml)
+        self._xpath.register_namespace("xhtml", _XHTML_NAMESPACE)
+        self._xpath.register_namespace("qpy", _QPY_NAMESPACE)
+        self._placeholders = placeholders
+
+    def collect(self) -> RenderErrorCollection:
+        """Applies transformations to the xml and collects the render errors."""
+        self._validate_placeholders()
+        self._validate_feedback()
+        self._validate_if_role()
+        self._validate_shuffle_contents()
+        self._validate_format_floats()
+        self._look_for_unknown_qpy_elements()
+
+        return self.errors
+
+    def _validate_placeholders(self) -> None:
+        """Collects potential render errors for the placeholder PIs."""
+        for p_instruction in _assert_element_list(self._xpath("//processing-instruction('p')")):
+            if not p_instruction.text:
+                reference_error = PlaceholderReferenceError(
+                    element=p_instruction, placeholder=None, available=self._placeholders
+                )
+                self.errors.insert(reference_error)
+                return
+
+            parts = p_instruction.text.strip().split(maxsplit=1)
+            key = parts[0]
+            clean_option = parts[1].lower() if len(parts) == 2 else "clean"  # noqa: PLR2004
+            expected = ("plain", "clean", "noclean")
+            if clean_option not in expected:
+                option_error = InvalidCleanOptionError(element=p_instruction, option=clean_option, expected=expected)
+                self.errors.insert(option_error)
+
+            if key not in self._placeholders:
+                reference_error = PlaceholderReferenceError(
+                    element=p_instruction, placeholder=key, available=self._placeholders
+                )
+                self.errors.insert(reference_error)
+
+    def _validate_feedback(self) -> None:
+        """Validate elements marked with `qpy:feedback`."""
+        for element in _assert_element_list(self._xpath("//*[@qpy:feedback]")):
+            feedback_type = element.get(f"{{{_QPY_NAMESPACE}}}feedback")
+
+            expected = ("general", "specific")
+            if feedback_type not in expected:
+                error = InvalidAttributeValueError(
+                    element=element, attribute="qpy:feedback", value=feedback_type or "", expected=expected
+                )
+                self.errors.insert(error)
+
+    def _validate_if_role(self) -> None:
+        """Validates elements with `qpy:if-role` attributes."""
+        for element in _assert_element_list(self._xpath("//*[@qpy:if-role]")):
+            if attr := element.get(f"{{{_QPY_NAMESPACE}}}if-role"):
+                allowed_roles = [role.upper() for role in re.split(r"[\s|]+", attr)]
+                expected = list(QuestionDisplayRole)
+                if unexpected := [role for role in allowed_roles if role not in expected]:
+                    error = InvalidAttributeValueError(
+                        element=element,
+                        attribute="qpy:if-role",
+                        value=unexpected,
+                        expected=expected,
+                    )
+                    self.errors.insert(error)
+
+    def _validate_shuffle_contents(self) -> None:
+        """Validates elements marked with `qpy:shuffle-contents`."""
+        # TODO: - check if shuffle-contents has children
+        #       - check if shuffled-index elements have a parent element marked with qpy:shuffle-contests
+
+        for element in _assert_element_list(self._xpath("//*[@qpy:shuffle-contents]")):
+            child_elements = [child for child in element if isinstance(child, etree._Element)]
+            for child in child_elements:
+                for index_element in _assert_element_list(
+                    child.xpath(".//qpy:shuffled-index", namespaces={"qpy": _QPY_NAMESPACE})
+                ):
+                    format_style = index_element.get("format", "123")
+                    if format_style not in {"123", "abc", "ABC", "iii", "III"}:
+                        self.errors.insert(InvalidAttributeValueError(index_element, "format", format_style))
+                    _remove_element(index_element)
+
+    def _look_for_unknown_qpy_elements(self) -> None:
+        """Checks if there are any unknown qpy elements."""
+        for element in _assert_element_list(self._xpath("//qpy:*")):
+            error = UnknownElementError(element=element)
+            self.errors.insert(error)
+            _remove_element(element)
+
+    def _validate_format_floats(self) -> None:
+        """Validates the `qpy:format-float` element."""
+        for element in _assert_element_list(self._xpath("//qpy:format-float")):
+            if element.text is None:
+                # TODO: Show an error message?
+                return
+
+            # As PHP parses floats and integers differently than Python, we enforce a stricter format.
+            # E.g. parsing '20_000' or '1d1'  results in:
+            # Python ->     20000       Error
+            # PHP    ->     20          1
+            if re.match(r"^\s*((\d+\.?\d*)|(\d*\.\d+)|(\d+e\d+))\s*$", element.text) is None:
+                float_error = ConversionError(element=element, value=element.text, to_type=float)
+                self.errors.insert(float_error)
+
+            precision_text: str | None = element.get("precision")
+            if precision_text is not None:
+                if not precision_text or (precision_text[0] == "-" and precision_text[1:].isnumeric()):
+                    # Empty or negative value.
+                    precision_error = InvalidAttributeValueError(
+                        element=element, attribute="precision", value=precision_text
+                    )
+                    self.errors.insert(precision_error)
+                elif precision_text.isnumeric():
+                    # We disallow the usage of underscores to separate numeric literals, see above for an explanation.
+                    int(precision_text)
+                else:
+                    conversion_error = ConversionError(
+                        element=element, value=precision_text, to_type=int, attribute="precision"
+                    )
+                    self.errors.insert(conversion_error)
+
+            thousands_sep_attr = element.get("thousands-separator", "no")
+            expected = ("yes", "no")
+            if thousands_sep_attr not in expected:
+                thousands_sep_error = InvalidAttributeValueError(
+                    element=element, attribute="thousands-separator", value=thousands_sep_attr, expected=expected
+                )
+                self.errors.insert(thousands_sep_error)
+
+            new_text = etree.Element("span")
+            parent = element.getparent()
             new_text.tail = element.tail
             if parent is not None:
                 parent.insert(parent.index(element), new_text)
@@ -620,7 +689,7 @@ class QuestionFormulationUIRenderer(QuestionUIRenderer):
     def _get_metadata(self) -> QuestionMetadata:
         """Extracts metadata from the question UI."""
         question_metadata = QuestionMetadata()
-        namespaces: dict[str, str] = {"xhtml": self.XHTML_NAMESPACE, "qpy": self.QPY_NAMESPACE}
+        namespaces: dict[str, str] = {"xhtml": _XHTML_NAMESPACE, "qpy": _QPY_NAMESPACE}
 
         # Extract correct responses
         for element in self._xml.findall(".//*[@qpy:correct-response]", namespaces=namespaces):
@@ -631,7 +700,7 @@ class QuestionFormulationUIRenderer(QuestionUIRenderer):
             if element.tag.endswith("input") and element.get("type") == "radio":
                 value = element.get("value")
             else:
-                value = element.get(f"{{{self.QPY_NAMESPACE}}}correct-response")
+                value = element.get(f"{{{_QPY_NAMESPACE}}}correct-response")
 
             if not value:
                 continue
