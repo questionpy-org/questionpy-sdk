@@ -4,6 +4,9 @@
 #  The QuestionPy SDK is free software released under terms of the MIT license. See LICENSE.md.
 #  (c) Technische Universität Berlin, innoCampus <info@isis.tu-berlin.de>
 
+# TODO: Remove this entirely as it's not needed anymore when `create` relies on cookiecutter.
+#       (Need to update tests which also rely on minimal_example.zip being available.)
+
 import zipfile
 from pathlib import Path
 from typing import Any

@@ -1,0 +1,13 @@
+{
+    "name": "My QuestionPy package",
+    "short_name": "my_questionpy_package",
+    "namespace": "local",
+    "description": "A nice QuestionPy package",
+    "version": "0.1.0",
+    "api_version": "0.1",
+    "author_name": "Jane Doe",
+    "author_email": "jane.doe@example.com",
+    "languages": "en,de",
+    "url": "https://example.com/",
+    "license": "MIT"
+}

@@ -1,0 +1,14 @@
+short_name: {{ cookiecutter.short_name }}
+namespace: {{ cookiecutter.namespace }}
+languages: [{{ cookiecutter.languages }}]
+version: '{{ cookiecutter.version }}'
+api_version: '{{ cookiecutter.api_version }}'
+author: {{ cookiecutter.author_name }} <{{ cookiecutter.author_email }}>
+name:
+{%- for language in cookiecutter.languages.split(',') %}
+  {{ language }}: {{ cookiecutter.name }}
+{%- endfor %}
+description:
+{%- for language in cookiecutter.languages.split(',') %}
+  {{ language }}: {{ cookiecutter.description }}
+{%- endfor %}

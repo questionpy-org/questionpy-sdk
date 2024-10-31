@@ -1,0 +1,21 @@
+<div xmlns="http://www.w3.org/1999/xhtml"
+     xmlns:qpy="http://questionpy.org/ns/question">
+    <div><?p description?></div>
+    <fieldset qpy:shuffle-contents="" style="display: flex; flex-direction: column">
+        <label>
+            <input type="radio" name="choice" value="A"/>
+            <qpy:shuffled-index format="123"/>. A
+            <span qpy:feedback="specific" style="margin-left: .5em; background: rgb(255, 227, 78)">A is the first letter in the alphabet.</span>
+        </label>
+        <label>
+            <input type="radio" name="choice" value="B" qpy:correct-response=""/>
+            <qpy:shuffled-index format="123"/>. B
+            <span qpy:feedback="specific" style="margin-left: .5em; background: rgb(255, 227, 78)">Correct!</span>
+        </label>
+        <label>
+            <input type="radio" name="choice" value="C"/>
+            <qpy:shuffled-index format="123"/>. C
+            <span qpy:feedback="specific" style="margin-left: .5em; background: rgb(255, 227, 78)">C is the third letter in the alphabet.</span>
+        </label>
+    </fieldset>
+</div>
