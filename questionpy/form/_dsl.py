@@ -580,24 +580,26 @@ def select(
     )
 
 
-def option(label: str, *, selected: bool = False) -> _OptionInfo:
+def option(label: str, *, selected: bool = False, value: str | None = None) -> _OptionInfo:
     """Adds an option to an [`OptionEnum`][questionpy.form.OptionEnum].
 
     Args:
         label: Text describing the option, shown verbatim.
         selected: Default state of the option.
+        value: By default, the name of the option is used as its value as well. You can set a different value here,
+               which will then be used in rendering as well as (de)serialization.
 
     Returns:
         An internal object containing metadata about the option.
 
     Examples:
         >>> class ColorEnum(OptionEnum):
-        ...     RED = option("Red")
-        ...     GREEN = option("Green")
-        ...     BLUE = option("Blue")
+        ...     RED = option("Red", value="R")
+        ...     GREEN = option("Green", value="G")
+        ...     BLUE = option("Blue", value="B")
         ...     NONE = option("None", selected=True)
     """
-    return _OptionInfo(label, selected)
+    return _OptionInfo(label, selected, value=value)
 
 
 @overload

@@ -21,7 +21,7 @@ class _OptionInfo:
     label: str
     selected: bool
     value: str | None = None
-    """Set by `OptionEnum.__init__` because __set_name__ doesn't get called for enum members."""
+    """If None, set to the name by `OptionEnum.__init__` because __set_name__ doesn't get called for enum members."""
 
 
 class OptionEnum(Enum):
@@ -32,7 +32,10 @@ class OptionEnum(Enum):
 
     def __init__(self, option: _OptionInfo) -> None:
         super().__init__()
-        self._value_ = option.value = self.name
+        if option.value is None:
+            option.value = self.name
+
+        self._value_ = option.value
         self.label = option.label
         self.selected = option.selected
 
