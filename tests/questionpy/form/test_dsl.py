@@ -12,6 +12,7 @@ from questionpy import form
 
 class MyOptionEnum(form.OptionEnum):
     OPT_1 = form.option("Label 1")
+    OPT_2 = form.option("Label 2", value="b")
 
 
 class SimpleFormModel(form.FormModel):
@@ -107,7 +108,7 @@ def test_should_raise_validation_error_when_required_option_is_missing() -> None
                 form.RadioGroupElement(
                     name="field",
                     label="Label",
-                    options=[form.Option(label="Label 1", value="OPT_1")],
+                    options=[form.Option(label="Label 1", value="OPT_1"), form.Option(label="Label 2", value="b")],
                     required=True,
                     help="Help",
                 )
@@ -119,7 +120,7 @@ def test_should_raise_validation_error_when_required_option_is_missing() -> None
                 form.SelectElement(
                     name="field",
                     label="Label",
-                    options=[form.Option(label="Label 1", value="OPT_1")],
+                    options=[form.Option(label="Label 1", value="OPT_1"), form.Option(label="Label 2", value="b")],
                     required=True,
                     multiple=True,
                     help="Help",
