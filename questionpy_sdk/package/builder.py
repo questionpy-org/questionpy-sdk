@@ -19,6 +19,7 @@ from types import TracebackType
 import questionpy
 from questionpy_common.constants import DIST_DIR, MANIFEST_FILENAME
 from questionpy_common.manifest import Manifest, PackageFile
+from questionpy_sdk.constants import TEMPLATES_DIR
 from questionpy_sdk.models import BuildHookName
 from questionpy_sdk.package.errors import PackageBuildError
 from questionpy_sdk.package.source import PackageSource
@@ -102,6 +103,7 @@ class PackageBuilderBase(AbstractContextManager):
         """Writes custom package files."""
         static_path = Path(DIST_DIR) / "static"
         self._write_glob(self._source.path, "python/**/*", DIST_DIR)
+        self._write_glob(self._source.path, f"{TEMPLATES_DIR}/**/*", DIST_DIR)
         self._write_glob(self._source.path, "css/**/*", static_path, add_to_static_files=True)
         self._write_glob(self._source.path, "js/**/*", static_path, add_to_static_files=True)
         self._write_glob(self._source.path, "static/**/*", DIST_DIR, add_to_static_files=True)

@@ -9,7 +9,7 @@ class ExampleAttempt(Attempt):
 
     @property
     def formulation(self) -> str:
-        return self.jinja2.get_template("local.full_example/formulation.xhtml.j2").render()
+        return self.jinja2.get_template("formulation.xhtml.j2").render()
 
 
 class ExampleQuestion(Question):
