@@ -273,7 +273,9 @@ class QuestionUIRenderer:
         """
         for p_instruction in _assert_element_list(self._xpath("//processing-instruction('p')")):
             if not p_instruction.text:
+                _remove_element(p_instruction)
                 continue
+
             parts = p_instruction.text.strip().split()
             key = parts[0]
             clean_option = parts[1].lower() if len(parts) > 1 else "clean"
@@ -517,8 +519,6 @@ class QuestionUIRenderer:
 
 
 class _RenderErrorCollector:
-    """Collects render errors."""
-
     def __init__(
         self,
         xml: str,

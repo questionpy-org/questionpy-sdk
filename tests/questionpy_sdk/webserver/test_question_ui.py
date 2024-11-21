@@ -365,7 +365,7 @@ def test_errors_should_be_collected(renderer: QuestionUIRenderer) -> None:
             <span>0</span>
             <fieldset><label>Invalid shuffle format.<span>1</span>. A</label></fieldset>
             <div>Missing placeholder.</div>
-            <div>Empty placeholder.<?p></div>
+            <div>Empty placeholder.</div>
             <span>Missing attribute value.</span>
         </div>
     """
