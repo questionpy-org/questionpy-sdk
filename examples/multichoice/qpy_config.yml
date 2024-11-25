@@ -1,0 +1,9 @@
+short_name: multichoice
+namespace: local
+version: 0.1.0
+api_version: "0.1"
+author: Jane Doe <jane.doe@example.org>
+name:
+  de: Multiple-Choice
+  en: Multiple-Choice
+languages: [de, en]

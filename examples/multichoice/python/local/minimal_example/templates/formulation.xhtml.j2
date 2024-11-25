@@ -1,0 +1,17 @@
+<div xmlns="http://www.w3.org/1999/xhtml"
+     xmlns:qpy="http://questionpy.org/ns/question">
+    <div><?p description?></div>
+
+    <label>
+        Auswahl:
+        {% if question.options.mode == ChoiceMode.SELECT %}
+            <select name="choice">
+                {% for choice in question.options.choices %}
+                <option value=""
+
+                {% else %}
+            </select>
+        {% endif %}
+        {% endfor %}
+    </label>
+</div>
