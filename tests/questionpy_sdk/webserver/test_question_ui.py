@@ -362,7 +362,7 @@ def test_should_replace_qpy_urls(renderer: QuestionUIRenderer) -> None:
 def test_errors_should_be_collected(renderer: QuestionUIRenderer) -> None:
     expected = """
         <div>
-            <span>0</span>
+            <span>format-float</span>
             <fieldset><label>Invalid shuffle format.<span>1</span>. A</label></fieldset>
             <div>Missing placeholder.</div>
             <div>Empty placeholder.</div>

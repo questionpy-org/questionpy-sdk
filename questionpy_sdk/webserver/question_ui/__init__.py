@@ -6,7 +6,7 @@ from __future__ import annotations
 import re
 from enum import StrEnum
 from random import Random
-from typing import TYPE_CHECKING, Any, TypeVar
+from typing import Any
 
 import lxml.html
 import lxml.html.clean
@@ -22,10 +22,6 @@ from questionpy_sdk.webserver.question_ui.errors import (
     UnknownElementError,
     XMLSyntaxError,
 )
-
-if TYPE_CHECKING:
-    from collections.abc import Callable
-
 
 _XHTML_NAMESPACE: str = "http://www.w3.org/1999/xhtml"
 _QPY_NAMESPACE: str = "http://questionpy.org/ns/question"
@@ -109,20 +105,6 @@ def _replace_shuffled_indices(element: etree._Element, index: int) -> None:
         parent = index_element.getparent()
         if parent is not None:
             parent.replace(index_element, new_text_node)
-
-
-_T = TypeVar("_T", bound=int | float)
-
-
-def _convert(string: str, to: Callable[[str | int], _T]) -> _T:
-    """Converts a string safely into a numeric value.
-
-    Returns the numeric value or 0 if the conversion is not possible.
-    """
-    try:
-        return to(string)
-    except ValueError:
-        return to(0)
 
 
 def _int_to_letter(index: int) -> str:
@@ -487,26 +469,33 @@ class QuestionUIRenderer:
         for element in _assert_element_list(self._xpath("//qpy:format-float")):
             if element.text is None:
                 continue
-            float_val = _convert(element.text, float)
-            precision_txt = element.get("precision", "-1")
-            precision = _convert(precision_txt, int)
-            strip_zeroes = "strip-zeros" in element.attrib
 
-            formatted_str = f"{float_val:.{precision}f}" if precision >= 0 else str(float_val)
+            try:
+                float_val = float(element.text)
+                precision_txt = element.get("precision", "-1")
+                precision = int(precision_txt)
+                strip_zeroes = "strip-zeros" in element.attrib
 
-            if strip_zeroes:
-                formatted_str = formatted_str.rstrip("0").rstrip(decimal_sep) if "." in formatted_str else formatted_str
+                formatted_str = f"{float_val:.{precision}f}" if precision >= 0 else str(float_val)
 
-            thousands_sep_attr = element.get("thousands-separator", "no")
-            if thousands_sep_attr == "yes":
-                parts = formatted_str.split(decimal_sep)
-                integral_part = parts[0]
-                integral_part_with_sep = f"{_convert(integral_part, int):,}".replace(",", thousands_sep)
+                if strip_zeroes:
+                    formatted_str = (
+                        formatted_str.rstrip("0").rstrip(decimal_sep) if "." in formatted_str else formatted_str
+                    )
 
-                if len(parts) > 1:
-                    formatted_str = integral_part_with_sep + decimal_sep + parts[1]
-                else:
-                    formatted_str = integral_part_with_sep
+                thousands_sep_attr = element.get("thousands-separator", "no")
+                if thousands_sep_attr == "yes":
+                    parts = formatted_str.split(decimal_sep)
+                    integral_part = parts[0]
+                    integral_part_with_sep = f"{int(integral_part):,}".replace(",", thousands_sep)
+
+                    if len(parts) > 1:
+                        formatted_str = integral_part_with_sep + decimal_sep + parts[1]
+                    else:
+                        formatted_str = integral_part_with_sep
+            except ValueError:
+                # There was an error while converting a text to a numeric value.
+                formatted_str = etree.QName(element).localname
 
             new_text = etree.Element("span")
             new_text.text = formatted_str
@@ -516,6 +505,55 @@ class QuestionUIRenderer:
             if parent is not None:
                 parent.insert(parent.index(element), new_text)
                 parent.remove(element)
+
+
+class QuestionFormulationUIRenderer(QuestionUIRenderer):
+    """Renderer for the formulation UI part that provides metadata."""
+
+    def __init__(
+        self,
+        xml: str,
+        placeholders: dict[str, str],
+        options: QuestionDisplayOptions,
+        seed: int | None = None,
+        attempt: dict | None = None,
+    ) -> None:
+        super().__init__(xml, placeholders, options, seed, attempt)
+        self.metadata = self._get_metadata()
+
+    def _get_metadata(self) -> QuestionMetadata:
+        """Extracts metadata from the question UI."""
+        question_metadata = QuestionMetadata()
+        namespaces: dict[str, str] = {"xhtml": _XHTML_NAMESPACE, "qpy": _QPY_NAMESPACE}
+
+        # Extract correct responses
+        for element in self._xml.findall(".//*[@qpy:correct-response]", namespaces=namespaces):
+            name = element.get("name")
+            if not name:
+                continue
+
+            if element.tag.endswith("input") and element.get("type") == "radio":
+                value = element.get("value")
+            else:
+                value = element.get(f"{{{_QPY_NAMESPACE}}}correct-response")
+
+            if not value:
+                continue
+
+            question_metadata.correct_response[name] = value
+
+        # Extract other metadata
+        for element_type in ["input", "select", "textarea", "button"]:
+            for element in self._xml.findall(f".//xhtml:{element_type}", namespaces=namespaces):
+                name = element.get("name")
+                if not name:
+                    continue
+
+                question_metadata.expected_data[name] = "Any"
+                if element.get("required") is not None:
+                    question_metadata.required_fields.append(name)
+
+        return question_metadata
 
 
 class _RenderErrorCollector:
@@ -615,14 +653,6 @@ class _RenderErrorCollector:
                     format_style = index_element.get("format", "123")
                     if format_style not in {"123", "abc", "ABC", "iii", "III"}:
                         self.errors.insert(InvalidAttributeValueError(index_element, "format", format_style))
-                    _remove_element(index_element)
-
-    def _look_for_unknown_qpy_elements(self) -> None:
-        """Checks if there are any unknown qpy elements."""
-        for element in _assert_element_list(self._xpath("//qpy:*")):
-            error = UnknownElementError(element=element)
-            self.errors.insert(error)
-            _remove_element(element)
 
     def _validate_format_floats(self) -> None:
         """Validates the `qpy:format-float` element."""
@@ -647,10 +677,8 @@ class _RenderErrorCollector:
                         element=element, attribute="precision", value=precision_text
                     )
                     self.errors.insert(precision_error)
-                elif precision_text.isnumeric():
+                elif not precision_text.isnumeric():
                     # We disallow the usage of underscores to separate numeric literals, see above for an explanation.
-                    int(precision_text)
-                else:
                     conversion_error = ConversionError(
                         element=element, value=precision_text, to_type=int, attribute="precision"
                     )
@@ -664,58 +692,13 @@ class _RenderErrorCollector:
                 )
                 self.errors.insert(thousands_sep_error)
 
-            new_text = etree.Element("span")
-            parent = element.getparent()
-            new_text.tail = element.tail
-            if parent is not None:
-                parent.insert(parent.index(element), new_text)
-                parent.remove(element)
+    def _look_for_unknown_qpy_elements(self) -> None:
+        """Checks if there are any unknown qpy-elements.
 
-
-class QuestionFormulationUIRenderer(QuestionUIRenderer):
-    """Renderer for the formulation UI part that provides metadata."""
-
-    def __init__(
-        self,
-        xml: str,
-        placeholders: dict[str, str],
-        options: QuestionDisplayOptions,
-        seed: int | None = None,
-        attempt: dict | None = None,
-    ) -> None:
-        super().__init__(xml, placeholders, options, seed, attempt)
-        self.metadata = self._get_metadata()
-
-    def _get_metadata(self) -> QuestionMetadata:
-        """Extracts metadata from the question UI."""
-        question_metadata = QuestionMetadata()
-        namespaces: dict[str, str] = {"xhtml": _XHTML_NAMESPACE, "qpy": _QPY_NAMESPACE}
-
-        # Extract correct responses
-        for element in self._xml.findall(".//*[@qpy:correct-response]", namespaces=namespaces):
-            name = element.get("name")
-            if not name:
-                continue
-
-            if element.tag.endswith("input") and element.get("type") == "radio":
-                value = element.get("value")
-            else:
-                value = element.get(f"{{{_QPY_NAMESPACE}}}correct-response")
-
-            if not value:
-                continue
-
-            question_metadata.correct_response[name] = value
-
-        # Extract other metadata
-        for element_type in ["input", "select", "textarea", "button"]:
-            for element in self._xml.findall(f".//xhtml:{element_type}", namespaces=namespaces):
-                name = element.get("name")
-                if not name:
-                    continue
-
-                question_metadata.expected_data[name] = "Any"
-                if element.get("required") is not None:
-                    question_metadata.required_fields.append(name)
-
-        return question_metadata
+        TODO: also look for unknown qpy-attributes
+        """
+        known_elements = ["shuffled-index", "format-float"]
+        xpath = " and ".join([f"name() != 'qpy:{element}'" for element in known_elements])
+        for element in _assert_element_list(self._xpath(f"//*[starts-with(name(), 'qpy:') and {xpath}]")):
+            error = UnknownElementError(element=element)
+            self.errors.insert(error)
