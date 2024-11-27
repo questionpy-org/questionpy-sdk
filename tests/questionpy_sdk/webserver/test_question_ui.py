@@ -362,13 +362,13 @@ def test_should_replace_qpy_urls(renderer: QuestionUIRenderer) -> None:
 def test_errors_should_be_collected(renderer: QuestionUIRenderer) -> None:
     expected = """
         <div>
-            <span>format-float</span>
+            <span>&lt;qpy:format-float xmlns:qpy="http://questionpy.org/ns/question" xmlns="http://www.w3.org/1999/xhtml" thousands-separator="maybe" precision="invalid"&gt;Unknown value.&lt;/qpy:format-float&gt;</span>
             <fieldset><label>Invalid shuffle format.<span>1</span>. A</label></fieldset>
             <div>Missing placeholder.</div>
             <div>Empty placeholder.</div>
             <span>Missing attribute value.</span>
         </div>
-    """
+    """  # noqa: E501
     html, errors = renderer.render()
 
     expected_errors: list[tuple[type[RenderError], int]] = [
