@@ -495,7 +495,7 @@ class QuestionUIRenderer:
                         formatted_str = integral_part_with_sep
             except ValueError:
                 # There was an error while converting a text to a numeric value.
-                formatted_str = etree.QName(element).localname
+                formatted_str = etree.tostring(element, encoding="unicode")
 
             new_text = etree.Element("span")
             new_text.text = formatted_str
