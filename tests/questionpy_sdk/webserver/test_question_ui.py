@@ -264,8 +264,7 @@ def test_should_defuse_buttons(renderer: QuestionUIRenderer) -> None:
     assert_html_is_equal(html, expected)
 
 
-@pytest.mark.skip("""1. The text directly in the root of <qpy:formulation> is not copied in render_part.
-                     2. format_floats adds decimal 0 to numbers without decimal part""")
+@pytest.mark.skip("""format_floats adds decimal 0 to numbers without decimal part""")
 @pytest.mark.ui_file("format-floats")
 def test_should_format_floats_in_en(renderer: QuestionUIRenderer) -> None:
     expected = """
@@ -363,14 +362,14 @@ def test_should_replace_qpy_urls(renderer: QuestionUIRenderer) -> None:
 def test_errors_should_be_collected(renderer: QuestionUIRenderer) -> None:
     expected = """
         <div>
-            <fieldset><label>Invalid shuffle format. . A</label></fieldset>
+            <span>&lt;qpy:format-float xmlns:qpy="http://questionpy.org/ns/question" xmlns="http://www.w3.org/1999/xhtml" thousands-separator="maybe" precision="invalid"&gt;Unknown value.&lt;/qpy:format-float&gt;</span>
+            <fieldset><label>Invalid shuffle format.<span>1</span>. A</label></fieldset>
             <div>Missing placeholder.</div>
             <div>Empty placeholder.</div>
             <span>Missing attribute value.</span>
         </div>
-    """
+    """  # noqa: E501
     html, errors = renderer.render()
-    assert len(errors) == 11
 
     expected_errors: list[tuple[type[RenderError], int]] = [
         # Even though the syntax error occurs after all the other errors, it should be listed first.
@@ -386,6 +385,8 @@ def test_errors_should_be_collected(renderer: QuestionUIRenderer) -> None:
         (PlaceholderReferenceError, 12),
         (PlaceholderReferenceError, 13),
     ]
+
+    assert len(errors) == len(expected_errors)
 
     for actual_error, expected_error in zip(errors, expected_errors, strict=True):
         error_type, line = expected_error
