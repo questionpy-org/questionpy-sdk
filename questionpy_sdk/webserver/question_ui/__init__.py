@@ -76,10 +76,24 @@ def _set_element_value(element: etree._Element, value: str, name: str, xpath: et
         element.set("value", value)
 
 
+def _check_shuffled_index_is_in_nested_shuffle_contents(element: etree._Element, index_element: etree._Element) -> bool:
+    ancestor = index_element.getparent()
+    while ancestor is not None and ancestor != element:
+        if f"{{{_QPY_NAMESPACE}}}shuffle-contents" in ancestor.attrib:
+            return True
+        ancestor = ancestor.getparent()
+    return False
+
+
 def _replace_shuffled_indices(element: etree._Element, index: int) -> None:
     for index_element in _assert_element_list(
         element.xpath(".//qpy:shuffled-index", namespaces={"qpy": _QPY_NAMESPACE})
     ):
+        if _check_shuffled_index_is_in_nested_shuffle_contents(element, index_element):
+            # The index element is in a nested shuffle-contents.
+            # We want it to be replaced with the index of the inner shuffle, so we ignore it for now.
+            continue
+
         format_style = index_element.get("format", "123")
 
         if format_style == "123":
