@@ -76,20 +76,22 @@ def _set_element_value(element: etree._Element, value: str, name: str, xpath: et
         element.set("value", value)
 
 
-def _check_shuffled_index_is_in_nested_shuffle_contents(element: etree._Element, index_element: etree._Element) -> bool:
+def _check_shuffled_index_is_in_nested_shuffle_contents(
+    container: etree._Element, index_element: etree._Element
+) -> bool:
     ancestor = index_element.getparent()
-    while ancestor is not None and ancestor != element:
+    while ancestor is not None and ancestor != container:
         if f"{{{_QPY_NAMESPACE}}}shuffle-contents" in ancestor.attrib:
             return True
         ancestor = ancestor.getparent()
     return False
 
 
-def _replace_shuffled_indices(element: etree._Element, index: int) -> None:
+def _replace_shuffled_indices(container: etree._Element, element: etree._Element, index: int) -> None:
     for index_element in _assert_element_list(
         element.xpath(".//qpy:shuffled-index", namespaces={"qpy": _QPY_NAMESPACE})
     ):
-        if _check_shuffled_index_is_in_nested_shuffle_contents(element, index_element):
+        if _check_shuffled_index_is_in_nested_shuffle_contents(container, index_element):
             # The index element is in a nested shuffle-contents.
             # We want it to be replaced with the index of the inner shuffle, so we ignore it for now.
             continue
@@ -408,13 +410,13 @@ class QuestionUIRenderer:
             child_elements = [child for child in element if isinstance(child, etree._Element)]
             self._random.shuffle(child_elements)
 
-            element.attrib.pop(f"{{{_QPY_NAMESPACE}}}shuffle-contents")
-
             # Reinsert shuffled elements, preserving non-element nodes
-            for i, child in enumerate(child_elements):
-                _replace_shuffled_indices(child, i + 1)
+            for i, child in enumerate(child_elements, 1):
+                _replace_shuffled_indices(element, child, i)
                 # Move each child element back to its parent at the correct position
                 element.append(child)
+
+            element.attrib.pop(f"{{{_QPY_NAMESPACE}}}shuffle-contents")
 
     def _clean_up(self) -> None:
         """Removes remaining QuestionPy elements and attributes as well as comments and xmlns declarations."""
