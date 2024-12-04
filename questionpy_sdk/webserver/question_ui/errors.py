@@ -181,6 +181,31 @@ class InvalidCleanOptionError(RenderElementError):
 
 
 @dataclass(frozen=True)
+class InvalidTextPlacementError(RenderElementError):
+    """Invalid text placement."""
+
+    def __init__(self, element: etree._Element, attribute: str):
+        super().__init__(
+            element=element,
+            template="Avoid placing text directly inside {element} with the {attribute} attribute. Use child elements "
+            "for text instead.",
+            template_kwargs={"attribute": attribute},
+        )
+
+
+@dataclass(frozen=True)
+class ExpectedAncestorError(RenderElementError):
+    """Invalid element placement."""
+
+    def __init__(self, element: etree._Element, expected_ancestor_attribute: str):
+        super().__init__(
+            element=element,
+            template="{element} must be placed inside an element with the {expected_ancestor_attribute} attribute.",
+            template_kwargs={"expected_ancestor_attribute": expected_ancestor_attribute},
+        )
+
+
+@dataclass(frozen=True)
 class UnknownElementError(RenderElementError):
     """Unknown element with qpy-namespace."""
 
@@ -188,6 +213,19 @@ class UnknownElementError(RenderElementError):
         super().__init__(
             element=element,
             template="Unknown element {element}.",
+        )
+
+
+@dataclass(frozen=True)
+class UnknownAttributeError(RenderElementError):
+    """Unknown attribute with qpy-namespace."""
+
+    def __init__(self, element: etree._Element, attributes: Collection[str]):
+        s = "" if len(attributes) == 1 else "s"
+        super().__init__(
+            element=element,
+            template=f"Unknown attribute{s} {{attributes}} on element {{element}}.",
+            template_kwargs={"attributes": attributes},
         )
 
 
@@ -247,5 +285,5 @@ def log_render_errors(render_errors: RenderErrorCollections) -> None:
             line = f"Line {error.line}: " if error.line else ""
             errors_string += f"\n\t- {line}{error.type} - {error.message}"
         error_count = len(errors)
-        s = "s" if error_count > 1 else ""
+        s = "" if error_count == 1 else "s"
         _log.warning(f"{error_count} error{s} occurred while rendering {section}:{errors_string}")

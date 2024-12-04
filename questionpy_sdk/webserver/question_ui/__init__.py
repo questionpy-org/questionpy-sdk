@@ -15,10 +15,13 @@ from pydantic import BaseModel
 
 from questionpy_sdk.webserver.question_ui.errors import (
     ConversionError,
+    ExpectedAncestorError,
     InvalidAttributeValueError,
     InvalidCleanOptionError,
+    InvalidTextPlacementError,
     PlaceholderReferenceError,
     RenderErrorCollection,
+    UnknownAttributeError,
     UnknownElementError,
     XMLSyntaxError,
 )
@@ -582,9 +585,9 @@ class _RenderErrorCollector:
         self._validate_placeholders()
         self._validate_feedback()
         self._validate_if_role()
-        self._validate_shuffle_contents()
+        self._validate_shuffle_contents_and_shuffled_index()
         self._validate_format_floats()
-        self._look_for_unknown_qpy_elements()
+        self._look_for_unknown_qpy_elements_and_attributes()
 
         return self.errors
 
@@ -639,11 +642,8 @@ class _RenderErrorCollector:
                     )
                     self.errors.insert(error)
 
-    def _validate_shuffle_contents(self) -> None:
+    def _validate_shuffle_contents_and_shuffled_index(self) -> None:
         """Validates elements marked with `qpy:shuffle-contents`."""
-        # TODO: - check if shuffle-contents has children
-        #       - check if shuffled-index elements have a parent element marked with qpy:shuffle-contests
-
         for element in _assert_element_list(self._xpath("//*[@qpy:shuffle-contents]")):
             child_elements = [child for child in element if isinstance(child, etree._Element)]
             for child in child_elements:
@@ -652,7 +652,24 @@ class _RenderErrorCollector:
                 ):
                     format_style = index_element.get("format", "123")
                     if format_style not in {"123", "abc", "ABC", "iii", "III"}:
-                        self.errors.insert(InvalidAttributeValueError(index_element, "format", format_style))
+                        attribute_error = InvalidAttributeValueError(
+                            element=index_element, attribute="format", value=format_style
+                        )
+                        self.errors.insert(attribute_error)
+
+        # Gather every qpy:shuffle-contents with direct text nodes.
+        for element in _assert_element_list(
+            self._xpath("//*[@qpy:shuffle-contents and text()[normalize-space()] != '']")
+        ):
+            placement_error = InvalidTextPlacementError(element=element, attribute="qpy:shuffle-contents")
+            self.errors.insert(placement_error)
+
+        # Gather every qpy:shuffled-index without qpy:shuffle-contents ancestor.
+        for element in _assert_element_list(
+            self._xpath("//qpy:shuffled-index[not(ancestor::*[@qpy:shuffle-contents])]")
+        ):
+            ancestor_error = ExpectedAncestorError(element=element, expected_ancestor_attribute="qpy:shuffle-contents")
+            self.errors.insert(ancestor_error)
 
     def _validate_format_floats(self) -> None:
         """Validates the `qpy:format-float` element."""
@@ -692,13 +709,24 @@ class _RenderErrorCollector:
                 )
                 self.errors.insert(thousands_sep_error)
 
-    def _look_for_unknown_qpy_elements(self) -> None:
-        """Checks if there are any unknown qpy-elements.
-
-        TODO: also look for unknown qpy-attributes
-        """
+    def _look_for_unknown_qpy_elements_and_attributes(self) -> None:
+        """Checks if there are any unknown qpy-elements or -attributes."""
+        # Gather unknown elements.
         known_elements = ["shuffled-index", "format-float"]
-        xpath = " and ".join([f"name() != 'qpy:{element}'" for element in known_elements])
-        for element in _assert_element_list(self._xpath(f"//*[starts-with(name(), 'qpy:') and {xpath}]")):
-            error = UnknownElementError(element=element)
-            self.errors.insert(error)
+        xpath_elements = " and ".join(f"name() != 'qpy:{element}'" for element in known_elements)
+        for element in _assert_element_list(self._xpath(f"//*[starts-with(name(), 'qpy:') and {xpath_elements}]")):
+            unknown_element_error = UnknownElementError(element=element)
+            self.errors.insert(unknown_element_error)
+
+        # Gather unknown attributes.
+        known_attrs = ["feedback", "if-role", "shuffle-contents", "correct-response"]
+        xpath_attrs = " and ".join(f"name() != 'qpy:{attr}'" for attr in known_attrs)
+        for element in _assert_element_list(self._xpath(f"//*[@*[starts-with(name(), 'qpy:') and {xpath_attrs}]]")):
+            unknown_attributes: list[str] = [
+                attr.replace(f"{{{_QPY_NAMESPACE}}}", "qpy:")
+                for attr in map(str, element.attrib)
+                if attr.startswith(f"{{{_QPY_NAMESPACE}}}") and attr.split("}")[1] not in known_attrs
+            ]
+            if unknown_attributes:
+                unknown_attribute_error = UnknownAttributeError(element=element, attributes=unknown_attributes)
+                self.errors.insert(unknown_attribute_error)
