@@ -188,7 +188,7 @@ class InvalidContentError(RenderElementError):
         super().__init__(
             element=element,
             template="Avoid placing text or processing instructions directly inside {element} with the {attribute} "
-                     "attribute. Wrap the content in an element instead.",
+            "attribute. Wrap the content in an element instead.",
             template_kwargs={"attribute": attribute},
         )
 

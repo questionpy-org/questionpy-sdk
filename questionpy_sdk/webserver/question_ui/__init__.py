@@ -713,15 +713,19 @@ class _RenderErrorCollector:
         """Checks if there are any unknown qpy-elements or -attributes."""
         # Gather unknown elements.
         known_elements = ["shuffled-index", "format-float"]
-        xpath_elements = " and ".join(f"name() != 'qpy:{element}'" for element in known_elements)
-        for element in _assert_element_list(self._xpath(f"//*[starts-with(name(), 'qpy:') and {xpath_elements}]")):
+        xpath_elements = " and ".join(f"local-name() != '{element}'" for element in known_elements)
+        xpath_query = f"//qpy:*[{xpath_elements}]"
+
+        for element in _assert_element_list(self._xpath(xpath_query)):
             unknown_element_error = UnknownElementError(element=element)
             self.errors.insert(unknown_element_error)
 
         # Gather unknown attributes.
         known_attrs = ["feedback", "if-role", "shuffle-contents", "correct-response"]
-        xpath_attrs = " and ".join(f"name() != 'qpy:{attr}'" for attr in known_attrs)
-        for element in _assert_element_list(self._xpath(f"//*[@*[starts-with(name(), 'qpy:') and {xpath_attrs}]]")):
+        xpath_attrs = " and ".join(f"local-name() != '{attr}'" for attr in known_attrs)
+        xpath_query = f"//*[@qpy:*[{xpath_attrs}]]"
+
+        for element in _assert_element_list(self._xpath(xpath_query)):
             unknown_attributes: list[str] = [
                 attr.replace(f"{{{_QPY_NAMESPACE}}}", "qpy:")
                 for attr in map(str, element.attrib)
