@@ -18,7 +18,7 @@ from questionpy_sdk.webserver.question_ui.errors import (
     ExpectedAncestorError,
     InvalidAttributeValueError,
     InvalidCleanOptionError,
-    InvalidTextPlacementError,
+    InvalidContentError,
     PlaceholderReferenceError,
     RenderErrorCollection,
     UnknownAttributeError,
@@ -657,11 +657,11 @@ class _RenderErrorCollector:
                         )
                         self.errors.insert(attribute_error)
 
-        # Gather every qpy:shuffle-contents with direct text nodes.
+        # Gather every qpy:shuffle-contents with direct text nodes or processing instructions.
         for element in _assert_element_list(
-            self._xpath("//*[@qpy:shuffle-contents and text()[normalize-space()] != '']")
+            self._xpath("//*[@qpy:shuffle-contents and (text()[normalize-space()] != '' or processing-instruction())]")
         ):
-            placement_error = InvalidTextPlacementError(element=element, attribute="qpy:shuffle-contents")
+            placement_error = InvalidContentError(element=element, attribute="qpy:shuffle-contents")
             self.errors.insert(placement_error)
 
         # Gather every qpy:shuffled-index without qpy:shuffle-contents ancestor.

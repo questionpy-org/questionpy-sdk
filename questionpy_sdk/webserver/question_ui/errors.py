@@ -181,14 +181,14 @@ class InvalidCleanOptionError(RenderElementError):
 
 
 @dataclass(frozen=True)
-class InvalidTextPlacementError(RenderElementError):
-    """Invalid text placement."""
+class InvalidContentError(RenderElementError):
+    """Invalid content placement."""
 
     def __init__(self, element: etree._Element, attribute: str):
         super().__init__(
             element=element,
-            template="Avoid placing text directly inside {element} with the {attribute} attribute. Use child elements "
-            "for text instead.",
+            template="Avoid placing text or processing instructions directly inside {element} with the {attribute} "
+                     "attribute. Wrap the content in an element instead.",
             template_kwargs={"attribute": attribute},
         )
 
