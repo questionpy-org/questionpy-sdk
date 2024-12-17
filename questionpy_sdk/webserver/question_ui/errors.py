@@ -16,6 +16,9 @@ _log = logging.getLogger(__name__)
 
 
 def _format_human_readable_list(values: Collection[str], opening: str, closing: str) -> str:
+    if not values:
+        return ""
+
     *values, last_value = values
     last_value = f"{opening}{last_value}{closing}"
     if not values:
@@ -150,16 +153,18 @@ class PlaceholderReferenceError(RenderElementError):
     """An unknown or no placeholder was referenced."""
 
     def __init__(self, element: etree._Element, placeholder: str | None, available: Collection[str]):
+        template_kwargs: dict[str, str | Collection[str]] = {}
         if placeholder is None:
             template = "No placeholder was referenced."
-            template_kwargs = {}
         else:
+            template = "Referenced placeholder {placeholder} was not found."
+            template_kwargs["placeholder"] = placeholder
+
             if len(available) == 0:
-                provided = "No placeholders were provided."
+                template += " No placeholders were provided."
             else:
-                provided = "These are the provided placeholders: {available}."
-            template = f"Referenced placeholder {{placeholder}} was not found. {provided}"
-            template_kwargs = {"placeholder": placeholder, "available": available}
+                template += " These are the provided placeholders: {available}."
+                template_kwargs["available"] = available
 
         super().__init__(
             element=element,
