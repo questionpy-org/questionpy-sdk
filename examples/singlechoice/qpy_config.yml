@@ -1,0 +1,9 @@
+short_name: singlechoice
+namespace: local
+version: 0.1.0
+api_version: "0.1"
+author: Jane Doe <jane.doe@example.org>
+name:
+  de: Single-Choice
+  en: Single-Choice
+languages: [de, en]
