@@ -9,6 +9,7 @@ from pydantic_core import PydanticUndefined
 from questionpy_common.conditions import Condition, DoesNotEqual, Equals, In, IsChecked, IsNotChecked
 from questionpy_common.elements import (
     CheckboxElement,
+    GeneratedIdElement,
     GroupElement,
     HiddenElement,
     Option,
@@ -732,6 +733,9 @@ def repeat(
 ) -> list[_F]:
     """Repeats a sub-model, allowing the user to add new repetitions with the click of a button.
 
+    Be aware that the index of repetitions may change when earlier ones are removed. In order to distinguish
+    repetitions, look into adding a [generated_id][] field to the repeated model.
+
     Args:
         model (type[FormModel]): A `FormModel` subclass containing the fields to repeat.
         initial: Number of repetitions to show when the form is first loaded.
@@ -768,6 +772,20 @@ def repeat(
                 button_label=button_label,
                 elements=model.qpy_form.general,
             ),
+        ),
+    )
+
+
+def generated_id() -> str:
+    """Generates a unique ID which won't change across form saves.
+
+    This is especially useful to distinguish repetitions without relying on their index, which may change when
+    repetitions are removed.
+    """
+    return cast(
+        str,
+        _FieldInfo(
+            type=str, build=lambda name: GeneratedIdElement(name=name), pydantic_field_info=FieldInfo(frozen=True)
         ),
     )
 

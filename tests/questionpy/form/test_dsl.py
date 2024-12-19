@@ -139,6 +139,7 @@ def test_should_raise_validation_error_when_required_option_is_missing() -> None
                 )
             ],
         ),
+        (form.generated_id(), [form.GeneratedIdElement(name="field")]),
     ],
 )
 def test_should_render_correct_form(initializer: object, expected_elements: list[form.FormElement]) -> None:
@@ -198,6 +199,8 @@ def test_should_render_correct_form(initializer: object, expected_elements: list
         (str, form.hidden("value"), "value", "value"),
         (Literal["value"], form.hidden("value"), "value", "value"),
         (Optional[Literal["value"]], form.hidden("value", disable_if=form.is_checked("field")), ..., None),  # noqa: UP007
+        # generated_id
+        (str, form.generated_id(), "f65a9e2f-5fba-4170-93c0-7f37552d891d", "f65a9e2f-5fba-4170-93c0-7f37552d891d"),
         # group
         (SimpleFormModel, form.group("", SimpleFormModel), {"input": "abc"}, SimpleFormModel(input="abc")),
         # repetition
@@ -247,6 +250,10 @@ def test_should_parse_correctly_when_input_is_valid(
         # hidden
         (Literal["value"], form.hidden("value"), "something else"),
         (str, form.hidden("value"), ...),
+        # generated_id
+        (str, form.generated_id(), ...),
+        (str, form.generated_id(), None),
+        (str, form.generated_id(), 42),
         # group
         (SimpleFormModel, form.group("", SimpleFormModel), ...),
         # repetition
@@ -290,6 +297,9 @@ def test_should_raise_validation_error_when_input_is_invalid(
         (MyOptionEnum, form.select("", MyOptionEnum, multiple=True)),
         # hidden
         (str | None, form.hidden("value")),
+        # generated_id
+        (int, form.generated_id()),
+        (str | None, form.generated_id()),
         # group
         (dict, form.group("", SimpleFormModel)),
         # repetition
