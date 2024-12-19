@@ -1,0 +1,4 @@
+<input type="hidden" name="{{ element_reference }}"
+       value="{{ element.cxd_value }}" id="{{ element.id }}">
+<input type="hidden" name="{{ path_list_to_string(element.path[:-1] + ['qpy_id_elements']) + "_[]" }}"
+       value="{{ element.name }}">
