@@ -4,6 +4,7 @@
 
 from re import Pattern, sub
 from typing import Annotated, Any, TypeAlias
+from uuid import uuid4
 
 from pydantic import BaseModel, Field, computed_field
 
@@ -12,6 +13,7 @@ from questionpy_common.elements import (
     CheckboxGroupElement,
     FormElement,  # noqa: F401
     FormSection,
+    GeneratedIdElement,
     GroupElement,
     HiddenElement,
     Option,
@@ -212,6 +214,16 @@ class CxdRepetitionElement(RepetitionElement, _CxdFormElement):
         super().__init__(**data, elements=[])
 
 
+class CxdGeneratedIdElement(GeneratedIdElement, _CxdFormElement):
+    cxd_value: str | None = None
+
+    def add_form_data_value(self, element_form_data: Any) -> None:
+        if element_form_data:
+            self.cxd_value = element_form_data
+        else:
+            self.cxd_value = str(uuid4())
+
+
 CxdFormElement: TypeAlias = Annotated[
     CxdStaticTextElement
     | CxdTextInputElement
@@ -222,7 +234,8 @@ CxdFormElement: TypeAlias = Annotated[
     | CxdSelectElement
     | CxdHiddenElement
     | CxdGroupElement
-    | CxdRepetitionElement,
+    | CxdRepetitionElement
+    | CxdGeneratedIdElement,
     Field(discriminator="kind"),
 ]
 

@@ -8,6 +8,7 @@ from questionpy_common.elements import (
     CheckboxElement,
     CheckboxGroupElement,
     FormElement,
+    GeneratedIdElement,
     GroupElement,
     HiddenElement,
     OptionsFormDefinition,
@@ -23,6 +24,7 @@ from questionpy_sdk.webserver.elements import (
     CxdCheckboxGroupElement,
     CxdFormElement,
     CxdFormSection,
+    CxdGeneratedIdElement,
     CxdGroupElement,
     CxdHiddenElement,
     CxdOptionsFormDefinition,
@@ -43,6 +45,7 @@ element_mapping: dict[type, type] = {
     RadioGroupElement: CxdRadioGroupElement,
     SelectElement: CxdSelectElement,
     HiddenElement: CxdHiddenElement,
+    GeneratedIdElement: CxdGeneratedIdElement,
 }
 
 

@@ -1,9 +1,9 @@
 #  This file is part of the QuestionPy SDK. (https://questionpy.org)
 #  The QuestionPy SDK is free software released under terms of the MIT license. See LICENSE.md.
 #  (c) Technische Universität Berlin, innoCampus <info@isis.tu-berlin.de>
-
 from http.client import UNPROCESSABLE_ENTITY
 from typing import TYPE_CHECKING, Never
+from uuid import uuid4
 
 import aiohttp_jinja2
 from aiohttp import web
@@ -69,8 +69,22 @@ async def repeat_element(request: web.Request) -> web.Response:
     data = await request.json()
     question_form_data = parse_form_data(data["form_data"])
     repetition_list = get_nested_form_data(question_form_data, data["repetition_name"])
-    if isinstance(repetition_list, list) and "increment" in data:
-        repetition_list.extend([repetition_list[-1]] * int(data["increment"]))
+
+    if not isinstance(repetition_list, list) or "increment" not in data:
+        raise web.HTTPUnprocessableEntity
+
+    new_repetition_items: list[dict] = [repetition_list[-1].copy() for _ in range(int(data["increment"]))]
+    # ID elements must be unique, so new items need a new value.
+    for new_repetition_item in new_repetition_items:
+        id_element_names = new_repetition_item.get("qpy_id_elements")
+        if not isinstance(id_element_names, list):
+            continue
+
+        for id_element_name in id_element_names:
+            if id_element_name in new_repetition_item:
+                new_repetition_item[id_element_name] = str(uuid4())
+
+    repetition_list.extend(new_repetition_items)
 
     try:
         await _save_updated_form_data(question_form_data, webserver)
