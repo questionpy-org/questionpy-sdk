@@ -1,0 +1,23 @@
+<div xmlns="http://www.w3.org/1999/xhtml"
+     xmlns:qpy="http://questionpy.org/ns/question">
+    <p><?p description?></p>
+    <p>
+        {% if question.options.mode == ChoiceMode.SELECT %}
+            <label>
+                Auswahl:
+
+                <select name="choice" qpy:shuffle-contents="">
+                    {% for choice in question.options.choices %}
+                        <option value="{{ choice.id }}">{{ choice.text }}</option>
+                    {% endfor %}
+                </select>
+            </label>
+        {% else %}
+            <fieldset style="display: flex; flex-direction: column" qpy:shuffle-contents="">
+                {% for choice in question.options.choices %}
+                    <label><input type="radio" name="choice" value="{{ choice.id }}"/> {{ choice.text }}</label>
+                {% endfor %}
+            </fieldset>
+        {% endif %}
+    </p>
+</div>
