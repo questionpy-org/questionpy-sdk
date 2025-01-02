@@ -319,6 +319,24 @@ def test_should_replace_shuffled_index(renderer: QuestionUIRenderer) -> None:
     assert_html_is_equal(html, expected)
 
 
+@pytest.mark.ui_file("shuffled-index-nested")
+@pytest.mark.render_params(seed=42)
+def test_should_replace_shuffled_index_in_nested(renderer: QuestionUIRenderer) -> None:
+    expected = """
+        <div>
+            <p><span>i</span>. B</p>
+            <p><span>ii</span>. A</p>
+            <div>
+                <p><span>i</span>. D</p>
+                <p><span>ii</span>. C</p>
+            </div>
+        </div>
+        """
+    html, errors = renderer.render()
+    assert len(errors) == 0
+    assert_html_is_equal(html, expected)
+
+
 @pytest.mark.render_params(
     xml="""
         <div xmlns:qpy="http://questionpy.org/ns/question">
