@@ -6,7 +6,6 @@ from typing import TYPE_CHECKING
 import jinja2
 
 from questionpy_common.environment import Package, PackageNamespaceAndShortName, get_qpy_environment
-from questionpy_sdk.constants import TEMPLATES_DIR
 
 if TYPE_CHECKING:
     from questionpy import Attempt, Question
@@ -46,7 +45,7 @@ class _TraversableTemplateLoader(jinja2.BaseLoader):
 
 
 def _get_loader(package: Package) -> jinja2.BaseLoader | None:
-    templates_directory = package.get_path(f"{TEMPLATES_DIR}/")
+    templates_directory = package.get_path("templates/")
 
     if not templates_directory.is_dir():
         # The package has no "templates" directory which would cause a template loader to raise an unhelpful ValueError.
