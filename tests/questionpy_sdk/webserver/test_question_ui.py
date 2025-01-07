@@ -7,20 +7,23 @@ from typing import Any
 import pytest
 
 from questionpy_sdk.webserver.question_ui import (
-    InvalidAttributeValueError,
     QuestionDisplayOptions,
     QuestionDisplayRole,
     QuestionFormulationUIRenderer,
     QuestionMetadata,
     QuestionUIRenderer,
-    XMLSyntaxError,
 )
 from questionpy_sdk.webserver.question_ui.errors import (
     ConversionError,
+    ExpectedAncestorError,
+    InvalidAttributeValueError,
     InvalidCleanOptionError,
+    InvalidContentError,
     PlaceholderReferenceError,
     RenderError,
+    UnknownAttributeError,
     UnknownElementError,
+    XMLSyntaxError,
 )
 from tests.questionpy_sdk.webserver.conftest import assert_html_is_equal
 
@@ -354,7 +357,7 @@ def test_clean_up(renderer: QuestionUIRenderer) -> None:
         </div>
     """
     html, errors = renderer.render()
-    assert len(errors) == 0
+    assert len(errors) == 1  # Undefined attribute.
     assert_html_is_equal(html, expected)
 
 
@@ -381,9 +384,13 @@ def test_errors_should_be_collected(renderer: QuestionUIRenderer) -> None:
     expected = """
         <div>
             <span>&lt;qpy:format-float xmlns:qpy="http://questionpy.org/ns/question" xmlns="http://www.w3.org/1999/xhtml" thousands-separator="maybe" precision="invalid"&gt;Unknown value.&lt;/qpy:format-float&gt;</span>
-            <fieldset><label>Invalid shuffle format.<span>1</span>. A</label></fieldset>
+            <fieldset>
+                <label>Invalid shuffle format.<span>1</span>. A</label>
+                Invalid text placement.
+            </fieldset>
             <div>Missing placeholder.</div>
             <div>Empty placeholder.</div>
+            <div>Unknown attribute.</div>
             <span>Missing attribute value.</span>
         </div>
     """  # noqa: E501
@@ -391,17 +398,20 @@ def test_errors_should_be_collected(renderer: QuestionUIRenderer) -> None:
 
     expected_errors: list[tuple[type[RenderError], int]] = [
         # Even though the syntax error occurs after all the other errors, it should be listed first.
-        (XMLSyntaxError, 14),
+        (XMLSyntaxError, 17),
         (InvalidAttributeValueError, 2),
         (UnknownElementError, 3),
         (InvalidAttributeValueError, 4),
         (ConversionError, 5),
         (ConversionError, 5),
         (InvalidAttributeValueError, 5),
+        (InvalidContentError, 6),
         (InvalidAttributeValueError, 9),
-        (InvalidCleanOptionError, 12),
-        (PlaceholderReferenceError, 12),
+        (InvalidCleanOptionError, 13),
         (PlaceholderReferenceError, 13),
+        (PlaceholderReferenceError, 14),
+        (ExpectedAncestorError, 15),
+        (UnknownAttributeError, 16),
     ]
 
     assert len(errors) == len(expected_errors)

@@ -8,8 +8,11 @@
             Invalid shuffle format.
             <qpy:shuffled-index format="invalid"/>. A
         </label>
+        Invalid text placement.
     </fieldset>
     <div>Missing placeholder.<?p missing invalid-cleaning-option?></div>
     <div>Empty placeholder.<?p      ?></div>
+    <qpy:shuffled-index/> <!-- Not inside a qpy:shuffle-contents element. -->
+    <div qpy:unknown-attribute="">Unknown attribute.</div>
     <span no-attribute-value>Missing attribute value.</span>
 </div>
