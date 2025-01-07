@@ -13,6 +13,7 @@ from questionpy_common.environment import get_qpy_environment
 from ._attempt import Attempt, AttemptProtocol, AttemptScoredProtocol, AttemptStartedProtocol
 from ._util import get_mro_type_hint
 from .form import FormModel, OptionsFormDefinition
+from .form.validation import validate_form
 
 _F = TypeVar("_F", bound=FormModel)
 _S = TypeVar("_S", bound="BaseQuestionState")
@@ -168,6 +169,11 @@ class Question(ABC):
         cls.question_state_with_version_class = QuestionStateWithVersion[  # type: ignore[misc]
             cls.options_class, cls.question_state_class  # type: ignore[name-defined]
         ]
+
+        # A form may have unresolved references when it is intended to be used as a repetition, group, section, etc.
+        # Only the complete form must pass validation, so the validation has to happen here instead of in FormModel or
+        # OptionsFormDefinition.
+        validate_form(cls.options_class.qpy_form)
 
     @property  # type: ignore[no-redef]
     def options(self) -> FormModel:

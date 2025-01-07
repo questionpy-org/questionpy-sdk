@@ -9,10 +9,13 @@ import pytest
 from questionpy import (
     InvalidResponseError,
     NeedsManualScoringError,
+    Question,
     QuestionTypeWrapper,
     QuestionWrapper,
     ResponseNotScorableError,
 )
+from questionpy.form import FormModel, is_not_checked, text_input
+from questionpy.form.validation import FormError
 from questionpy_common.api.attempt import AttemptModel, AttemptScoredModel, AttemptStartedModel, AttemptUi, ScoringCode
 from questionpy_common.api.question import QuestionModel, ScoringMethod
 from questionpy_common.environment import Package
@@ -103,3 +106,16 @@ def test_should_export_question_model(package: Package) -> None:
     question_model = question.export()
 
     assert question_model == QuestionModel(lang="en", scoring_method=ScoringMethod.AUTOMATICALLY_SCORABLE)
+
+
+def test_should_raise_when_form_is_invalid() -> None:
+    class ModelWithUnresolvedReference(FormModel):
+        my_text: str | None = text_input("Label", hide_if=is_not_checked("nonexistent_checkbox"))
+
+    # There are more detailed validation tests in test_validation.py, here we just ensure that validate_form is called
+    # at the correct place.
+    with pytest.raises(FormError):
+
+        class MyQuestion(Question):
+            attempt_class = SomeAttempt
+            options: ModelWithUnresolvedReference
