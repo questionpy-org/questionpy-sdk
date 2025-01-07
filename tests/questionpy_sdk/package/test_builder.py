@@ -42,7 +42,7 @@ def test_creates_proper_directory_entries(qpy_pkg_path: Path) -> None:
         assert zipfile.getinfo(f"{DIST_DIR}/python/").is_dir()
         assert zipfile.getinfo(f"{DIST_DIR}/python/local/").is_dir()
         assert zipfile.getinfo(f"{DIST_DIR}/python/local/minimal_example/").is_dir()
-        assert zipfile.getinfo(f"{DIST_DIR}/python/local/minimal_example/templates/").is_dir()
+        assert zipfile.getinfo(f"{DIST_DIR}/templates/").is_dir()
         assert zipfile.getinfo(f"{DIST_DIR}/dependencies/").is_dir()
         assert zipfile.getinfo(f"{DIST_DIR}/dependencies/site-packages/").is_dir()
         assert zipfile.getinfo(f"{DIST_DIR}/dependencies/site-packages/questionpy/").is_dir()

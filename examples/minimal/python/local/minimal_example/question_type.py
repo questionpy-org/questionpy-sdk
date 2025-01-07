@@ -17,7 +17,7 @@ class ExampleAttempt(Attempt):
     @property
     def formulation(self) -> str:
         self.placeholders["description"] = "Welcher ist der zweite Buchstabe im deutschen Alphabet?"
-        return self.jinja2.get_template("local.minimal_example/formulation.xhtml.j2").render()
+        return self.jinja2.get_template("formulation.xhtml.j2").render()
 
 
 class ExampleQuestion(Question):
