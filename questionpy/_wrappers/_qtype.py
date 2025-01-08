@@ -9,6 +9,7 @@ from pydantic import JsonValue
 
 from questionpy import Question
 from questionpy._wrappers._question import QuestionWrapper
+from questionpy.form.validation import validate_form
 from questionpy_common.api.qtype import InvalidQuestionStateError, QuestionTypeInterface
 from questionpy_common.api.question import QuestionInterface
 from questionpy_common.elements import OptionsFormDefinition
@@ -34,6 +35,12 @@ class QuestionTypeWrapper(QuestionTypeInterface):
                            functionality. This will probably, but not necessarily, be a subclass of the default
                            [QuestionWrapper][questionpy.QuestionWrapper].
         """
+        # A form may have unresolved references when it is intended to be used as a repetition, group, section, etc.
+        # Only the complete form must pass validation, so the validation has to happen here instead of in FormModel or
+        # OptionsFormDefinition.
+        # We also can't do this in Question.__init_subclass__ since the type hint of options may be a forward reference.
+        validate_form(question_class.options_class.qpy_form)
+
         self._question_class = question_class
         self._package = package
 

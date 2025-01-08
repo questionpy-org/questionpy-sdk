@@ -5,7 +5,9 @@ import json
 
 import pytest
 
-from questionpy import OptionsFormValidationError, QuestionTypeWrapper, QuestionWrapper
+from questionpy import OptionsFormValidationError, Question, QuestionTypeWrapper, QuestionWrapper
+from questionpy.form import FormModel, is_not_checked, text_input
+from questionpy.form.validation import FormError
 from questionpy_common.elements import OptionsFormDefinition, TextInputElement
 from questionpy_common.environment import Package
 from tests.questionpy.wrappers.conftest import (
@@ -13,6 +15,7 @@ from tests.questionpy.wrappers.conftest import (
     STATIC_FILES,
     QuestionUsingDefaultState,
     QuestionUsingMyQuestionState,
+    SomeAttempt,
 )
 
 _EXPECTED_FORM = OptionsFormDefinition(general=[TextInputElement(name="input", label="Some Label")])
@@ -72,3 +75,17 @@ def test_should_preserve_options_when_using_default_question_state(package: Pack
 
 def test_should_get_static_files(package: Package) -> None:
     package.manifest.static_files = STATIC_FILES
+
+
+def test_should_raise_when_form_is_invalid(package: Package) -> None:
+    class ModelWithUnresolvedReference(FormModel):
+        my_text: str | None = text_input("Label", hide_if=is_not_checked("nonexistent_checkbox"))
+
+    class MyQuestion(Question):
+        attempt_class = SomeAttempt
+        options: ModelWithUnresolvedReference
+
+    # There are more detailed validation tests in test_validation.py, here we just ensure that validate_form is called
+    # at the correct place.
+    with pytest.raises(FormError):
+        QuestionTypeWrapper(MyQuestion, package)
