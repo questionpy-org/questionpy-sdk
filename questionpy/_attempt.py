@@ -9,7 +9,7 @@ from pydantic import BaseModel, JsonValue
 from questionpy_common.api.attempt import AttemptFile, AttemptUi, CacheControl, ScoredInputModel, ScoringCode
 
 from ._ui import create_jinja2_environment
-from ._util import get_mro_type_hint
+from ._util import reify_type_hint
 
 if TYPE_CHECKING:
     from ._qtype import Question
@@ -138,8 +138,8 @@ class Attempt(ABC):
     attempt_state: BaseAttemptState
     scoring_state: BaseScoringState | None
 
-    attempt_state_class: ClassVar[type[BaseAttemptState]]
-    scoring_state_class: ClassVar[type[BaseScoringState]]
+    attempt_state_class: ClassVar[type[BaseAttemptState]] = reify_type_hint("attempt_state", BaseAttemptState)
+    scoring_state_class: ClassVar[type[BaseScoringState]] = reify_type_hint("scoring_state", BaseScoringState)
 
     def __init__(
         self,
@@ -245,9 +245,6 @@ class Attempt(ABC):
 
     def __init_subclass__(cls, *args: object, **kwargs: object):
         super().__init_subclass__(*args, **kwargs)
-
-        cls.attempt_state_class = get_mro_type_hint(cls, "attempt_state", BaseAttemptState)
-        cls.scoring_state_class = get_mro_type_hint(cls, "scoring_state", BaseScoringState)
 
 
 class _ScoringError(Exception):

@@ -6,6 +6,8 @@ from .form import ChoiceMode, SinglechoiceFormModel
 
 
 class SinglechoiceAttempt(Attempt):
+    question: "SinglechoiceQuestion"
+
     def _compute_score(self) -> float:
         if not self.response or "choice" not in self.response:
             msg = "'choice' is missing"

@@ -11,9 +11,8 @@ from questionpy_common.api.question import ScoringMethod, SubquestionModel
 from questionpy_common.environment import get_qpy_environment
 
 from ._attempt import Attempt, AttemptProtocol, AttemptScoredProtocol, AttemptStartedProtocol
-from ._util import get_mro_type_hint
+from ._util import cached_class_property, reify_type_hint
 from .form import FormModel, OptionsFormDefinition
-from .form.validation import validate_form
 
 _F = TypeVar("_F", bound=FormModel)
 _S = TypeVar("_S", bound="BaseQuestionState")
@@ -36,9 +35,11 @@ class Question(ABC):
     options: FormModel
     question_state: BaseQuestionState
 
-    options_class: ClassVar[type[FormModel]]
-    question_state_class: ClassVar[type[BaseQuestionState]]
-    question_state_with_version_class: ClassVar[type[QuestionStateWithVersion]]
+    options_class: ClassVar[type[FormModel]] = reify_type_hint("options", FormModel)
+    question_state_class: ClassVar[type[BaseQuestionState]] = reify_type_hint("question_state", BaseQuestionState)
+    question_state_with_version_class: ClassVar[type[QuestionStateWithVersion]] = cached_class_property(
+        lambda cls: QuestionStateWithVersion[cls.options_class, cls.question_state_class]  # type: ignore[name-defined]
+    )
 
     def __init__(self, qswv: QuestionStateWithVersion) -> None:
         self.question_state_with_version = qswv
@@ -163,17 +164,6 @@ class Question(ABC):
         if not hasattr(cls, "attempt_class"):
             msg = f"Missing '{cls.__name__}.attempt_class' attribute. It should point to your attempt implementation"
             raise TypeError(msg)
-
-        cls.question_state_class = get_mro_type_hint(cls, "question_state", BaseQuestionState)
-        cls.options_class = get_mro_type_hint(cls, "options", FormModel)
-        cls.question_state_with_version_class = QuestionStateWithVersion[  # type: ignore[misc]
-            cls.options_class, cls.question_state_class  # type: ignore[name-defined]
-        ]
-
-        # A form may have unresolved references when it is intended to be used as a repetition, group, section, etc.
-        # Only the complete form must pass validation, so the validation has to happen here instead of in FormModel or
-        # OptionsFormDefinition.
-        validate_form(cls.options_class.qpy_form)
 
     @property  # type: ignore[no-redef]
     def options(self) -> FormModel:
