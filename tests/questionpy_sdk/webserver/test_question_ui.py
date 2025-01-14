@@ -178,31 +178,42 @@ def test_element_visibility_based_on_role(options: QuestionDisplayOptions, expec
     assert_html_is_equal(html, expected)
 
 
-@pytest.mark.ui_file("inputs")
+@pytest.mark.ui_file("input-values")
 @pytest.mark.render_params(
     attempt={
-        "my_text": "text user input",
-        "my_select": "2",
-        "my_textarea": "textarea user input",
-        "my_checkbox": "checkbox_value",
-        "my_radio": "radio_value_2",
+        "my_text": "new",
+        "my_checkbox_value": "value",
+        "my_checkbox_on": "on",
+        "my_radio": "value1",
+        "my_select": "value3",
+        "my_hidden": "new",
+        "my_button": "should be ignored",
+        "my_textarea": "new",
     }
 )
 def test_should_set_input_values(renderer: QuestionUIRenderer) -> None:
     expected = """
-        <div>
-            <button name="my_button" type="button" class="btn btn-primary qpy-input">Button</button>
-            <input type="button" value="Submit" class="btn btn-primary qpy-input"/>
-            <input name="my_text" type="text" value="text user input" class="form-control qpy-input"/>
-            <select name="my_select" class="form-control qpy-input">
-                <option value="1">One</option>
-                <option value="2" selected="selected">Two</option>
-        <div xmlns="http://www.w3.org/1999/xhtml">
+        <div xmlns="http://www.w3.org/1999/xhtml" id="my_div">
+            <input class="form-control qpy-input" type="text" name="my_text" value="new"/>
+
+            <input class="qpy-input" type="checkbox" name="my_checkbox_value" value="value" checked="checked"/>
+            <input class="qpy-input" type="checkbox" name="my_checkbox_on" checked="checked"/>
+
+            <input class="qpy-input" type="radio" name="my_radio" value="value1" checked="checked"/>
+            <input class="qpy-input" type="radio" name="my_radio" value="value2"/>
+
+            <select class="form-control qpy-input" name="my_select">
+                <option value="value1"/>
+                <option value="value2"/>
+                <option value="value3" selected="selected"/>
             </select>
-            <textarea name="my_textarea" class="form-control qpy-input">textarea user input</textarea>
-            <input name="my_checkbox" type="checkbox" value="checkbox_value" class="qpy-input" checked="checked"/>
-            <input name="my_radio" type="radio" value="radio_value_1" class="qpy-input"/>
-            <input name="my_radio" type="radio" value="radio_value_2" class="qpy-input" checked="checked"/>
+
+            <input class="form-control qpy-input" type="hidden" name="my_hidden" value="new"/>
+
+            <input class="btn btn-primary qpy-input" name="my_button" type="button" value="value1"/>
+            <input class="btn btn-primary qpy-input" name="my_button" type="button" value="value2"/>
+
+            <textarea class="form-control qpy-input" name="my_textarea">new</textarea>
         </div>
     """
     html, errors = renderer.render()
@@ -210,23 +221,31 @@ def test_should_set_input_values(renderer: QuestionUIRenderer) -> None:
     assert_html_is_equal(html, expected)
 
 
-@pytest.mark.ui_file("inputs")
+@pytest.mark.ui_file("input-values")
 @pytest.mark.render_params(options=QuestionDisplayOptions(readonly=True))
 def test_should_disable_inputs(renderer: QuestionUIRenderer) -> None:
     expected = """
-        <div>
-            <button name="my_button" type="button" disabled="disabled" class="btn btn-primary qpy-input">Button</button>
-            <input type="button" value="Submit" disabled="disabled" class="btn btn-primary qpy-input"/>
-            <input name="my_text" type="text" value="some_value" disabled="disabled" class="form-control qpy-input"/>
-            <select name="my_select" disabled="disabled" class="form-control qpy-input">
-                <option value="1">One</option>
-                <option value="2">Two</option>
-        <div xmlns="http://www.w3.org/1999/xhtml">
+        <div xmlns="http://www.w3.org/1999/xhtml" id="my_div">
+            <input class="form-control qpy-input" type="text" name="my_text" value="original" disabled="disabled"/>
+
+            <input class="qpy-input" type="checkbox" name="my_checkbox_value" value="value" disabled="disabled"/>
+            <input class="qpy-input" type="checkbox" name="my_checkbox_on" disabled="disabled"/>
+
+            <input class="qpy-input" type="radio" name="my_radio" value="value1" disabled="disabled"/>
+            <input class="qpy-input" type="radio" name="my_radio" value="value2" checked="checked" disabled="disabled"/>
+
+            <select class="form-control qpy-input" name="my_select" disabled="disabled">
+                <option value="value1"/>
+                <option value="value2" selected="selected"/>
+                <option value="value3"/>
             </select>
-            <textarea name="my_textarea" disabled="disabled" class="form-control qpy-input"/>
-            <input name="my_checkbox" type="checkbox" value="checkbox_value" disabled="disabled" class="qpy-input"/>
-            <input name="my_radio" type="radio" value="radio_value_1" disabled="disabled" class="qpy-input"/>
-            <input name="my_radio" type="radio" value="radio_value_2" disabled="disabled" class="qpy-input"/>
+
+            <input class="form-control qpy-input" type="hidden" name="my_hidden" value="original" disabled="disabled"/>
+
+            <input class="btn btn-primary qpy-input" name="my_button" type="button" value="value1" disabled="disabled"/>
+            <input class="btn btn-primary qpy-input" name="my_button" type="button" value="value2" disabled="disabled"/>
+
+            <textarea class="form-control qpy-input" name="my_textarea" disabled="disabled">original</textarea>
         </div>
     """
     html, errors = renderer.render()
