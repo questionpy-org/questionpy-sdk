@@ -221,16 +221,17 @@ class QuestionUIRenderer:
         xml = self._replace_qpy_urls(xml)
         self._error_collector = _RenderErrorCollector(xml, placeholders)
 
-        try:
-            root = etree.fromstring(xml)
-        except etree.XMLSyntaxError:
-            parser = etree.XMLParser(recover=True)
-            root = etree.fromstring(xml, parser=parser)
+        parser = etree.XMLParser(recover=True, remove_comments=True)
+        root = etree.fromstring(xml, parser=parser)
 
         self._xml = etree.ElementTree(root)
-        self._xpath = etree.XPathDocumentEvaluator(self._xml)
-        self._xpath.register_namespace("xhtml", _XHTML_NAMESPACE)
-        self._xpath.register_namespace("qpy", _QPY_NAMESPACE)
+        self._xpath = etree.XPathDocumentEvaluator(
+            self._xml,
+            namespaces={
+                "xhtml": _XHTML_NAMESPACE,
+                "qpy": _QPY_NAMESPACE,
+            },
+        )
         self._placeholders = placeholders
         self._options = options
         self._random = Random(seed)
@@ -422,25 +423,18 @@ class QuestionUIRenderer:
             element.attrib.pop(f"{{{_QPY_NAMESPACE}}}shuffle-contents")
 
     def _clean_up(self) -> None:
-        """Removes remaining QuestionPy elements and attributes as well as comments and xmlns declarations."""
+        """Removes remaining QuestionPy elements and attributes as well as xmlns declarations.
+
+        Comments are removed by the XML parser.
+        """
         for element in _assert_element_list(self._xpath("//qpy:*")):
             _remove_element(element)
 
         # Remove attributes in the QuestionPy namespace
-        for element in _assert_element_list(self._xpath("//*")):
+        for element in _assert_element_list(self._xpath("//*[@qpy:*]")):
             qpy_attributes = [attr for attr in element.attrib if attr.startswith(f"{{{_QPY_NAMESPACE}}}")]  # type: ignore[arg-type]
             for attr in qpy_attributes:
                 del element.attrib[attr]
-
-        # Remove comments
-        for comment in _assert_element_list(self._xpath("//comment()")):
-            _remove_element(comment)
-
-        # Remove namespaces from all elements. (QPy elements should all have been consumed previously anyhow.)
-        for element in _assert_element_list(self._xpath("//*")):
-            qname = etree.QName(element)
-            if qname.namespace == _XHTML_NAMESPACE:
-                element.tag = qname.localname
 
         etree.cleanup_namespaces(self._xml, top_nsmap={None: _XHTML_NAMESPACE})  # type: ignore[dict-item]
 
