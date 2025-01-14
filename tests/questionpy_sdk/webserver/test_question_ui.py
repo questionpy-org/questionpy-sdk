@@ -96,7 +96,7 @@ def test_should_extract_correct_metadata(xml_content: str) -> None:
 )
 def test_should_resolve_placeholders(renderer: QuestionUIRenderer) -> None:
     expected = """
-    <div>
+    <div xmlns="http://www.w3.org/1999/xhtml">
         <div>My simple description.</div>
         <span>By default cleaned parameter: Value of param <b>one</b>.</span>
         <span>Explicitly cleaned parameter: Value of param <b>one</b>.</span>
@@ -115,7 +115,7 @@ def test_should_resolve_placeholders(renderer: QuestionUIRenderer) -> None:
 @pytest.mark.render_params(options=QuestionDisplayOptions(general_feedback=False, specific_feedback=False))
 def test_should_hide_inline_feedback(renderer: QuestionUIRenderer) -> None:
     expected = """
-        <div>
+        <div xmlns="http://www.w3.org/1999/xhtml">
             <span>No feedback</span>
         </div>
     """
@@ -127,7 +127,7 @@ def test_should_hide_inline_feedback(renderer: QuestionUIRenderer) -> None:
 @pytest.mark.ui_file("feedbacks")
 def test_should_show_inline_feedback(renderer: QuestionUIRenderer) -> None:
     expected = """
-        <div>
+        <div xmlns="http://www.w3.org/1999/xhtml">
             <span>No feedback</span>
             <span>General feedback</span>
             <span>Specific feedback</span>
@@ -143,12 +143,15 @@ def test_should_show_inline_feedback(renderer: QuestionUIRenderer) -> None:
     [
         (
             QuestionDisplayOptions(roles=set()),
-            "<div></div>",
+            """
+                <div xmlns="http://www.w3.org/1999/xhtml">
+                </div>
+            """,
         ),
         (
             QuestionDisplayOptions(roles={DisplayRole.SCORER}),
             """
-                <div>
+                <div xmlns="http://www.w3.org/1999/xhtml">
                     <div>You're a scorer!</div>
                     <div>You're any of the above!</div>
                 </div>
@@ -157,7 +160,7 @@ def test_should_show_inline_feedback(renderer: QuestionUIRenderer) -> None:
         (
             QuestionDisplayOptions(),
             """
-                <div>
+                <div xmlns="http://www.w3.org/1999/xhtml">
                     <div>You're a teacher!</div>
                     <div>You're a developer!</div>
                     <div>You're a scorer!</div>
@@ -194,6 +197,7 @@ def test_should_set_input_values(renderer: QuestionUIRenderer) -> None:
             <select name="my_select" class="form-control qpy-input">
                 <option value="1">One</option>
                 <option value="2" selected="selected">Two</option>
+        <div xmlns="http://www.w3.org/1999/xhtml">
             </select>
             <textarea name="my_textarea" class="form-control qpy-input">textarea user input</textarea>
             <input name="my_checkbox" type="checkbox" value="checkbox_value" class="qpy-input" checked="checked"/>
@@ -217,6 +221,7 @@ def test_should_disable_inputs(renderer: QuestionUIRenderer) -> None:
             <select name="my_select" disabled="disabled" class="form-control qpy-input">
                 <option value="1">One</option>
                 <option value="2">Two</option>
+        <div xmlns="http://www.w3.org/1999/xhtml">
             </select>
             <textarea name="my_textarea" disabled="disabled" class="form-control qpy-input"/>
             <input name="my_checkbox" type="checkbox" value="checkbox_value" disabled="disabled" class="qpy-input"/>
@@ -232,7 +237,7 @@ def test_should_disable_inputs(renderer: QuestionUIRenderer) -> None:
 @pytest.mark.ui_file("validations")
 def test_should_soften_validations(renderer: QuestionUIRenderer) -> None:
     expected = """
-        <div>
+        <div xmlns="http://www.w3.org/1999/xhtml">
             <input data-qpy_required="true" aria-required="true"/>
             <input data-qpy_pattern="^[a-z]+$"/>
             <input data-qpy_minlength="5"/>
@@ -252,7 +257,7 @@ def test_should_soften_validations(renderer: QuestionUIRenderer) -> None:
 @pytest.mark.ui_file("buttons")
 def test_should_defuse_buttons(renderer: QuestionUIRenderer) -> None:
     expected = """
-        <div>
+        <div xmlns="http://www.w3.org/1999/xhtml">
             <button class="btn btn-primary qpy-input" type="button">Submit</button>
             <button class="btn btn-primary qpy-input" type="button">Reset</button>
             <button class="btn btn-primary qpy-input" type="button">Button</button>
@@ -267,11 +272,11 @@ def test_should_defuse_buttons(renderer: QuestionUIRenderer) -> None:
     assert_html_is_equal(html, expected)
 
 
-@pytest.mark.skip("""format_floats adds decimal 0 to numbers without decimal part""")
+@pytest.mark.skip("format_floats adds decimal 0 to numbers without decimal part")
 @pytest.mark.ui_file("format-floats")
 def test_should_format_floats_in_en(renderer: QuestionUIRenderer) -> None:
     expected = """
-        <div>
+        <div xmlns="http://www.w3.org/1999/xhtml">
             Just the decsep: <span>1.23456</span>
             Thousands sep without decimals: <span>1,000,000,000</span>
             Thousands sep with decimals: <span>10,000,000,000.123</span>
@@ -300,7 +305,7 @@ def test_should_shuffle_the_same_way_in_same_attempt(renderer: QuestionUIRendere
 @pytest.mark.render_params(seed=42)
 def test_should_replace_shuffled_index(renderer: QuestionUIRenderer) -> None:
     expected = """
-        <div>
+        <div xmlns="http://www.w3.org/1999/xhtml">
             <fieldset>
                 <label>
                     <input type="radio" name="choice" value="B" class="qpy-input"/>
@@ -326,7 +331,7 @@ def test_should_replace_shuffled_index(renderer: QuestionUIRenderer) -> None:
 @pytest.mark.render_params(seed=42)
 def test_should_replace_shuffled_index_in_nested(renderer: QuestionUIRenderer) -> None:
     expected = """
-        <div>
+        <div xmlns="http://www.w3.org/1999/xhtml">
             <p><span>i</span>. B</p>
             <p><span>ii</span>. A</p>
             <div>
@@ -342,9 +347,10 @@ def test_should_replace_shuffled_index_in_nested(renderer: QuestionUIRenderer) -
 
 @pytest.mark.render_params(
     xml="""
+        <!-- Comment outside of root element. -->
         <div xmlns:qpy="http://questionpy.org/ns/question">
             <element qpy:attribute="value">Content</element>
-            <!-- Comment -->
+            <!-- Comment. -->
             <regular xmlns:qpy="http://questionpy.org/ns/question">Normal Content</regular>
         </div>
     """
@@ -364,7 +370,7 @@ def test_clean_up(renderer: QuestionUIRenderer) -> None:
 @pytest.mark.ui_file("qpy-urls")
 def test_should_replace_qpy_urls(renderer: QuestionUIRenderer) -> None:
     expected = """
-        <div>
+        <div xmlns="http://www.w3.org/1999/xhtml">
             <link rel="stylesheet" href="/worker/foo/bar/file/static/style.css"/>
             <script src="/worker/foo/bar/file/static/script.js"></script>
             <img src="/worker/acme/example/file/static-private/some/nested/path/img.png"/>
@@ -382,7 +388,7 @@ def test_should_replace_qpy_urls(renderer: QuestionUIRenderer) -> None:
 @pytest.mark.ui_file("faulty")
 def test_errors_should_be_collected(renderer: QuestionUIRenderer) -> None:
     expected = """
-        <div>
+        <div xmlns="http://www.w3.org/1999/xhtml">
             <span>&lt;qpy:format-float xmlns:qpy="http://questionpy.org/ns/question" xmlns="http://www.w3.org/1999/xhtml" thousands-separator="maybe" precision="invalid"&gt;Unknown value.&lt;/qpy:format-float&gt;</span>
             <fieldset>
                 <label>Invalid shuffle format.<span>1</span>. A</label>
