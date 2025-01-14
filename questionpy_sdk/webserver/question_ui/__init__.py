@@ -239,17 +239,27 @@ class QuestionUIRenderer:
             tuple: The rendered html and a render errors collection.
         """
         if self._html is None:
-            self._resolve_placeholders()
+            # Handle our custom elements and attributes.
             self._hide_unwanted_feedback()
             self._hide_if_role()
+            self._shuffle_contents()
+            self._format_floats()
+
+            # Remove all unhandled custom elements, attributes, and non-default xmlns declarations.
+            self._clean_up()
+
+            # Modify standard HTML.
             self._set_input_values_and_readonly()
             self._soften_validation()
             self._defuse_buttons()
-            self._shuffle_contents()
+
             self._add_styles()
-            self._format_floats()
+
+            # We don't want to support QPy elements (and attributes, etc.) in placeholder expansions, so we resolve
+            # them after replacing QPy elements.
+            self._resolve_placeholders()
+
             # TODO: mangle_ids_and_names
-            self._clean_up()
 
             self._html = etree.tostring(self._xml, pretty_print=True, method="html").decode()
             self._error_collector.collect()
@@ -263,10 +273,8 @@ class QuestionUIRenderer:
     def _resolve_placeholders(self) -> None:
         """Replace placeholder PIs such as `<?p my_key plain?>` with the appropriate value from `self.placeholders`.
 
-        TODD: remove comment or change call-order
-
         Since QPy transformations should not be applied to the content of the placeholders, this method should be called
-        last.
+        near the end (after `_clean_up` method).
         """
         for p_instruction in _assert_element_list(self._xpath("//processing-instruction('p')")):
             if not p_instruction.text:
