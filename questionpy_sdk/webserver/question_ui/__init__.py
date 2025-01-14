@@ -52,30 +52,32 @@ def _assert_element_list(query: Any) -> list[etree._Element]:
     return query
 
 
-def _set_element_value(element: etree._Element, value: str, name: str, xpath: etree.XPathDocumentEvaluator) -> None:
+def _set_element_value(element: etree._Element, value: str) -> None:
     """Sets value on user input element.
 
     Args:
         element: XHTML element to set value on.
         value: Value to set.
-        name: Element name.
-        xpath: XPath evaluator.
     """
     type_attr = element.get("type", "text") if element.tag.endswith("}input") else etree.QName(element).localname
 
     if type_attr in {"checkbox", "radio"}:
-        if element.get("value") == value:
+        should_be_checked = element.get("value") == value if "value" in element.attrib else value == "on"
+        if should_be_checked:
             element.set("checked", "checked")
+        else:
+            element.attrib.pop("checked", "none")
     elif type_attr == "select":
         # Iterate over child <option> elements to set 'selected' attribute
-        for option in _assert_element_list(xpath(f".//xhtml:option[parent::xhtml:select[@name='{name}']]")):
-            opt_value = option.get("value") if option.get("value") is not None else option.text
+        for option in element.findall(".//xhtml:option", {"xhtml": _XHTML_NAMESPACE}):
+            opt_value = option.get("value") if "value" in option.attrib else option.text
             if opt_value == value:
                 option.set("selected", "selected")
-                break
+            else:
+                option.attrib.pop("selected", "none")
     elif type_attr == "textarea":
         element.text = value
-    elif type_attr not in {"button", "submit", "hidden"}:
+    elif type_attr not in {"button", "submit"}:
         element.set("value", value)
 
 
@@ -352,7 +354,7 @@ class QuestionUIRenderer:
 
             last_value = self._attempt.get(name)
             if last_value is not None:
-                _set_element_value(element, last_value, name, self._xpath)
+                _set_element_value(element, last_value)
 
     def _soften_validation(self) -> None:
         """Replaces HTML attributes so that submission is not prevented.
