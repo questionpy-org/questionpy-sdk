@@ -312,53 +312,26 @@ def test_should_format_floats_in_en(renderer: QuestionUIRenderer) -> None:
 
 @pytest.mark.ui_file("shuffle")
 @pytest.mark.render_params(seed=42)
-def test_should_shuffle_the_same_way_in_same_attempt(renderer: QuestionUIRenderer, xml_content: str) -> None:
-    expected_html, _ = renderer.render()
-    for _ in range(10):
-        html, errors = QuestionUIRenderer(xml_content, {}, QuestionDisplayOptions(), seed=42).render()
-        assert len(errors) == 0
-        assert html == expected_html, "Shuffled order should remain consistent across renderings with the same seed"
-
-
-@pytest.mark.ui_file("shuffled-index")
-@pytest.mark.render_params(seed=42)
-def test_should_replace_shuffled_index(renderer: QuestionUIRenderer) -> None:
+def test_should_handle_complex_shuffle_scenario(renderer: QuestionUIRenderer, xml_content: str) -> None:
     expected = """
         <div xmlns="http://www.w3.org/1999/xhtml">
-            <fieldset>
-                <label>
-                    <input type="radio" name="choice" value="B" class="qpy-input"/>
-                    <span>i</span>. B
-                </label>
-                <label>
-                    <input type="radio" name="choice" value="A" class="qpy-input"/>
-                    <span>ii</span>. A
-                </label>
-                <label>
-                    <input type="radio" name="choice" value="C" class="qpy-input"/>
-                    <span>iii</span>. C
-                </label>
-            </fieldset>
-        </div>
-        """
-    html, errors = renderer.render()
-    assert len(errors) == 0
-    assert_html_is_equal(html, expected)
-
-
-@pytest.mark.ui_file("shuffled-index-nested")
-@pytest.mark.render_params(seed=42)
-def test_should_replace_shuffled_index_in_nested(renderer: QuestionUIRenderer) -> None:
-    expected = """
-        <div xmlns="http://www.w3.org/1999/xhtml">
-            <p><span>i</span>. B</p>
-            <p><span>ii</span>. A</p>
+            <span>Element 4, shuffled to I</span>
+            <span>Element 2, shuffled to 2</span>
+            <span>Element 3, shuffled to c</span>
             <div>
-                <p><span>i</span>. D</p>
-                <p><span>ii</span>. C</p>
+                Element 5, shuffled to 4
+                <div>
+                    <span>Nested element 2, shuffled to 1</span>
+                    <span>Nested element 1, shuffled to 2</span>
+                </div>
+            </div>
+            <span>Element 1, shuffled to 5</span>
+            <div>
+                <span>Nested element 2, shuffled to 1</span>
+                <span>Nested element 1, shuffled to 2</span>
             </div>
         </div>
-        """
+    """
     html, errors = renderer.render()
     assert len(errors) == 0
     assert_html_is_equal(html, expected)
@@ -410,7 +383,7 @@ def test_errors_should_be_collected(renderer: QuestionUIRenderer) -> None:
         <div xmlns="http://www.w3.org/1999/xhtml">
             <span>&lt;qpy:format-float xmlns:qpy="http://questionpy.org/ns/question" xmlns="http://www.w3.org/1999/xhtml" thousands-separator="maybe" precision="invalid"&gt;Unknown value.&lt;/qpy:format-float&gt;</span>
             <fieldset>
-                <label>Invalid shuffle format.<span>1</span>. A</label>
+                <label>Invalid shuffle format. 1. A</label>
                 Invalid text placement.
             </fieldset>
             <div>Missing placeholder.</div>

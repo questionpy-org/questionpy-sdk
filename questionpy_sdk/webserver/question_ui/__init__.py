@@ -117,15 +117,8 @@ def _replace_shuffled_indices(container: etree._Element, element: etree._Element
             index_str = str(index)
 
         # Replace the index element with the new index string
-        new_text_node = etree.Element("span")  # Using span to replace the custom element
-        new_text_node.text = index_str
-
-        if index_element.tail:
-            new_text_node.tail = index_element.tail
-
-        parent = index_element.getparent()
-        if parent is not None:
-            parent.replace(index_element, new_text_node)
+        index_element.tail = index_str + ("" if index_element.tail is None else index_element.tail)
+        _remove_preserving_tail(index_element)
 
 
 def _int_to_letter(index: int) -> str:
