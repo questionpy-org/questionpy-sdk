@@ -12,6 +12,7 @@ from questionpy_common.constants import DIST_DIR, MANIFEST_FILENAME
 from questionpy_sdk.package.builder import DirPackageBuilder
 from questionpy_sdk.package.errors import PackageBuildError, PackageSourceValidationError
 from questionpy_sdk.package.source import PackageSource
+from questionpy_server.hash import calculate_hash
 from questionpy_server.worker.runtime.package_location import (
     DirPackageLocation,
     PackageLocation,
@@ -53,7 +54,7 @@ def get_package_location(pkg_string: str, pkg_path: Path) -> PackageLocation:
         return _get_dir_package_location_from_source(pkg_string, pkg_path)
 
     if zipfile.is_zipfile(pkg_path):
-        return ZipPackageLocation(pkg_path)
+        return ZipPackageLocation(pkg_path, calculate_hash(pkg_path))
 
     msg = f"'{pkg_string}' doesn't look like a QPy package file, source directory, or dist directory."
     raise click.ClickException(msg)

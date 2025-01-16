@@ -11,6 +11,8 @@ from questionpy_common.api.attempt import (
     AttemptUi,
     CacheControl,
     ClassifiedResponse,
+    DisplayRole,
+    FeedbackType,
     ScoreModel,
     ScoringCode,
 )
@@ -61,7 +63,9 @@ __all__ = [
     "BaseScoringState",
     "CacheControl",
     "ClassifiedResponse",
+    "DisplayRole",
     "Environment",
+    "FeedbackType",
     "InvalidResponseError",
     "Manifest",
     "NeedsManualScoringError",
