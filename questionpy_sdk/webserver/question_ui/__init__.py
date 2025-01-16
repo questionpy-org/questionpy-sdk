@@ -4,7 +4,6 @@
 from __future__ import annotations
 
 import re
-from enum import StrEnum
 from random import Random
 from typing import Any
 
@@ -13,6 +12,7 @@ import lxml.html.clean
 from lxml import etree
 from pydantic import BaseModel
 
+from questionpy_common.api.attempt import DisplayRole
 from questionpy_sdk.webserver.question_ui.errors import (
     ConversionError,
     ExpectedAncestorError,
@@ -185,22 +185,15 @@ class QuestionMetadata:
         self.required_fields: list[str] = []
 
 
-class QuestionDisplayRole(StrEnum):
-    DEVELOPER = "DEVELOPER"
-    PROCTOR = "PROCTOR"
-    SCORER = "SCORER"
-    TEACHER = "TEACHER"
-
-
 class QuestionDisplayOptions(BaseModel):
     general_feedback: bool = True
     specific_feedback: bool = True
     right_answer: bool = True
-    roles: set[QuestionDisplayRole] = {
-        QuestionDisplayRole.DEVELOPER,
-        QuestionDisplayRole.PROCTOR,
-        QuestionDisplayRole.SCORER,
-        QuestionDisplayRole.TEACHER,
+    roles: set[DisplayRole] = {
+        DisplayRole.DEVELOPER,
+        DisplayRole.PROCTOR,
+        DisplayRole.SCORER,
+        DisplayRole.TEACHER,
     }
     readonly: bool = False
 
@@ -330,7 +323,7 @@ class QuestionUIRenderer:
         for element in _assert_element_list(self._xpath("//*[@qpy:if-role]")):
             if attr := element.get(f"{{{_QPY_NAMESPACE}}}if-role"):
                 allowed_roles = [role.upper() for role in re.split(r"[\s|]+", attr)]
-                has_role = any(role in allowed_roles and role in self._options.roles for role in QuestionDisplayRole)
+                has_role = any(role in allowed_roles and role in self._options.roles for role in DisplayRole)
 
                 if not has_role and (parent := element.getparent()) is not None:
                     parent.remove(element)
@@ -648,7 +641,7 @@ class _RenderErrorCollector:
         for element in _assert_element_list(self._xpath("//*[@qpy:if-role]")):
             if attr := element.get(f"{{{_QPY_NAMESPACE}}}if-role"):
                 allowed_roles = [role.upper() for role in re.split(r"[\s|]+", attr)]
-                expected = list(QuestionDisplayRole)
+                expected = list(DisplayRole)
                 if unexpected := [role for role in allowed_roles if role not in expected]:
                     error = InvalidAttributeValueError(
                         element=element,

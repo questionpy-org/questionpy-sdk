@@ -55,6 +55,7 @@ def _export_attempt(attempt: AttemptProtocol) -> dict:
             right_answer=attempt.right_answer_description,
             placeholders=attempt.placeholders,
             css_files=attempt.css_files,
+            javascript_calls=attempt.javascript_calls,
             files=attempt.files,
             cache_control=attempt.cache_control,
         ),

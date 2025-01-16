@@ -7,8 +7,8 @@ from typing import Any
 import pytest
 
 from questionpy_sdk.webserver.question_ui import (
+    DisplayRole,
     QuestionDisplayOptions,
-    QuestionDisplayRole,
     QuestionFormulationUIRenderer,
     QuestionMetadata,
     QuestionUIRenderer,
@@ -146,7 +146,7 @@ def test_should_show_inline_feedback(renderer: QuestionUIRenderer) -> None:
             "<div></div>",
         ),
         (
-            QuestionDisplayOptions(roles={QuestionDisplayRole.SCORER}),
+            QuestionDisplayOptions(roles={DisplayRole.SCORER}),
             """
                 <div>
                     <div>You're a scorer!</div>
