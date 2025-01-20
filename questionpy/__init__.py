@@ -37,6 +37,7 @@ from questionpy_common.environment import (
 )
 from questionpy_common.manifest import Manifest, PackageType, SourceManifest
 
+from . import i18n
 from ._attempt import (
     Attempt,
     AttemptUiPart,
@@ -100,4 +101,8 @@ __all__ = [
 def make_question_type_init(
     question_class: type[Question], *, wrap_question: Callable[[Question], QuestionInterface] = QuestionWrapper
 ) -> PackageInitFunction:
-    return lambda package, env: QuestionTypeWrapper(question_class, package, wrap_question=wrap_question)
+    def init(package: Package, env: Environment) -> QuestionTypeWrapper:
+        i18n.initialize(package, env)
+        return QuestionTypeWrapper(question_class, package, wrap_question=wrap_question)
+
+    return init

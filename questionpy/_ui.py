@@ -5,6 +5,7 @@ from typing import TYPE_CHECKING
 
 import jinja2
 
+from questionpy import i18n
 from questionpy._util import get_package_by_attempt
 from questionpy_common.environment import Package, get_qpy_environment
 
@@ -90,5 +91,10 @@ def create_jinja2_environment(attempt: "Attempt", question: "Question") -> jinja
         "question": question,
         "question_type": type(question),
     })
+
+    if i18n.is_initialized():
+        env.add_extension("jinja2.ext.i18n")
+        _, translations = i18n.get_state()
+        env.install_gettext_translations(translations, newstyle=True)
 
     return env

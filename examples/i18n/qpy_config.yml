@@ -1,0 +1,9 @@
+short_name: i18n
+namespace: local
+version: 0.1.0
+api_version: "0.1"
+author: Jane Doe <jane.doe@example.org>
+name:
+  de: Beispiel mit Internationalisierung (i18n)
+  en: Internationalisation (i18n) Example
+languages: [de, en]
