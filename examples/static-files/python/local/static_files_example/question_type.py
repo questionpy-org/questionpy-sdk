@@ -5,8 +5,8 @@ from .form import MyModel
 
 class ExampleAttempt(Attempt):
     def _init_attempt(self) -> None:
-        self.call_js("@local/static_files_example/test.js", "initButton", ["mybutton", "hiddenInput", "secret"])
-        self.call_js("@local/static_files_example/test.js", "hello", "world", if_feedback_type=FeedbackType.GENERAL_FEEDBACK)
+        self.call_js("test.js", "initButton", ["mybutton", "hiddenInput", "secret"])
+        self.call_js("test.js", "hello", "world", if_feedback_type=FeedbackType.GENERAL_FEEDBACK)
 
     def _compute_score(self) -> float:
         if not self.response or "hidden_value" not in self.response:

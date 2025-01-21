@@ -5,7 +5,8 @@ from typing import TYPE_CHECKING
 
 import jinja2
 
-from questionpy_common.environment import Package, PackageNamespaceAndShortName, get_qpy_environment
+from questionpy._util import get_package_by_attempt
+from questionpy_common.environment import Package, get_qpy_environment
 
 if TYPE_CHECKING:
     from questionpy import Attempt, Question
@@ -75,18 +76,7 @@ def create_jinja2_environment(attempt: "Attempt", question: "Question") -> jinja
     loaders: list[jinja2.BaseLoader] = [_CustomPrefixLoader(mapping=loader_mapping)]
 
     # Get caller package template loader.
-    try:
-        module_parts = attempt.__module__.split(".", maxsplit=2)
-        namespace, short_name, *_ = module_parts
-        key = PackageNamespaceAndShortName(namespace=namespace, short_name=short_name)
-        package = qpy_env.packages[key]
-    except (KeyError, ValueError) as e:
-        msg = (
-            "Current package namespace and shortname could not be determined from '__module__' attribute. Please do "
-            "not modify the '__module__' attribute."
-        )
-        raise ValueError(msg) from e
-
+    package = get_package_by_attempt(attempt)
     if current_package_loader := _get_loader(package):
         loaders.insert(0, current_package_loader)
 
