@@ -1,8 +1,35 @@
 #  This file is part of the QuestionPy SDK. (https://questionpy.org)
 #  The QuestionPy SDK is free software released under terms of the MIT license. See LICENSE.md.
 #  (c) Technische Universität Berlin, innoCampus <info@isis.tu-berlin.de>
-from questionpy import make_question_type_init
+from questionpy import Attempt, NeedsManualScoringError, Question, make_question_type_init
+from questionpy.form import FormModel, static_text
+from questionpy.i18n import gettext as _
+from questionpy_common.elements import StaticTextElement
 
-from .question_type import I18NQuestion
+
+def _(a):
+    return a
+
+
+class I18NModel(FormModel):
+    txt: StaticTextElement = static_text(
+        # TRANSLATORS: Bla bla bla 2
+        _("Important Notice"),
+        _("If you or a loved one has been diagnosed with mesothelioma, you may be entitled to financial compensation."),
+    )
+
+
+class I18NAttempt(Attempt):
+    def _compute_score(self) -> float:
+        raise NeedsManualScoringError
+
+    @property
+    def formulation(self) -> str:
+        return self.jinja2.get_template("formulation.xhtml.j2").render()
+
+
+class I18NQuestion(Question):
+    attempt_class = I18NAttempt
+
 
 init = make_question_type_init(I18NQuestion)

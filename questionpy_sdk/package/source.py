@@ -1,7 +1,7 @@
 #  This file is part of the QuestionPy SDK. (https://questionpy.org)
 #  The QuestionPy SDK is free software released under terms of the MIT license. See LICENSE.md.
 #  (c) Technische Universität Berlin, innoCampus <info@isis.tu-berlin.de>
-
+from collections.abc import Iterator
 from functools import cached_property
 from pathlib import Path
 
@@ -9,6 +9,7 @@ import yaml
 from pydantic import ValidationError
 from yaml import YAMLError
 
+from questionpy import i18n
 from questionpy_sdk.constants import PACKAGE_CONFIG_FILENAME
 from questionpy_sdk.models import PackageConfig
 from questionpy_sdk.package.errors import PackageSourceValidationError
@@ -68,3 +69,12 @@ class PackageSource:
     @property
     def path(self) -> Path:
         return self._path
+
+    def discover_po_files(self) -> Iterator[tuple[str, str, Path]]:
+        locale_dir = self.path / "locale"
+        po_file: Path
+        for po_file in locale_dir.glob("*.po"):
+            yield po_file.stem, i18n.domain_of(self.config), po_file
+
+        for po_file in locale_dir.glob("*/*.po"):
+            yield po_file.parent.name, po_file.stem, po_file

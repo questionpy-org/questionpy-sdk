@@ -3,14 +3,18 @@ from gettext import GNUTranslations, NullTranslations
 from importlib.resources.abc import Traversable
 
 from questionpy_common.environment import Environment, Package, RequestUser
+from questionpy_common.manifest import SourceManifest
 
-_DEFAULT_CATEGORY = "LC_MESSAGES"
-_DEFAULT_DOMAIN = "package"
+DEFAULT_CATEGORY = "LC_MESSAGES"
 _NULL_TRANSLATIONS = NullTranslations()
 
 _STATE: tuple[str, NullTranslations] | None = None
 
 log = logging.getLogger(__name__)
+
+
+def domain_of(manifest: SourceManifest) -> str:
+    return f"{manifest.namespace}.{manifest.short_name}"
 
 
 def _guess_untranslated_language(package: Package) -> str:
@@ -45,7 +49,7 @@ def _get_available_mos(package: Package) -> dict[str, Traversable]:
         if not lang_dir.is_dir():
             continue
 
-        mo_file = lang_dir / _DEFAULT_CATEGORY / f"{_DEFAULT_DOMAIN}.mo"
+        mo_file = lang_dir / DEFAULT_CATEGORY / f"{domain_of(package.manifest)}.mo"
         if mo_file.is_file():
             result[lang_dir.name] = mo_file
 
@@ -88,7 +92,7 @@ def initialize(package: Package, env: Environment) -> None:
         )
         return
 
-    log.debug("Found MO files for the following languages: %s", available_mos.keys())
+    log.debug("Found MO files for the following languages: %s", ", ".join(available_mos.keys()))
 
     def prepare_i18n(request_user: RequestUser) -> None:
         langs_to_use = [lang for lang in request_user.preferred_languages if lang in available_mos]
@@ -111,3 +115,11 @@ def initialize(package: Package, env: Environment) -> None:
         _STATE = primary_lang, translations
 
     env.register_on_request_callback(prepare_i18n)
+
+
+def gettext(msgid: str) -> str:
+    _, translations = get_state()
+    return translations.gettext(msgid)
+
+
+__all__ = ["DEFAULT_CATEGORY", "domain_of", "get_state", "gettext", "initialize", "is_initialized"]
