@@ -1,0 +1,36 @@
+# Translations template for @local/i18n.
+# Copyright (C) 2025 ORGANIZATION
+# This file is distributed under the same license as the @local/i18n
+# project.
+# FIRST AUTHOR <EMAIL@ADDRESS>, 2025.
+#
+#, fuzzy
+msgid ""
+msgstr ""
+"Project-Id-Version: @local/i18n 0.1.0\n"
+"Report-Msgid-Bugs-To: Jane Doe <jane.doe@example.org>\n"
+"POT-Creation-Date: 2025-01-23 18:23+0100\n"
+"PO-Revision-Date: YEAR-MO-DA HO:MI+ZONE\n"
+"Last-Translator: FULL NAME <EMAIL@ADDRESS>\n"
+"Language-Team: LANGUAGE <LL@li.org>\n"
+"MIME-Version: 1.0\n"
+"Content-Type: text/plain; charset=utf-8\n"
+"Content-Transfer-Encoding: 8bit\n"
+"Generated-By: Babel 2.16.0\n"
+
+#. Bla bla bla 2
+#: python/local/i18n/__init__.py:17
+msgid "Important Notice"
+msgstr ""
+
+#: python/local/i18n/__init__.py:18
+msgid ""
+"If you or a loved one has been diagnosed with mesothelioma, you may be "
+"entitled to financial compensation."
+msgstr ""
+
+#. Bla bla bla
+#: templates/formulation.xhtml.j2:4
+msgid "This string should be localized!"
+msgstr ""
+

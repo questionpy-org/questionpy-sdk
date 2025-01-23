@@ -9,6 +9,7 @@ import sys
 import click
 
 from questionpy_sdk.commands.create import create
+from questionpy_sdk.commands.i18n import i18n
 from questionpy_sdk.commands.package import package
 from questionpy_sdk.commands.repo import repo
 from questionpy_sdk.commands.run import run
@@ -38,6 +39,7 @@ cli.add_command(create)
 cli.add_command(package)
 cli.add_command(run)
 cli.add_command(repo)
+cli.add_command(i18n)
 
 if __name__ == "__main__":
     cli()
