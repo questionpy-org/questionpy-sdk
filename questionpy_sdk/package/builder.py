@@ -7,6 +7,7 @@ import inspect
 import logging
 import shutil
 import subprocess
+import tempfile
 import zipfile
 from abc import abstractmethod
 from contextlib import AbstractContextManager
@@ -16,7 +17,10 @@ from pathlib import Path
 from tempfile import TemporaryDirectory
 from types import TracebackType
 
+import babel.messages.frontend
+
 import questionpy
+from questionpy import i18n
 from questionpy_common.constants import DIST_DIR, MANIFEST_FILENAME
 from questionpy_common.manifest import Manifest, PackageFile
 from questionpy_sdk.models import BuildHookName
@@ -49,6 +53,7 @@ class PackageBuilderBase(AbstractContextManager):
         self._install_questionpy()
         self._install_requirements()
         self._write_package_files()
+        self._compile_pos()
         self._write_manifest()
         if self._copy_sources:
             self._copy_source_files()
@@ -92,7 +97,7 @@ class PackageBuilderBase(AbstractContextManager):
         # pip doesn't offer a public API, so we have to resort to subprocess (pypa/pip#3121)
         try:
             with TemporaryDirectory(prefix=f"qpy_{config.short_name}") as tempdir:
-                subprocess.run(["pip", "install", "--target", tempdir, *pip_args], check=True, capture_output=True)  # noqa: S603, S607
+                subprocess.run(["pip", "install", "--target", tempdir, *pip_args], check=True, capture_output=True)
                 self._write_glob(Path(tempdir), "**/*", Path(DIST_DIR) / "dependencies" / "site-packages")
         except subprocess.CalledProcessError as exc:
             msg = f"Failed to install requirements: {exc.stderr.decode()}"
@@ -144,6 +149,22 @@ class PackageBuilderBase(AbstractContextManager):
                 continue
             log.debug("%s: %s", source_file, path_in_pkg)
             self._write_file(source_file, path_in_pkg)
+
+    def _compile_pos(self) -> None:
+        with tempfile.TemporaryDirectory(prefix="qpy_build_locales_") as tempdir_str:
+            tempdir = Path(tempdir_str)
+            for locale, domain, po_file in self._source.discover_po_files():
+                outfile = tempdir / locale / i18n.DEFAULT_CATEGORY / f"{domain}.mo"
+                outfile.parent.mkdir(parents=True, exist_ok=True)
+
+                cmd = babel.messages.frontend.CompileCatalog()
+                cmd.locale = locale
+                cmd.input_file = po_file
+                cmd.output_file = outfile
+                cmd.ensure_finalized()
+                cmd.run()
+
+            self._write_glob(tempdir, "**/*.mo", f"{DIST_DIR}/locale")
 
     def _write_glob(
         self, source_dir: Path, glob: str, prefix: str | Path = "", *, add_to_static_files: bool = False
