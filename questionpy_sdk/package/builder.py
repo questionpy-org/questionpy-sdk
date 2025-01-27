@@ -154,6 +154,11 @@ class PackageBuilderBase(AbstractContextManager):
         with tempfile.TemporaryDirectory(prefix="qpy_build_locales_") as tempdir_str:
             tempdir = Path(tempdir_str)
             for locale, domain, po_file in self._source.discover_po_files():
+                if po_file.with_suffix(".mo").exists():
+                    # By default, Poedit also saves a compiled .mo file, so we warn the user if one exists.
+                    log.warning("The existing .mo file at '%s' will not be used, '%s' will be compiled instead.",
+                                po_file.with_suffix(".mo"), po_file.name)
+
                 outfile = tempdir / locale / i18n.DEFAULT_CATEGORY / f"{domain}.mo"
                 outfile.parent.mkdir(parents=True, exist_ok=True)
 
