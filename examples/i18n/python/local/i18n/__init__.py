@@ -13,7 +13,7 @@ def _(a):
 
 class I18NModel(FormModel):
     txt: StaticTextElement = static_text(
-        # TRANSLATORS: Bla bla bla 2
+        # TRANSLATORS: This comment will be shown in the .pot file.
         _("Important Notice"),
         _("If you or a loved one has been diagnosed with mesothelioma, you may be entitled to financial compensation."),
     )

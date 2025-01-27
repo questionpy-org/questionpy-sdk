@@ -8,8 +8,8 @@ msgid ""
 msgstr ""
 "Project-Id-Version: @local/i18n 0.1.0\n"
 "Report-Msgid-Bugs-To: Jane Doe <jane.doe@example.org>\n"
-"POT-Creation-Date: 2025-01-23 18:23+0100\n"
-"PO-Revision-Date: 2025-01-23 18:23+0100\n"
+"POT-Creation-Date: 2025-01-27 14:01+0100\n"
+"PO-Revision-Date: 2025-01-27 14:01+0100\n"
 "Last-Translator: FULL NAME <EMAIL@ADDRESS>\n"
 "Language: en\n"
 "Language-Team: en <LL@li.org>\n"
@@ -19,7 +19,7 @@ msgstr ""
 "Content-Transfer-Encoding: 8bit\n"
 "Generated-By: Babel 2.16.0\n"
 
-#. Bla bla bla 2
+#. This comment will be shown in the .pot file.
 #: python/local/i18n/__init__.py:17
 msgid "Important Notice"
 msgstr ""
@@ -30,7 +30,7 @@ msgid ""
 "entitled to financial compensation."
 msgstr ""
 
-#. Bla bla bla
+#. This comment will be shown in the .pot file.
 #: templates/formulation.xhtml.j2:4
 msgid "This string should be localized!"
 msgstr ""

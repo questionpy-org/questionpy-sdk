@@ -8,30 +8,33 @@ msgid ""
 msgstr ""
 "Project-Id-Version: @local/i18n 0.1.0\n"
 "Report-Msgid-Bugs-To: Jane Doe <jane.doe@example.org>\n"
-"POT-Creation-Date: 2025-01-23 18:23+0100\n"
-"PO-Revision-Date: 2025-01-23 18:23+0100\n"
-"Last-Translator: FULL NAME <EMAIL@ADDRESS>\n"
-"Language: de\n"
+"POT-Creation-Date: 2025-01-27 14:01+0100\n"
+"PO-Revision-Date: 2025-01-27 14:07+0100\n"
+"Last-Translator: \n"
 "Language-Team: de <LL@li.org>\n"
-"Plural-Forms: nplurals=2; plural=(n != 1);\n"
+"Language: de\n"
 "MIME-Version: 1.0\n"
 "Content-Type: text/plain; charset=utf-8\n"
 "Content-Transfer-Encoding: 8bit\n"
+"Plural-Forms: nplurals=2; plural=(n != 1);\n"
 "Generated-By: Babel 2.16.0\n"
+"X-Generator: Poedit 3.5\n"
 
-#. Bla bla bla 2
+#. This comment will be shown in the .pot file.
 #: python/local/i18n/__init__.py:17
 msgid "Important Notice"
-msgstr ""
+msgstr "Wichtige Mitteilung"
 
 #: python/local/i18n/__init__.py:18
 msgid ""
 "If you or a loved one has been diagnosed with mesothelioma, you may be "
 "entitled to financial compensation."
 msgstr ""
+"Falls Sie oder eine Ihnen nahestehende Person eine Mesotheliom-"
+"Diagnose erhalten haben, könnten Sie für finanzielle Entschädigung in "
+"Frage kommen."
 
-#. Bla bla bla
+#. This comment will be shown in the .pot file.
 #: templates/formulation.xhtml.j2:4
 msgid "This string should be localized!"
-msgstr ""
-
+msgstr "Dieser String sollte lokalisiert sein!"
