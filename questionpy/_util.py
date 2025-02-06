@@ -16,11 +16,16 @@ class _CachedClassProperty(Generic[_TypeT, _T]):
 
     def __get__(self, instance: None, owner: _TypeT) -> _T:
         if not self._name:
+            # __set_name__ wasn't called. The property is probably not defined in the class body, or wrapped by
+            # something.
             return self._getter(owner)
 
+        # Subsequent lookups _should_ bypass the property entirely, but if for some reason they don't, we check the
+        # class dict explicitly.
         cached_value = owner.__dict__.get(self._name, _UNSET)
         if cached_value is _UNSET:
             value = self._getter(owner)
+            # By setting an attribute on the class, future lookups should bypass the property entirely.
             setattr(owner, self._name, value)
             return value
 
