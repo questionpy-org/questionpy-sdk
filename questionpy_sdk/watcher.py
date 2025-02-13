@@ -32,7 +32,7 @@ if TYPE_CHECKING:
 
 log = logging.getLogger("questionpy-sdk:watcher")
 
-_DEBOUNCE_INTERVAL = 0.5  # seconds
+_DEBOUNCE_INTERVAL = 1  # seconds
 
 
 class _EventHandler(FileSystemEventHandler):
@@ -78,6 +78,9 @@ class _EventHandler(FileSystemEventHandler):
 
         # ignore events events in `dist` dir
         relevant_path = event.dest_path if isinstance(event, FileSystemMovedEvent) else event.src_path
+        if isinstance(relevant_path, bytes):
+            relevant_path = relevant_path.decode()
+
         try:
             return Path(relevant_path).relative_to(self._watch_path).parts[0] == DIST_DIR
         except IndexError:
@@ -119,7 +122,7 @@ class Watcher(AbstractAsyncContextManager):
     def _schedule(self) -> None:
         if self._watch is None:
             log.debug("Starting file watching...")
-            self._watch = self._observer.schedule(self._event_handler, self._source_path, recursive=True)
+            self._watch = self._observer.schedule(self._event_handler, str(self._source_path), recursive=True)
 
     def _unschedule(self) -> None:
         if self._watch:
