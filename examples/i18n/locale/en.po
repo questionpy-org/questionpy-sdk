@@ -8,7 +8,7 @@ msgid ""
 msgstr ""
 "Project-Id-Version: @local/i18n 0.1.0\n"
 "Report-Msgid-Bugs-To: Jane Doe <jane.doe@example.org>\n"
-"POT-Creation-Date: 2025-01-27 14:01+0100\n"
+"POT-Creation-Date: 2025-02-19 14:57+0100\n"
 "PO-Revision-Date: 2025-01-27 14:01+0100\n"
 "Last-Translator: FULL NAME <EMAIL@ADDRESS>\n"
 "Language: en\n"
@@ -30,8 +30,11 @@ msgid ""
 "entitled to financial compensation."
 msgstr ""
 
+#: python/local/i18n/__init__.py:32
+msgid "It's all wrong!"
+msgstr ""
+
 #. This comment will be shown in the .pot file.
 #: templates/formulation.xhtml.j2:4
 msgid "This string should be localized!"
 msgstr ""
-
