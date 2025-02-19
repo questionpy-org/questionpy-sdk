@@ -93,6 +93,7 @@ __all__ = [
     "WorkerResourceLimits",
     "create_jinja2_environment",
     "get_qpy_environment",
+    "i18n",
     "make_question_type_init",
     "set_qpy_environment",
 ]
@@ -101,8 +102,7 @@ __all__ = [
 def make_question_type_init(
     question_class: type[Question], *, wrap_question: Callable[[Question], QuestionInterface] = QuestionWrapper
 ) -> PackageInitFunction:
-    def init(package: Package, env: Environment) -> QuestionTypeWrapper:
-        i18n.initialize(package, env)
+    def init(package: Package) -> QuestionTypeWrapper:
         return QuestionTypeWrapper(question_class, package, wrap_question=wrap_question)
 
     return init

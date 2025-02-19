@@ -92,9 +92,9 @@ def create_jinja2_environment(attempt: "Attempt", question: "Question") -> jinja
         "question_type": type(question),
     })
 
-    if i18n.is_initialized():
+    translations = i18n.get_translations_of_package(package)
+    if translations:
         env.add_extension("jinja2.ext.i18n")
-        _, translations = i18n.get_state()
-        env.install_gettext_translations(translations, newstyle=True)
+        env.install_gettext_translations(translations, newstyle=True)  # type: ignore[attr-defined]
 
     return env
