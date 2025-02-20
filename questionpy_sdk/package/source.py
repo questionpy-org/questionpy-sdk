@@ -81,3 +81,6 @@ class PackageSource:
         for po_file in locale_dir.glob("*/*.po"):
             yield GettextDomain(po_file.stem), Bcp47LanguageTag(po_file.parent.name), po_file
 
+    def discover_pot_files(self) -> Iterator[tuple[GettextDomain, Path]]:
+        for pot_file in (self.path / "locale").glob("*.pot"):
+            yield GettextDomain(pot_file.stem), pot_file
