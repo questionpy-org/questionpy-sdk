@@ -11,8 +11,7 @@ from aiohttp import web
 from pydantic import TypeAdapter
 
 from questionpy_common.api.attempt import AttemptScoredModel, ScoreModel
-from questionpy_common.environment import RequestUser
-from questionpy_sdk.webserver.app import SDK_WEBSERVER_APP_KEY, StateFilename
+from questionpy_sdk.webserver.app import DEFAULT_REQUEST_USER, SDK_WEBSERVER_APP_KEY, StateFilename
 from questionpy_sdk.webserver.attempt import get_attempt_render_context
 from questionpy_sdk.webserver.question_ui import QuestionDisplayOptions
 
@@ -58,7 +57,7 @@ async def get_attempt(request: web.Request) -> web.Response:
         # Display a previously started attempt.
         async with webserver.worker_pool.get_worker(webserver.package_location, 0, None) as worker:
             attempt = await worker.get_attempt(
-                request_user=RequestUser(["de", "en"]),
+                request_user=DEFAULT_REQUEST_USER,
                 question_state=question_state,
                 attempt_state=attempt_state,
                 scoring_state=score.scoring_state if score else None,
@@ -71,7 +70,7 @@ async def get_attempt(request: web.Request) -> web.Response:
         # Start a new attempt.
         async with webserver.worker_pool.get_worker(webserver.package_location, 0, None) as worker:
             attempt = await worker.start_attempt(
-                request_user=RequestUser(["de", "en"]), question_state=question_state, variant=1
+                request_user=DEFAULT_REQUEST_USER, question_state=question_state, variant=1
             )
 
         attempt_state = attempt.attempt_state
@@ -115,7 +114,7 @@ async def _score_attempt(request: web.Request, data: Any) -> web.Response:
     worker: Worker
     async with webserver.worker_pool.get_worker(webserver.package_location, 0, None) as worker:
         attempt_scored = await worker.score_attempt(
-            request_user=RequestUser(["de", "en"]),
+            request_user=DEFAULT_REQUEST_USER,
             question_state=question_state,
             attempt_state=attempt_state,
             response=data,

@@ -8,6 +8,7 @@ from shutil import move
 from click.testing import CliRunner
 from yaml import safe_dump
 
+from questionpy_common.manifest import Bcp47LanguageTag
 from questionpy_sdk.commands.package import package
 from questionpy_sdk.constants import PACKAGE_CONFIG_FILENAME
 from questionpy_sdk.models import PackageConfig
@@ -40,7 +41,12 @@ def create_package(
         path to the package and the config
     """
     config = PackageConfig(
-        short_name=short_name, namespace=namespace, version=version, api_version="0.1", author="pytest"
+        short_name=short_name,
+        namespace=namespace,
+        version=version,
+        api_version="0.1",
+        author="pytest",
+        languages=[Bcp47LanguageTag("en")],
     )
 
     runner = CliRunner()

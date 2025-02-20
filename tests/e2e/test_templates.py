@@ -11,7 +11,7 @@ from selenium.webdriver.support.wait import WebDriverWait
 from questionpy import Package, QuestionTypeWrapper
 from questionpy.form import FormModel, checkbox, repeat
 from questionpy_common.api.qtype import QuestionTypeInterface
-from questionpy_common.manifest import Manifest
+from questionpy_common.manifest import Bcp47LanguageTag, Manifest
 
 from .conftest import _NoopQuestion, use_package
 
@@ -88,7 +88,13 @@ class TestTemplates:
 
     @use_package(
         package_1_init,
-        manifest=Manifest(short_name="my_short_name", version="7.3.1", api_version="9.4", author="Testy McTestface"),
+        manifest=Manifest(
+            short_name="my_short_name",
+            version="7.3.1",
+            api_version="9.4",
+            author="Testy McTestface",
+            languages=[Bcp47LanguageTag("en")],
+        ),
     )
     def test_page_contains_correct_manifest_information(self, driver: webdriver.Chrome, url: str) -> None:
         driver.get(url)
