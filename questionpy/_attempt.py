@@ -19,7 +19,7 @@ from questionpy_common.api.attempt import (
 )
 
 from ._ui import create_jinja2_environment
-from ._util import reify_type_hint
+from ._util import get_package_by_attempt, reify_type_hint
 
 if TYPE_CHECKING:
     from ._qtype import Question
@@ -281,12 +281,17 @@ class Attempt(ABC):
         Args:
             module: JS module name specified as:
                 @[package namespace]/[package short name]/[subdir]/[module name] (full reference) or
-                TODO [subdir]/[module name] (referencing a module within the package where this class is subclassed) or
+                [subdir]/[module name] (referencing a module within the package where this class is subclassed)
             function: Name of a callable value within the JS module
             data: arbitrary data to pass to the function
             if_role: Function is only called if the user has this role.
             if_feedback_type: Function is only called if the user is allowed to view this feedback type.
         """
+        if not module.startswith("@"):
+            # Get current package namespace and short name.
+            package = get_package_by_attempt(self)
+            module = f"@{package.manifest.namespace}/{package.manifest.short_name}/{module.lstrip('/')}"
+
         data_json = None if data is None else json.dumps(data)
         call = JsModuleCall(
             module=module, function=function, data=data_json, if_role=if_role, if_feedback_type=if_feedback_type
