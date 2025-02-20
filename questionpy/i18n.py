@@ -4,7 +4,7 @@ from contextvars import ContextVar
 from dataclasses import dataclass
 from gettext import GNUTranslations, NullTranslations
 from importlib.resources.abc import Traversable
-from typing import TypeAlias
+from typing import NewType, TypeAlias
 
 from questionpy_common.environment import (
     Environment,
@@ -13,42 +13,44 @@ from questionpy_common.environment import (
     RequestUser,
     get_qpy_environment,
 )
-from questionpy_common.manifest import SourceManifest
+from questionpy_common.manifest import Bcp47LanguageTag, SourceManifest
 
 DEFAULT_CATEGORY = "LC_MESSAGES"
 _NULL_TRANSLATIONS = NullTranslations()
+
+GettextDomain = NewType("GettextDomain", str)
 
 
 @dataclass
 class _RequestState:
     user: RequestUser
-    primary_lang: str
+    primary_lang: Bcp47LanguageTag
     translations: NullTranslations
 
 
 @dataclass
 class _DomainState:
-    untranslated_lang: str
-    available_mos: dict[str, Traversable]
+    untranslated_lang: Bcp47LanguageTag
+    available_mos: dict[Bcp47LanguageTag, Traversable]
     request_state: _RequestState | None = None
 
 
-_i18n_state: ContextVar[dict[str, _DomainState]] = ContextVar("_i18n_state")
+_i18n_state: ContextVar[dict[GettextDomain, _DomainState]] = ContextVar("_i18n_state")
 
 _log = logging.getLogger(__name__)
 
 
-def domain_of(package: SourceManifest | PackageNamespaceAndShortName) -> str:
-    return f"{package.namespace}.{package.short_name}"
+def domain_of(package: SourceManifest | PackageNamespaceAndShortName) -> GettextDomain:
+    return GettextDomain(f"{package.namespace}.{package.short_name}")
 
 
-def _guess_untranslated_language(package: Package) -> str:
+def _guess_untranslated_language(package: Package) -> Bcp47LanguageTag:
     # We'll assume that the untranslated messages are in the first supported language according to the manifest.
     if package.manifest.languages:
-        return next(iter(package.manifest.languages))
+        return package.manifest.languages[0]
     # If the package lists no supported languages in its manifest, we'll assume it's english.
     # TODO: An alternative might be "C" or "unknown"?
-    return "en"
+    return Bcp47LanguageTag("en")
 
 
 def _build_translations(mos: list[Traversable]) -> NullTranslations:
@@ -66,7 +68,7 @@ def _build_translations(mos: list[Traversable]) -> NullTranslations:
     return translations
 
 
-def _get_available_mos(package: Package) -> dict[str, Traversable]:
+def _get_available_mos(package: Package) -> dict[Bcp47LanguageTag, Traversable]:
     result = {}
     locale_dir = package.get_path("locale")
 
@@ -76,7 +78,7 @@ def _get_available_mos(package: Package) -> dict[str, Traversable]:
 
         mo_file = lang_dir / DEFAULT_CATEGORY / f"{domain_of(package.manifest)}.mo"
         if mo_file.is_file():
-            result[lang_dir.name] = mo_file
+            result[Bcp47LanguageTag(lang_dir.name)] = mo_file
 
     return result
 
@@ -90,7 +92,7 @@ def _require_request_user() -> RequestUser:
     return env.request_user
 
 
-def _require_request_state(domain: str, domain_state: _DomainState) -> _RequestState:
+def _require_request_state(domain: GettextDomain, domain_state: _DomainState) -> _RequestState:
     request_user = _require_request_user()
     if not domain_state.request_state or domain_state.request_state.user != request_user:
         msg = f"i18n domain '{domain}' was not initialized for the current request."
@@ -125,7 +127,7 @@ def _get_package_owning_module(module_name: str) -> Package:
         raise ValueError(msg) from e
 
 
-def _ensure_initialized(domain: str, package: Package, env: Environment) -> _DomainState:
+def _ensure_initialized(domain: GettextDomain, package: Package, env: Environment) -> _DomainState:
     states_by_domain = _i18n_state.get(None)
     if states_by_domain is None:
         states_by_domain = {}
@@ -195,4 +197,4 @@ def get_for(module_name: str) -> tuple[_GettextFun, _GettextFun]:
     return gettext, ngettext
 
 
-__all__ = ["DEFAULT_CATEGORY", "domain_of", "get_for", "get_translations_of_package"]
+__all__ = ["DEFAULT_CATEGORY", "GettextDomain", "domain_of", "get_for", "get_translations_of_package"]

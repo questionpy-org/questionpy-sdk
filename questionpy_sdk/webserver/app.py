@@ -16,7 +16,8 @@ from jinja2 import PackageLoader
 
 from questionpy_common.api.qtype import InvalidQuestionStateError
 from questionpy_common.constants import MiB
-from questionpy_common.manifest import Manifest
+from questionpy_common.environment import RequestUser
+from questionpy_common.manifest import Bcp47LanguageTag, Manifest
 from questionpy_server import WorkerPool
 from questionpy_server.worker.impl.thread import ThreadWorker
 from questionpy_server.worker.runtime.package_location import PackageLocation
@@ -55,7 +56,6 @@ class StateFilename(StrEnum):
     LAST_ATTEMPT_DATA = "last_attempt_data.json"
 
 
-DEFAULT_STATE_STORAGE_PATH = Path(__file__).parent / "question_state_storage"
 DEFAULT_STATE_STORAGE_PATH = Path(__file__).parent / "question_state_storage"
 LEN_AF_INET = 2
 LEN_AF_INET6 = 4
@@ -169,3 +169,4 @@ class WebServer:
 
 SDK_WEBSERVER_APP_KEY = web.AppKey("sdk_webserver_app", WebServer)
 MANIFEST_APP_KEY = web.AppKey("manifest", Manifest)
+DEFAULT_REQUEST_USER = RequestUser([Bcp47LanguageTag("de"), Bcp47LanguageTag("en")])

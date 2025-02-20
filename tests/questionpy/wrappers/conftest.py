@@ -9,8 +9,9 @@ import pytest
 
 from questionpy import Attempt, BaseAttemptState, BaseQuestionState, Question
 from questionpy.form import FormModel, text_input
-from questionpy_common.environment import Environment, RequestUser, set_qpy_environment
+from questionpy_common.environment import Environment, set_qpy_environment
 from questionpy_common.manifest import Manifest, PackageFile
+from questionpy_sdk.webserver.app import DEFAULT_REQUEST_USER
 from questionpy_server.worker.runtime.manager import EnvironmentImpl
 from questionpy_server.worker.runtime.package import ImportablePackage
 
@@ -44,7 +45,7 @@ def environment(package: ImportablePackage) -> Generator[Environment, None, None
     env = EnvironmentImpl(
         type="test",
         limits=None,
-        request_user=RequestUser(["en"]),
+        request_user=DEFAULT_REQUEST_USER,
         main_package=package,
         packages={},
         _on_request_callbacks=[],

@@ -9,9 +9,8 @@ import aiohttp_jinja2
 from aiohttp import web
 
 from questionpy import OptionsFormValidationError
-from questionpy_common.environment import RequestUser
 from questionpy_sdk.webserver._form_data import get_nested_form_data, parse_form_data
-from questionpy_sdk.webserver.app import SDK_WEBSERVER_APP_KEY, StateFilename, WebServer
+from questionpy_sdk.webserver.app import DEFAULT_REQUEST_USER, SDK_WEBSERVER_APP_KEY, StateFilename, WebServer
 from questionpy_sdk.webserver.context import contextualize
 
 if TYPE_CHECKING:
@@ -29,7 +28,7 @@ async def render_options(request: web.Request) -> web.Response:
     worker: Worker
     async with webserver.worker_pool.get_worker(webserver.package_location, 0, None) as worker:
         manifest = await worker.get_manifest()
-        form_definition, form_data = await worker.get_options_form(RequestUser(["de", "en"]), question_state)
+        form_definition, form_data = await worker.get_options_form(DEFAULT_REQUEST_USER, question_state)
 
     context = {
         "manifest": manifest,
@@ -43,7 +42,7 @@ async def _save_updated_form_data(form_data: dict, webserver: "WebServer") -> No
     old_state = webserver.read_state_file(StateFilename.QUESTION_STATE)
     worker: Worker
     async with webserver.worker_pool.get_worker(webserver.package_location, 0, None) as worker:
-        question = await worker.create_question_from_options(RequestUser(["de", "en"]), old_state, form_data=form_data)
+        question = await worker.create_question_from_options(DEFAULT_REQUEST_USER, old_state, form_data=form_data)
 
     webserver.write_state_file(StateFilename.QUESTION_STATE, question.question_state)
 

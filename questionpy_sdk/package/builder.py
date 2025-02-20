@@ -23,6 +23,7 @@ import questionpy
 from questionpy import i18n
 from questionpy_common.constants import DIST_DIR, MANIFEST_FILENAME
 from questionpy_common.manifest import Manifest, PackageFile
+from questionpy_sdk._i18n_utils import bcp47_to_posix
 from questionpy_sdk.models import BuildHookName
 from questionpy_sdk.package.errors import PackageBuildError
 from questionpy_sdk.package.source import PackageSource
@@ -153,17 +154,20 @@ class PackageBuilderBase(AbstractContextManager):
     def _compile_pos(self) -> None:
         with tempfile.TemporaryDirectory(prefix="qpy_build_locales_") as tempdir_str:
             tempdir = Path(tempdir_str)
-            for locale, domain, po_file in self._source.discover_po_files():
+            for domain, locale, po_file in self._source.discover_po_files():
                 if po_file.with_suffix(".mo").exists():
                     # By default, Poedit also saves a compiled .mo file, so we warn the user if one exists.
-                    log.warning("The existing .mo file at '%s' will not be used, '%s' will be compiled instead.",
-                                po_file.with_suffix(".mo"), po_file.name)
+                    log.warning(
+                        "The existing .mo file at '%s' will not be used, '%s' will be compiled instead.",
+                        po_file.with_suffix(".mo"),
+                        po_file.name,
+                    )
 
                 outfile = tempdir / locale / i18n.DEFAULT_CATEGORY / f"{domain}.mo"
                 outfile.parent.mkdir(parents=True, exist_ok=True)
 
                 cmd = babel.messages.frontend.CompileCatalog()
-                cmd.locale = locale
+                cmd.locale = bcp47_to_posix(locale)
                 cmd.input_file = po_file
                 cmd.output_file = outfile
                 cmd.ensure_finalized()

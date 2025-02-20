@@ -13,6 +13,7 @@ import yaml
 from click.testing import CliRunner
 
 from questionpy_common.constants import DIST_DIR, MANIFEST_FILENAME
+from questionpy_common.manifest import Bcp47LanguageTag
 from questionpy_sdk.commands.package import package
 from questionpy_sdk.constants import PACKAGE_CONFIG_FILENAME
 from questionpy_sdk.models import PackageConfig
@@ -22,7 +23,9 @@ from questionpy_sdk.resources import EXAMPLE_PACKAGE
 
 def create_config(source: Path) -> PackageConfig:
     """Creates a config in the given `source` directory."""
-    config = PackageConfig(short_name="short_name", author="pytest", api_version="0.1", version="0.1.0")
+    config = PackageConfig(
+        short_name="short_name", author="pytest", api_version="0.1", version="0.1.0", languages=[Bcp47LanguageTag("en")]
+    )
     with (source / PACKAGE_CONFIG_FILENAME).open("w") as file:
         yaml.dump(config.model_dump(exclude={"type"}), file)
     return config

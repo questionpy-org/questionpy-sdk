@@ -10,6 +10,8 @@ from pydantic import ValidationError
 from yaml import YAMLError
 
 from questionpy import i18n
+from questionpy.i18n import GettextDomain
+from questionpy_common.manifest import Bcp47LanguageTag
 from questionpy_sdk.constants import PACKAGE_CONFIG_FILENAME
 from questionpy_sdk.models import PackageConfig
 from questionpy_sdk.package.errors import PackageSourceValidationError
@@ -70,11 +72,12 @@ class PackageSource:
     def path(self) -> Path:
         return self._path
 
-    def discover_po_files(self) -> Iterator[tuple[str, str, Path]]:
+    def discover_po_files(self) -> Iterator[tuple[GettextDomain, Bcp47LanguageTag, Path]]:
         locale_dir = self.path / "locale"
         po_file: Path
         for po_file in locale_dir.glob("*.po"):
-            yield po_file.stem, i18n.domain_of(self.config), po_file
+            yield i18n.domain_of(self.config), Bcp47LanguageTag(po_file.stem), po_file
 
         for po_file in locale_dir.glob("*/*.po"):
-            yield po_file.parent.name, po_file.stem, po_file
+            yield GettextDomain(po_file.stem), Bcp47LanguageTag(po_file.parent.name), po_file
+
