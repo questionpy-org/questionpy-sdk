@@ -1,6 +1,7 @@
 import itertools
 import operator
-from collections.abc import Iterator
+import sys
+from collections.abc import Iterable
 from datetime import datetime, timedelta
 from pathlib import Path
 
@@ -8,57 +9,88 @@ import babel.messages.frontend
 import babel.messages.pofile
 import click
 
-from questionpy.i18n import domain_of
-from questionpy_sdk.commands.i18n import extract
+from questionpy.i18n import GettextDomain
+from questionpy_common.manifest import Bcp47LanguageTag
+from questionpy_sdk._i18n_utils import bcp47_to_posix
 from questionpy_sdk.package.source import PackageSource
 
 
-def _update_domain(ctx: click.Context, package: PackageSource, domain: str, po_files: list[tuple[str, str, Path]],
-                   pot_file: Path | None = None) -> None:
-    default_pot_path = package.path / "locale" / f"{domain}.pot"
-    if not pot_file:
-        pot_file = default_pot_path
-
-    if not pot_file.exists():
-        if pot_file.samefile(default_pot_path) and domain == domain_of(package.config):
-            ctx.invoke(extract, package.path)
-        else:
-            msg = f"Template catalog '{pot_file}' not found."
-            raise click.ClickException(msg)
-
-    with pot_file.open("rb") as pot_fd:
+def _update_domain(
+    po_files: Iterable[tuple[GettextDomain, Bcp47LanguageTag, Path]],
+    pot_path: Path,
+) -> None:
+    with pot_path.open("rb") as pot_fd:
         template_catalog = babel.messages.pofile.read_po(pot_fd)
 
     if isinstance(template_catalog.creation_date, datetime):
         now = datetime.now(template_catalog.creation_date.tzinfo)
         if now - template_catalog.creation_date > timedelta(hours=1):
-            click.echo("Warning: .pot file is more than 1 hour old.")
+            click.echo("Warning: .pot file is more than 1 hour old. Is it up-to-date?")
 
-    for (locale, _, po_file) in po_files:
+    for _, lang, path in po_files:
         cmd = babel.messages.frontend.UpdateCatalog()
-        cmd.locale = locale
-        cmd.input_file = pot_file
-        cmd.output_file = po_file
+        cmd.locale = bcp47_to_posix(lang)
+        cmd.input_file = pot_path
+        cmd.output_file = path
 
         cmd.ensure_finalized()
         cmd.run()
 
 
-@click.command
+@click.command()
 @click.argument("package_path", type=click.Path(exists=True, file_okay=False, path_type=Path))
-@click.option("--pot", type=click.Path(exists=True, dir_okay=False, path_type=Path))
-@click.option("--domain")
+@click.option("-t", "--pot", type=click.Path(exists=True, dir_okay=False, path_type=Path))
+@click.option("-d", "--domain", "only_domain")
 @click.pass_context
-def update(ctx: click.Context, package_path: Path, pot: Path | None = None, domain: str | None = None) -> None:
-    package = PackageSource(package_path)
-    pos_by_domain = {domain: list(pos) for domain, pos in
-                     itertools.groupby(package.discover_po_files(), operator.itemgetter(1))}
+def update(
+    ctx: click.Context, package_path: Path, pot: Path | None = None, only_domain: GettextDomain | None = None
+) -> None:
+    """Updates .po files from .pot files.
 
-    if domain:
+    \b
+    Examples:
+        Update all .po files in the package source dir::
+
+            questionpy-sdk i18n update my-package-source-dir/
+
+        Update the .po files for a specific domain in the package source dir::
+
+            questionpy-sdk i18n update --domain foo my-package-source-dir/
+
+        Update the .po files for a specific domain from a .pot file in a non-standard location::
+
+            questionpy-sdk i18n update my-package-source-dir/ --domain foo --pot template.pot
+    """  # noqa: D301 (it's a click feature)
+    package = PackageSource(package_path)
+    pos_by_domain = {
+        domain: list(pos) for domain, pos in itertools.groupby(package.discover_po_files(), operator.itemgetter(0))
+    }
+
+    pots_by_domain = dict(package.discover_pot_files())
+    if pot:
+        if not only_domain:
+            # Assume the .pot filename still follows our convention of <domain>.pot.
+            only_domain = GettextDomain(pot.stem)
+        pots_by_domain[only_domain] = pot
+
+    domains_to_update = {only_domain} if only_domain else {*pos_by_domain, *pots_by_domain}
+
+    failed_count = 0
+    for domain in domains_to_update:
         if domain not in pos_by_domain:
-            msg = f"Package '{package.path}' contains no PO files for domain '{domain}'."
-            raise click.ClickException(msg)
-        _update_domain(ctx, package, domain, pos_by_domain[domain], pot)
-    else:
-        for po_domain, po_files in pos_by_domain.items():
-            _update_domain(ctx, package, po_domain, po_files, pot)
+            init_cmd = f"{ctx.parent.command_path} init" if ctx.parent else "init"
+            click.echo(f"No .po files for domain '{domain}' were found. Use '{init_cmd}' to create some.")
+            failed_count += 1
+        elif domain not in pots_by_domain:
+            extract_cmd = f"{ctx.parent.command_path} extract" if ctx.parent else "extract"
+            click.echo(
+                f"No .pot file for domain '{domain}' was found. Use '{extract_cmd}' to create one or pass "
+                f"'--pot {domain}.pot' if it is in a non-standard location."
+            )
+            failed_count += 1
+        else:
+            _update_domain(pos_by_domain[domain], pots_by_domain[domain])
+
+    if failed_count == len(domains_to_update):
+        # All failed, let's consider this an error.
+        sys.exit(1)
