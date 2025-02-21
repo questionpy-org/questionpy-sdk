@@ -1,10 +1,11 @@
 import logging
+from collections import UserString
 from collections.abc import Callable
 from contextvars import ContextVar
 from dataclasses import dataclass
 from gettext import GNUTranslations, NullTranslations
 from importlib.resources.abc import Traversable
-from typing import NewType, TypeAlias
+from typing import Literal, NewType, Protocol, TypeAlias, cast, overload
 
 from questionpy_common.environment import (
     Environment,
@@ -32,6 +33,7 @@ class _RequestState:
 class _DomainState:
     untranslated_lang: Bcp47LanguageTag
     available_mos: dict[Bcp47LanguageTag, Traversable]
+    logger: logging.LoggerAdapter
     request_state: _RequestState | None = None
 
 
@@ -42,15 +44,6 @@ _log = logging.getLogger(__name__)
 
 def domain_of(package: SourceManifest | PackageNamespaceAndShortName) -> GettextDomain:
     return GettextDomain(f"{package.namespace}.{package.short_name}")
-
-
-def _guess_untranslated_language(package: Package) -> Bcp47LanguageTag:
-    # We'll assume that the untranslated messages are in the first supported language according to the manifest.
-    if package.manifest.languages:
-        return package.manifest.languages[0]
-    # If the package lists no supported languages in its manifest, we'll assume it's english.
-    # TODO: An alternative might be "C" or "unknown"?
-    return Bcp47LanguageTag("en")
 
 
 def _build_translations(mos: list[Traversable]) -> NullTranslations:
@@ -109,9 +102,6 @@ def get_translations_of_package(package: Package) -> NullTranslations:
     return request_state.translations
 
 
-_GettextFun: TypeAlias = Callable[[str], str]
-
-
 def _get_package_owning_module(module_name: str) -> Package:
     # TODO: Dedupe when #152 is in dev.
     try:
@@ -138,31 +128,32 @@ def _ensure_initialized(domain: GettextDomain, package: Package, env: Environmen
         # Already initialized.
         return domain_state
 
-    untranslated_lang = _guess_untranslated_language(package)
+    domain_logger = logging.LoggerAdapter(_log.getChild(domain), extra={"domain": domain})
+
+    untranslated_lang = package.manifest.languages[0]
     available_mos = _get_available_mos(package)
     if available_mos:
-        _log.debug(
-            "For domain '%s', MO files for the following languages were found: %s",
-            domain,
+        domain_logger.debug(
+            "MO files for the following languages were found: %s",
             ", ".join(available_mos.keys()),
         )
     else:
-        _log.debug(
-            "For domain '%s', no MO files were found. Messages will not be translated. We'll assume the "
+        domain_logger.debug(
+            "No MO files were found. Messages will not be translated. We'll assume the "
             "untranslated strings to be in '%s'.",
             untranslated_lang,
         )
 
-    domain_state = states_by_domain[domain] = _DomainState(untranslated_lang, available_mos)
+    domain_state = states_by_domain[domain] = _DomainState(untranslated_lang, available_mos, domain_logger)
 
     def initialize_for_request(request_user: RequestUser) -> None:
         langs_to_use = [lang for lang in request_user.preferred_languages if lang in domain_state.available_mos]
 
         if langs_to_use:
-            _log.debug("Using the following languages for this request: %s", langs_to_use)
+            domain_logger.debug("Using the following languages for this request: %s", langs_to_use)
             primary_lang = langs_to_use[0]
         else:
-            _log.debug(
+            domain_logger.debug(
                 "There are no MO files for any of the user's preferred languages. Messages will not be translated "
                 "and we'll assume the untranslated strings to be in '%s'.",
                 domain_state.untranslated_lang,
@@ -181,20 +172,78 @@ def _ensure_initialized(domain: GettextDomain, package: Package, env: Environmen
     return domain_state
 
 
-def get_for(module_name: str) -> tuple[_GettextFun, _GettextFun]:
+class _DeferredTranslatedMessage(UserString):
+    def __init__(self, domain_state: _DomainState, msg_id: str) -> None:
+        super().__init__(msg_id)
+        self._domain_state = domain_state
+
+    @property
+    def data(self) -> str:
+        if self._domain_state.request_state:
+            return self._domain_state.request_state.translations.gettext(self._msg_id)
+
+        self._domain_state.logger.debug(
+            "Deferred message '%s' not translated because domain is not initialized for request.",
+            self._msg_id,
+        )
+        return self._msg_id
+
+    @data.setter
+    def data(self, value: str) -> None:
+        self._msg_id = value
+
+
+class _Gettext(Protocol):
+    @overload
+    def __call__(self, message: str, *, defer: None = None) -> str | UserString: ...
+
+    @overload
+    def __call__(self, message: str, *, defer: Literal[True]) -> UserString: ...
+
+    @overload
+    def __call__(self, message: str, *, defer: Literal[False]) -> str: ...
+
+    def __call__(self, message: str, *, defer: bool | None = None) -> str | UserString:
+        """Translate the given message.
+
+        Args:
+            message: Gettext `msgid`.
+            defer: By default, translation is deferred only when no request is being processed at the time of the
+                `gettext` call. This parameter can be explicitly set to `True` to force deferral or to `False` to never
+                defer translations. In the latter case, calling `gettext` before a request is processed
+                (e.g. during init) will raise an error.
+        """
+
+
+_NGettext: TypeAlias = Callable[[str], str]
+
+
+def get_for(module_name: str) -> tuple[_Gettext, _NGettext]:
+    """Initializes i18n for the package owning the given Python module and returns the gettext-family functions.
+
+    Args:
+        module_name: The Python `__package__` or `__module__` whose domain should be used.
+    """
     # TODO: Maybe cache this?
     package = _get_package_owning_module(module_name)
     domain = domain_of(package.manifest)
     domain_state = _ensure_initialized(domain, package, get_qpy_environment())
 
-    def gettext(message: str) -> str:
+    def gettext(message: str, *, defer: bool | None = None) -> str | UserString:
+        if defer is None:
+            defer = domain_state.request_state is None
+
+        if defer:
+            domain_state.logger.debug("Deferring translation of message '%s'.", message)
+            return _DeferredTranslatedMessage(domain_state, message)
+
         request_state = _require_request_state(domain, domain_state)
         return request_state.translations.gettext(message)
 
     def ngettext(message: str) -> str:
         return message
 
-    return gettext, ngettext
+    return cast(_Gettext, gettext), ngettext
 
 
 __all__ = ["DEFAULT_CATEGORY", "GettextDomain", "domain_of", "get_for", "get_translations_of_package"]
