@@ -5,7 +5,7 @@ from contextvars import ContextVar
 from dataclasses import dataclass
 from gettext import GNUTranslations, NullTranslations
 from importlib.resources.abc import Traversable
-from typing import Literal, NewType, Protocol, TypeAlias, cast, overload
+from typing import Literal, NewType, TypeAlias, overload
 
 from questionpy_common.environment import (
     Environment,
@@ -85,7 +85,13 @@ def _require_request_user() -> RequestUser:
     return env.request_user
 
 
-def _require_request_state(domain: GettextDomain, domain_state: _DomainState) -> _RequestState:
+def _require_request_state(domain: GettextDomain, domain_state: _DomainState | None = None) -> _RequestState:
+    if not domain_state:
+        domain_state = _i18n_state.get({}).get(domain)
+        if not domain_state:
+            msg = f"i18n domain '{domain}' was not initialized. Are you sure the corresponding package is loaded?"
+            raise RuntimeError(msg)
+
     request_user = _require_request_user()
     if not domain_state.request_state or domain_state.request_state.user != request_user:
         msg = f"i18n domain '{domain}' was not initialized for the current request."
@@ -100,6 +106,14 @@ def get_translations_of_package(package: Package) -> NullTranslations:
     domain_state = _ensure_initialized(domain, package, get_qpy_environment())
     request_state = _require_request_state(domain, domain_state)
     return request_state.translations
+
+
+def get_primary_language(package: Package) -> Bcp47LanguageTag:
+    domain = domain_of(package.manifest)
+    domain_state = _i18n_state.get({}).get(domain)
+    if domain_state:
+        return _require_request_state(domain, domain_state).primary_lang
+    return package.manifest.languages[0]
 
 
 def _get_package_owning_module(module_name: str) -> Package:
@@ -173,52 +187,163 @@ def _ensure_initialized(domain: GettextDomain, package: Package, env: Environmen
 
 
 class _DeferredTranslatedMessage(UserString):
-    def __init__(self, domain_state: _DomainState, msg_id: str) -> None:
-        super().__init__(msg_id)
+    def __init__(
+        self, domain_state: _DomainState, default_message: str, getter: Callable[[NullTranslations], str]
+    ) -> None:
+        super().__init__(default_message)
+        self._default_message = default_message
         self._domain_state = domain_state
+        self._getter = getter
 
     @property
     def data(self) -> str:
         if self._domain_state.request_state:
-            return self._domain_state.request_state.translations.gettext(self._msg_id)
+            return self._getter(self._domain_state.request_state.translations)
 
         self._domain_state.logger.debug(
             "Deferred message '%s' not translated because domain is not initialized for request.",
-            self._msg_id,
+            self._default_message,
         )
-        return self._msg_id
+        return self._default_message
 
     @data.setter
-    def data(self, value: str) -> None:
-        self._msg_id = value
+    def data(self, _: str) -> None:
+        # This is just here because MyPy expects data to be a writable property.
+        pass
 
 
-class _Gettext(Protocol):
+class _Gettext:
+    """Translate the given message."""
+
+    def __init__(self, package: Package, domain: GettextDomain, domain_state: _DomainState) -> None:
+        self._package = package
+        self._domain = domain
+        self._domain_state = domain_state
+
     @overload
-    def __call__(self, message: str, *, defer: None = None) -> str | UserString: ...
+    def __call__(self, message: str, /, *, defer: None = None) -> str | UserString: ...
 
     @overload
-    def __call__(self, message: str, *, defer: Literal[True]) -> UserString: ...
+    def __call__(self, message: str, /, *, defer: Literal[True]) -> UserString: ...
 
     @overload
-    def __call__(self, message: str, *, defer: Literal[False]) -> str: ...
+    def __call__(self, message: str, /, *, defer: Literal[False]) -> str: ...
 
-    def __call__(self, message: str, *, defer: bool | None = None) -> str | UserString:
+    def __call__(self, message: str, /, *, defer: bool | None = None) -> str | UserString:
         """Translate the given message.
 
         Args:
-            message: Gettext `msgid`.
+            message: Gettext `msgid`. This should also be the message in its primary language, usually english.
             defer: By default, translation is deferred only when no request is being processed at the time of the
                 `gettext` call. This parameter can be explicitly set to `True` to force deferral or to `False` to never
                 defer translations. In the latter case, calling `gettext` before a request is processed
                 (e.g. during init) will raise an error.
         """
+        return self._maybe_defer(message, lambda trans: trans.gettext(message), defer=defer)
+
+    @overload
+    def ngettext(self, singular: str, plural: str, n: int, /, *, defer: None = None) -> str | UserString: ...
+
+    @overload
+    def ngettext(self, singular: str, plural: str, n: int, /, *, defer: Literal[True]) -> UserString: ...
+
+    @overload
+    def ngettext(self, singular: str, plural: str, n: int, /, *, defer: Literal[False]) -> str: ...
+
+    def ngettext(self, singular: str, plural: str, n: int, /, *, defer: bool | None = None) -> str | UserString:
+        """Translate the given message, accounting for plural forms.
+
+        Args:
+            singular: Message id in its (english) singular form, used if no plural form exists and `n == 1`.
+            plural: Message id in its (english) plural form, used if no plural form exists and `n >= 2`.
+            n: This number is passed through the plural formula of the active catalog to determine which form to use.
+            defer: By default, translation is deferred only when no request is being processed at the time of the
+                `gettext` call. This parameter can be explicitly set to `True` to force deferral or to `False` to never
+                defer translations. In the latter case, calling `gettext` before a request is processed
+                (e.g. during init) will raise an error.
+        """
+        default_message = singular if n == 1 else plural
+        return self._maybe_defer(default_message, lambda trans: trans.ngettext(singular, plural, n), defer=defer)
+
+    @overload
+    def pgettext(self, context: str, message: str, /, *, defer: None = None) -> str | UserString: ...
+
+    @overload
+    def pgettext(self, context: str, message: str, /, *, defer: Literal[True]) -> UserString: ...
+
+    @overload
+    def pgettext(self, context: str, message: str, /, *, defer: Literal[False]) -> str: ...
+
+    def pgettext(self, context: str, message: str, /, *, defer: bool | None = None) -> str | UserString:
+        """Translate the given message in the given context.
+
+        The context allows solving ambiguities where the same message may require different translations depending on
+        the place it's used. See [the GNU gettext documentation](https://www.gnu.org/software/gettext/manual/html_node/Contexts.html).
+
+        Args:
+            context: The context within which the message should be scoped. This is also extracted as the `msgctxt`
+                value.
+            message: Gettext `msgid`. This should also be the message in its primary language, usually english.
+            defer: By default, translation is deferred only when no request is being processed at the time of the
+                `gettext` call. This parameter can be explicitly set to `True` to force deferral or to `False` to never
+                defer translations. In the latter case, calling `gettext` before a request is processed
+                (e.g. during init) will raise an error.
+        """
+        return self._maybe_defer(message, lambda trans: trans.pgettext(context, message), defer=defer)
+
+    @overload
+    def npgettext(
+        self, context: str, singular: str, plural: str, n: int, /, *, defer: None = None
+    ) -> str | UserString: ...
+
+    @overload
+    def npgettext(self, context: str, singular: str, plural: str, n: int, /, *, defer: Literal[True]) -> UserString: ...
+
+    @overload
+    def npgettext(self, context: str, singular: str, plural: str, n: int, /, *, defer: Literal[False]) -> str: ...
+
+    def npgettext(
+        self, context: str, singular: str, plural: str, n: int, /, *, defer: bool | None = None
+    ) -> str | UserString:
+        """Translate the given message in the given context.
+
+        The context allows solving ambiguities where the same message may require different translations depending on
+        the place it's used. See [the GNU gettext documentation](https://www.gnu.org/software/gettext/manual/html_node/Contexts.html).
+
+        Args:
+            context: The context within which the message should be scoped. This is also extracted as the `msgctxt`
+                value.
+            singular: Message id in its (english) singular form, used if no plural form exists and `n == 1`.
+            plural: Message id in its (english) plural form, used if no plural form exists and `n >= 2`.
+            n: This number is passed through the plural formula of the active catalog to determine which form to use.
+            defer: By default, translation is deferred only when no request is being processed at the time of the
+                `gettext` call. This parameter can be explicitly set to `True` to force deferral or to `False` to never
+                defer translations. In the latter case, calling `gettext` before a request is processed
+                (e.g. during init) will raise an error.
+        """
+        default_message = singular if n == 1 else plural
+        return self._maybe_defer(
+            default_message, lambda trans: trans.npgettext(context, singular, plural, n), defer=defer
+        )
+
+    def _maybe_defer(
+        self, default_message: str, getter: Callable[[NullTranslations], str], *, defer: bool | None
+    ) -> str | UserString:
+        if defer is None:
+            defer = self._domain_state.request_state is None
+
+        if defer:
+            self._domain_state.logger.debug("Deferring translation of message '%s'.", default_message)
+            return _DeferredTranslatedMessage(self._domain_state, default_message, getter)
+
+        request_state = _require_request_state(self._domain, self._domain_state)
+        return getter(request_state.translations)
 
 
-_NGettext: TypeAlias = Callable[[str], str]
+_Noop: TypeAlias = Callable[[str], str]
 
 
-def get_for(module_name: str) -> tuple[_Gettext, _NGettext]:
+def get_for(module_name: str) -> tuple[_Gettext, _Noop]:
     """Initializes i18n for the package owning the given Python module and returns the gettext-family functions.
 
     Args:
@@ -229,21 +354,34 @@ def get_for(module_name: str) -> tuple[_Gettext, _NGettext]:
     domain = domain_of(package.manifest)
     domain_state = _ensure_initialized(domain, package, get_qpy_environment())
 
-    def gettext(message: str, *, defer: bool | None = None) -> str | UserString:
-        if defer is None:
-            defer = domain_state.request_state is None
-
-        if defer:
-            domain_state.logger.debug("Deferring translation of message '%s'.", message)
-            return _DeferredTranslatedMessage(domain_state, message)
-
-        request_state = _require_request_state(domain, domain_state)
-        return request_state.translations.gettext(message)
-
-    def ngettext(message: str) -> str:
-        return message
-
-    return cast(_Gettext, gettext), ngettext
+    return _Gettext(package, domain, domain_state), lambda message: message
 
 
-__all__ = ["DEFAULT_CATEGORY", "GettextDomain", "domain_of", "get_for", "get_translations_of_package"]
+def dgettext(domain: str, message: str, /) -> str:
+    domain = GettextDomain(domain)
+    request_state = _require_request_state(domain)
+    return request_state.translations.gettext(message)
+
+
+def dpgettext(domain: str, context: str, message: str, /) -> str:
+    domain = GettextDomain(domain)
+    request_state = _require_request_state(domain)
+    return request_state.translations.pgettext(context, message)
+
+
+def dnpgettext(domain: str, context: str, singular: str, plural: str, n: int, /) -> str:
+    domain = GettextDomain(domain)
+    request_state = _require_request_state(domain)
+    return request_state.translations.npgettext(context, singular, plural, n)
+
+
+__all__ = [
+    "DEFAULT_CATEGORY",
+    "GettextDomain",
+    "dgettext",
+    "dnpgettext",
+    "domain_of",
+    "dpgettext",
+    "get_for",
+    "get_translations_of_package",
+]
