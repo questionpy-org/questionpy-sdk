@@ -62,11 +62,11 @@ class CxdTextInputElement(TextInputElement, _CxdFormElement):
     value: str | None = None
 
     def contextualize(self, pattern: Pattern[str], replacement: str) -> None:
-        self.label = sub(pattern, replacement, self.label)
+        self.label = sub(pattern, replacement, str(self.label))
         if self.default:
-            self.default = sub(pattern, replacement, self.default)
+            self.default = sub(pattern, replacement, str(self.default))
         if self.placeholder:
-            self.placeholder = sub(pattern, replacement, self.placeholder)
+            self.placeholder = sub(pattern, replacement, str(self.placeholder))
 
     def add_form_data_value(self, element_form_data: Any) -> None:
         if element_form_data:
@@ -77,11 +77,11 @@ class CxdTextAreaElement(TextAreaElement, _CxdFormElement):
     value: str | None = None
 
     def contextualize(self, pattern: Pattern[str], replacement: str) -> None:
-        self.label = sub(pattern, replacement, self.label)
+        self.label = sub(pattern, replacement, str(self.label))
         if self.default:
-            self.default = sub(pattern, replacement, self.default)
+            self.default = sub(pattern, replacement, str(self.default))
         if self.placeholder:
-            self.placeholder = sub(pattern, replacement, self.placeholder)
+            self.placeholder = sub(pattern, replacement, str(self.placeholder))
 
     def add_form_data_value(self, element_form_data: Any) -> None:
         if element_form_data:
@@ -90,16 +90,16 @@ class CxdTextAreaElement(TextAreaElement, _CxdFormElement):
 
 class CxdStaticTextElement(StaticTextElement, _CxdFormElement):
     def contextualize(self, pattern: Pattern[str], replacement: str) -> None:
-        self.label = sub(pattern, replacement, self.label)
-        self.text = sub(pattern, replacement, self.text)
+        self.label = sub(pattern, replacement, str(self.label))
+        self.text = sub(pattern, replacement, str(self.text))
 
 
 class CxdCheckboxElement(CheckboxElement, _CxdFormElement):
     def contextualize(self, pattern: Pattern[str], replacement: str) -> None:
         if self.left_label:
-            self.left_label = sub(pattern, replacement, self.left_label)
+            self.left_label = sub(pattern, replacement, str(self.left_label))
         if self.right_label:
-            self.right_label = sub(pattern, replacement, self.right_label)
+            self.right_label = sub(pattern, replacement, str(self.right_label))
 
     def add_form_data_value(self, element_form_data: Any) -> None:
         if element_form_data:
@@ -135,7 +135,7 @@ class CxdCheckboxGroupElement(CheckboxGroupElement, _CxdFormElement):
 
 class CxdOption(Option, _CxdFormElement):
     def contextualize(self, pattern: Pattern[str], replacement: str) -> None:
-        self.label = sub(pattern, replacement, self.label)
+        self.label = sub(pattern, replacement, str(self.label))
 
 
 class CxdRadioGroupElement(RadioGroupElement, _CxdFormElement):
@@ -154,7 +154,7 @@ class CxdRadioGroupElement(RadioGroupElement, _CxdFormElement):
         self.options = []
 
     def contextualize(self, pattern: Pattern[str], replacement: str) -> None:
-        self.label = sub(pattern, replacement, self.label)
+        self.label = sub(pattern, replacement, str(self.label))
         for cxd_option in self.cxd_options:
             cxd_option.contextualize(pattern, replacement)
 
@@ -182,7 +182,7 @@ class CxdSelectElement(SelectElement, _CxdFormElement):
         self.options = []
 
     def contextualize(self, pattern: Pattern[str], replacement: str) -> None:
-        self.label = sub(pattern, replacement, self.label)
+        self.label = sub(pattern, replacement, str(self.label))
         for cxd_option in self.cxd_options:
             cxd_option.contextualize(pattern, replacement)
 

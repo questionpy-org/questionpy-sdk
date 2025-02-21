@@ -9,9 +9,6 @@ _, _N = i18n.get_for(__package__)
 
 
 class I18NModel(FormModel):
-    # TODO: Implement deferred translation.
-    _ = lambda x: x  # noqa: E731
-
     txt: StaticTextElement = static_text(
         # TRANSLATORS: This comment will be shown in the .pot file.
         _("Important Notice"),
@@ -34,6 +31,8 @@ class I18NAttempt(Attempt):
 
 class I18NQuestion(Question):
     attempt_class = I18NAttempt
+
+    options: I18NModel
 
 
 init = make_question_type_init(I18NQuestion)
