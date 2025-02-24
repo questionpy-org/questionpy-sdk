@@ -1,7 +1,6 @@
 #  This file is part of the QuestionPy SDK. (https://questionpy.org)
 #  The QuestionPy SDK is free software released under terms of the MIT license. See LICENSE.md.
 #  (c) Technische Universität Berlin, innoCampus <info@isis.tu-berlin.de>
-from collections import UserString
 from collections.abc import Callable
 from dataclasses import dataclass
 from enum import Enum
@@ -13,14 +12,15 @@ from pydantic._internal._model_construction import ModelMetaclass  # noqa: PLC27
 from pydantic.fields import FieldInfo
 from pydantic_core import CoreSchema, core_schema
 
+from questionpy_common import TranslatableString
 from questionpy_common.elements import FormElement, FormSection, OptionsFormDefinition
 
 
 @dataclass
 class _OptionInfo:
-    label: str | UserString
+    label: str | TranslatableString
     selected: bool
-    value: str | UserString | None = None
+    value: str | TranslatableString | None = None
     """If None, set to the name by `OptionEnum.__init__` because __set_name__ doesn't get called for enum members."""
 
 
@@ -84,7 +84,7 @@ class _StaticElementInfo:
 
 @dataclass
 class _SectionInfo:
-    header: str | UserString
+    header: str | TranslatableString
     model: type["FormModel"]
 
 

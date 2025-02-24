@@ -27,7 +27,7 @@ from questionpy_sdk.webserver.question_ui.errors import (
 )
 
 if TYPE_CHECKING:
-    from collections import UserString
+    from questionpy_common import TranslatableString
 
 _XHTML_NAMESPACE: str = "http://www.w3.org/1999/xhtml"
 _QPY_NAMESPACE: str = "http://questionpy.org/ns/question"
@@ -202,7 +202,7 @@ class QuestionUIRenderer:
     def __init__(
         self,
         xml: str,
-        placeholders: dict[str, str | UserString],
+        placeholders: dict[str, str | TranslatableString],
         options: QuestionDisplayOptions,
         seed: int | None = None,
         attempt: dict | None = None,
@@ -525,7 +525,7 @@ class QuestionFormulationUIRenderer(QuestionUIRenderer):
     def __init__(
         self,
         xml: str,
-        placeholders: dict[str, str | UserString],
+        placeholders: dict[str, str | TranslatableString],
         options: QuestionDisplayOptions,
         seed: int | None = None,
         attempt: dict | None = None,
@@ -572,7 +572,7 @@ class _RenderErrorCollector:
     def __init__(
         self,
         xml: str,
-        placeholders: dict[str, str | UserString],
+        placeholders: dict[str, str | TranslatableString],
     ) -> None:
         self.errors = RenderErrorCollection()
 

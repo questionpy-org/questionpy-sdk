@@ -1,6 +1,5 @@
 import json
 from abc import ABC, abstractmethod
-from collections import UserString
 from collections.abc import Mapping
 from functools import cached_property
 from typing import TYPE_CHECKING, ClassVar, Protocol
@@ -8,6 +7,7 @@ from typing import TYPE_CHECKING, ClassVar, Protocol
 import jinja2
 from pydantic import BaseModel, JsonValue
 
+from questionpy_common import TranslatableString
 from questionpy_common.api.attempt import (
     AttemptFile,
     CacheControl,
@@ -41,7 +41,7 @@ class AttemptProtocol(Protocol):
         pass
 
     @property
-    def placeholders(self) -> dict[str, str | UserString]:
+    def placeholders(self) -> dict[str, str | TranslatableString]:
         pass
 
     @property
@@ -61,19 +61,19 @@ class AttemptProtocol(Protocol):
         pass
 
     @property
-    def formulation(self) -> str | UserString:
+    def formulation(self) -> str | TranslatableString:
         pass
 
     @property
-    def general_feedback(self) -> str | UserString | None:
+    def general_feedback(self) -> str | TranslatableString | None:
         pass
 
     @property
-    def specific_feedback(self) -> str | UserString | None:
+    def specific_feedback(self) -> str | TranslatableString | None:
         pass
 
     @property
-    def right_answer_description(self) -> str | UserString | None:
+    def right_answer_description(self) -> str | TranslatableString | None:
         pass
 
 
@@ -131,7 +131,7 @@ class Attempt(ABC):
         self.scoring_state = scoring_state
 
         self.cache_control = CacheControl.PRIVATE_CACHE
-        self.placeholders: dict[str, str | UserString] = {}
+        self.placeholders: dict[str, str | TranslatableString] = {}
         self.css_files: list[str] = []
         self._javascript_calls: list[JsModuleCall] = []
         """LMS has to call these JS modules/functions."""
@@ -178,15 +178,15 @@ class Attempt(ABC):
         pass
 
     @property
-    def general_feedback(self) -> str | UserString | None:
+    def general_feedback(self) -> str | TranslatableString | None:
         return None
 
     @property
-    def specific_feedback(self) -> str | UserString | None:
+    def specific_feedback(self) -> str | TranslatableString | None:
         return None
 
     @property
-    def right_answer_description(self) -> str | UserString | None:
+    def right_answer_description(self) -> str | TranslatableString | None:
         return None
 
     def score_response(self, *, try_scoring_with_countback: bool = False, try_giving_hint: bool = False) -> None:
