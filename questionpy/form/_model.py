@@ -1,7 +1,7 @@
 #  This file is part of the QuestionPy SDK. (https://questionpy.org)
 #  The QuestionPy SDK is free software released under terms of the MIT license. See LICENSE.md.
 #  (c) Technische Universität Berlin, innoCampus <info@isis.tu-berlin.de>
-
+from collections import UserString
 from collections.abc import Callable
 from dataclasses import dataclass
 from enum import Enum
@@ -18,9 +18,9 @@ from questionpy_common.elements import FormElement, FormSection, OptionsFormDefi
 
 @dataclass
 class _OptionInfo:
-    label: str
+    label: str | UserString
     selected: bool
-    value: str | None = None
+    value: str | UserString | None = None
     """If None, set to the name by `OptionEnum.__init__` because __set_name__ doesn't get called for enum members."""
 
 
@@ -84,7 +84,7 @@ class _StaticElementInfo:
 
 @dataclass
 class _SectionInfo:
-    header: str
+    header: str | UserString
     model: type["FormModel"]
 
 
