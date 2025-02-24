@@ -8,36 +8,139 @@ msgid ""
 msgstr ""
 "Project-Id-Version: @local/i18n 0.1.0\n"
 "Report-Msgid-Bugs-To: Jane Doe <jane.doe@example.org>\n"
-"POT-Creation-Date: 2025-02-19 14:57+0100\n"
-"PO-Revision-Date: 2025-01-27 14:07+0100\n"
+"POT-Creation-Date: 2025-02-24 15:42+0100\n"
+"PO-Revision-Date: 2025-02-24 15:56+0100\n"
 "Last-Translator: \n"
-"Language: de\n"
 "Language-Team: de <LL@li.org>\n"
-"Plural-Forms: nplurals=2; plural=(n != 1);\n"
+"Language: de\n"
 "MIME-Version: 1.0\n"
 "Content-Type: text/plain; charset=utf-8\n"
 "Content-Transfer-Encoding: 8bit\n"
-"Generated-By: Babel 2.16.0\n"
+"Plural-Forms: nplurals=2; plural=(n != 1);\n"
+"Generated-By: Babel 2.17.0\n"
+"X-Generator: Poedit 3.5\n"
+
+#: python/local/i18n/__init__.py:14
+msgid "Status of the file"
+msgstr "Status der Datei"
+
+#: python/local/i18n/__init__.py:14
+msgctxt "File"
+msgid "Opened"
+msgstr "Geöffnet"
+
+#: python/local/i18n/__init__.py:16
+msgid "Status of the amusement park"
+msgstr "Status des Freizeitparks"
+
+#: python/local/i18n/__init__.py:16
+msgctxt "Amusement Park"
+msgid "Opened"
+msgstr "Eröffnet"
+
+#: python/local/i18n/__init__.py:20
+msgid "npgettext combines pluralization support and contextualization."
+msgstr "npgettext erlaubt sowohl Pluralisierung als auch Kontextualisierung."
+
+#: python/local/i18n/__init__.py:21
+#, python-brace-format
+msgctxt "Home Depot"
+msgid "There is a light."
+msgid_plural "There are {} lights!"
+msgstr[0] "Da ist eine Lampe."
+msgstr[1] "Da sind {} Lampen!"
+
+#: python/local/i18n/__init__.py:23
+#, python-brace-format
+msgctxt "Picard"
+msgid "There is a light."
+msgid_plural "There are {} lights!"
+msgstr[0] "Da ist ein Licht."
+msgstr[1] "Da sind {} Lichter!"
+
+#: python/local/i18n/__init__.py:27
+msgid "First Option"
+msgstr "Erste Option"
+
+#: python/local/i18n/__init__.py:28
+msgid "Second Option"
+msgstr "Zweite Option"
+
+#: python/local/i18n/__init__.py:29
+msgid "Third Option"
+msgstr "Dritte Option"
 
 #. This comment will be shown in the .pot file.
-#: python/local/i18n/__init__.py:17
-msgid "Important Notice"
-msgstr "Wichtige Mitteilung"
+#: python/local/i18n/__init__.py:35
+msgid "This is a localized FormModel."
+msgstr "Das ist ein lokalisiertes FormModel."
 
-#: python/local/i18n/__init__.py:18
+#: python/local/i18n/__init__.py:36
 msgid ""
-"If you or a loved one has been diagnosed with mesothelioma, you may be "
-"entitled to financial compensation."
+"The FormModel is defined before any initialization, so message translation "
+"needs to be deferred!"
 msgstr ""
-"Falls Sie oder eine Ihnen nahestehende Person eine Mesotheliom-Diagnose "
-"erhalten haben, könnten Sie für finanzielle Entschädigung in Frage "
-"kommen."
+"Das FormModel wird vor jeder Initialisierung definiert, deshalb müssen "
+"Übersetzungen später geschehen!"
 
-#: python/local/i18n/__init__.py:32
-msgid "It's all wrong!"
-msgstr "Es ist alles falsch!"
+#: python/local/i18n/__init__.py:40
+msgid "This is a text_input, and its label is localized!"
+msgstr "Das ist ein text_input, und sein Label ist lokalisiert!"
+
+#: python/local/i18n/__init__.py:42
+msgid "Even this placeholder is localized!"
+msgstr "Selbst dieser Platzhalter ist lokalisiert!"
+
+#: python/local/i18n/__init__.py:43
+msgid "Now you can get help in your language!"
+msgstr "Jetzt kannst du in deiner Sprache Hilfe erhalten!"
+
+#: python/local/i18n/__init__.py:47
+#, python-brace-format
+msgid "Choose exactly one option."
+msgid_plural "Choose exactly {} options."
+msgstr[0] "Wähle genau eine Option."
+msgstr[1] "Wähle genau {} Optionen."
+
+#: python/local/i18n/__init__.py:50
+msgid "This section shows contextualized messages."
+msgstr "Dieser Abschnitt zeigt kontextualisierte Übersetzungen."
+
+#: python/local/i18n/__init__.py:63
+msgid "Programmatic translation!"
+msgstr "Programmatische Übersetzung!"
 
 #. This comment will be shown in the .pot file.
 #: templates/formulation.xhtml.j2:4
 msgid "This string should be localized!"
-msgstr "Dieser String sollte lokalisiert sein!"
+msgstr "Diese Zeichenkette sollte lokalisiert sein!"
+
+#: templates/formulation.xhtml.j2:5
+msgid "One Thing"
+msgid_plural "More Things"
+msgstr[0] "Eine Sache"
+msgstr[1] "Mehrere Sachen"
+
+#: templates/formulation.xhtml.j2:7
+msgctxt "Context 1"
+msgid "My Message"
+msgstr "Meine Nachricht in Kontext 1"
+
+#: templates/formulation.xhtml.j2:7
+msgctxt "Context 2"
+msgid "My Message"
+msgstr "Meine Nachricht in Kontext 2"
+
+#: templates/formulation.xhtml.j2:10 templates/formulation.xhtml.j2:11
+msgctxt "Context 1"
+msgid "One Thing"
+msgid_plural "More Things"
+msgstr[0] "Eine Sache in Kontext 1"
+msgstr[1] "Mehrere Sachen in Kontext 1"
+
+#: templates/formulation.xhtml.j2:12 templates/formulation.xhtml.j2:13
+msgctxt "Context 2"
+msgid "One Thing"
+msgid_plural "More Things"
+msgstr[0] "Eine Sache in Kontext 2"
+msgstr[1] "Mehrere Sachen in Kontext 2"
