@@ -1,7 +1,7 @@
 import json
 from abc import ABC, abstractmethod
 from collections import UserString
-from collections.abc import Mapping, Sequence
+from collections.abc import Mapping
 from functools import cached_property
 from typing import TYPE_CHECKING, ClassVar, Protocol
 
@@ -10,7 +10,6 @@ from pydantic import BaseModel, JsonValue
 
 from questionpy_common.api.attempt import (
     AttemptFile,
-    AttemptUi,
     CacheControl,
     DisplayRole,
     FeedbackType,
@@ -32,43 +31,6 @@ class BaseAttemptState(BaseModel):
 
 class BaseScoringState(BaseModel):
     pass
-
-
-class AttemptUiPart(BaseModel):
-    content: str | UserString
-    placeholders: dict[str, str | UserString] = {}
-    """Names and values of the ``<?p`` placeholders that appear in content."""
-    css_files: Sequence[str] = ()
-    files: dict[str, AttemptFile] = {}
-
-
-def _merge_uis(
-    formulation: AttemptUiPart,
-    general_feedback: AttemptUiPart | None,
-    specific_feedback: AttemptUiPart | None,
-    right_answer: AttemptUiPart | None,
-    cache_control: CacheControl,
-) -> AttemptUi:
-    all_placeholders: dict[str, str | UserString] = {}
-    all_css_files: list[str] = []
-    all_files: dict[str, AttemptFile] = {}
-    for partial_ui in (formulation, general_feedback, specific_feedback, right_answer):
-        if not partial_ui:
-            continue
-        all_placeholders.update(partial_ui.placeholders)
-        all_css_files.extend(partial_ui.css_files)
-        all_files.update(partial_ui.files)
-
-    return AttemptUi(
-        formulation=formulation and formulation.content,
-        general_feedback=general_feedback and general_feedback.content,
-        specific_feedback=specific_feedback and specific_feedback.content,
-        right_answer=right_answer and right_answer.content,
-        placeholders=all_placeholders,
-        css_files=all_css_files,
-        files=all_files,
-        cache_control=cache_control,
-    )
 
 
 class AttemptProtocol(Protocol):
