@@ -9,32 +9,135 @@ msgid ""
 msgstr ""
 "Project-Id-Version: @local/i18n 0.1.0\n"
 "Report-Msgid-Bugs-To: Jane Doe <jane.doe@example.org>\n"
-"POT-Creation-Date: 2025-02-19 14:57+0100\n"
+"POT-Creation-Date: 2025-02-24 15:42+0100\n"
 "PO-Revision-Date: YEAR-MO-DA HO:MI+ZONE\n"
 "Last-Translator: FULL NAME <EMAIL@ADDRESS>\n"
 "Language-Team: LANGUAGE <LL@li.org>\n"
 "MIME-Version: 1.0\n"
 "Content-Type: text/plain; charset=utf-8\n"
 "Content-Transfer-Encoding: 8bit\n"
-"Generated-By: Babel 2.16.0\n"
+"Generated-By: Babel 2.17.0\n"
+
+#: python/local/i18n/__init__.py:14
+msgid "Status of the file"
+msgstr ""
+
+#: python/local/i18n/__init__.py:14
+msgctxt "File"
+msgid "Opened"
+msgstr ""
+
+#: python/local/i18n/__init__.py:16
+msgid "Status of the amusement park"
+msgstr ""
+
+#: python/local/i18n/__init__.py:16
+msgctxt "Amusement Park"
+msgid "Opened"
+msgstr ""
+
+#: python/local/i18n/__init__.py:20
+msgid "npgettext combines pluralization support and contextualization."
+msgstr ""
+
+#: python/local/i18n/__init__.py:21
+#, python-brace-format
+msgctxt "Home Depot"
+msgid "There is a light."
+msgid_plural "There are {} lights!"
+msgstr[0] ""
+msgstr[1] ""
+
+#: python/local/i18n/__init__.py:23
+#, python-brace-format
+msgctxt "Picard"
+msgid "There is a light."
+msgid_plural "There are {} lights!"
+msgstr[0] ""
+msgstr[1] ""
+
+#: python/local/i18n/__init__.py:27
+msgid "First Option"
+msgstr ""
+
+#: python/local/i18n/__init__.py:28
+msgid "Second Option"
+msgstr ""
+
+#: python/local/i18n/__init__.py:29
+msgid "Third Option"
+msgstr ""
 
 #. This comment will be shown in the .pot file.
-#: python/local/i18n/__init__.py:17
-msgid "Important Notice"
+#: python/local/i18n/__init__.py:35
+msgid "This is a localized FormModel."
 msgstr ""
 
-#: python/local/i18n/__init__.py:18
+#: python/local/i18n/__init__.py:36
 msgid ""
-"If you or a loved one has been diagnosed with mesothelioma, you may be "
-"entitled to financial compensation."
+"The FormModel is defined before any initialization, so message "
+"translation needs to be deferred!"
 msgstr ""
 
-#: python/local/i18n/__init__.py:32
-msgid "It's all wrong!"
+#: python/local/i18n/__init__.py:40
+msgid "This is a text_input, and its label is localized!"
+msgstr ""
+
+#: python/local/i18n/__init__.py:42
+msgid "Even this placeholder is localized!"
+msgstr ""
+
+#: python/local/i18n/__init__.py:43
+msgid "Now you can get help in your language!"
+msgstr ""
+
+#: python/local/i18n/__init__.py:47
+#, python-brace-format
+msgid "Choose exactly one option."
+msgid_plural "Choose exactly {} options."
+msgstr[0] ""
+msgstr[1] ""
+
+#: python/local/i18n/__init__.py:50
+msgid "This section shows contextualized messages."
+msgstr ""
+
+#: python/local/i18n/__init__.py:63
+msgid "Programmatic translation!"
 msgstr ""
 
 #. This comment will be shown in the .pot file.
 #: templates/formulation.xhtml.j2:4
 msgid "This string should be localized!"
 msgstr ""
+
+#: templates/formulation.xhtml.j2:5
+msgid "One Thing"
+msgid_plural "More Things"
+msgstr[0] ""
+msgstr[1] ""
+
+#: templates/formulation.xhtml.j2:7
+msgctxt "Context 1"
+msgid "My Message"
+msgstr ""
+
+#: templates/formulation.xhtml.j2:7
+msgctxt "Context 2"
+msgid "My Message"
+msgstr ""
+
+#: templates/formulation.xhtml.j2:10 templates/formulation.xhtml.j2:11
+msgctxt "Context 1"
+msgid "One Thing"
+msgid_plural "More Things"
+msgstr[0] ""
+msgstr[1] ""
+
+#: templates/formulation.xhtml.j2:12 templates/formulation.xhtml.j2:13
+msgctxt "Context 2"
+msgid "One Thing"
+msgid_plural "More Things"
+msgstr[0] ""
+msgstr[1] ""
 

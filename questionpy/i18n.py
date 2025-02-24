@@ -371,7 +371,6 @@ def get_for(module_name: str) -> tuple[_Gettext, _Noop]:
     Args:
         module_name: The Python `__package__` or `__module__` whose domain should be used.
     """
-    # TODO: Maybe cache this?
     package = _get_package_owning_module(module_name)
     domain = domain_of(package.manifest)
     domain_state = _ensure_initialized(domain, package, get_qpy_environment())
