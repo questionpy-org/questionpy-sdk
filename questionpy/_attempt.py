@@ -1,5 +1,6 @@
 import json
 from abc import ABC, abstractmethod
+from collections import UserString
 from collections.abc import Mapping, Sequence
 from functools import cached_property
 from typing import TYPE_CHECKING, ClassVar, Protocol
@@ -34,8 +35,8 @@ class BaseScoringState(BaseModel):
 
 
 class AttemptUiPart(BaseModel):
-    content: str
-    placeholders: dict[str, str] = {}
+    content: str | UserString
+    placeholders: dict[str, str | UserString] = {}
     """Names and values of the ``<?p`` placeholders that appear in content."""
     css_files: Sequence[str] = ()
     files: dict[str, AttemptFile] = {}
@@ -48,7 +49,7 @@ def _merge_uis(
     right_answer: AttemptUiPart | None,
     cache_control: CacheControl,
 ) -> AttemptUi:
-    all_placeholders: dict[str, str] = {}
+    all_placeholders: dict[str, str | UserString] = {}
     all_css_files: list[str] = []
     all_files: dict[str, AttemptFile] = {}
     for partial_ui in (formulation, general_feedback, specific_feedback, right_answer):
@@ -78,7 +79,7 @@ class AttemptProtocol(Protocol):
         pass
 
     @property
-    def placeholders(self) -> dict[str, str]:
+    def placeholders(self) -> dict[str, str | UserString]:
         pass
 
     @property
@@ -98,19 +99,19 @@ class AttemptProtocol(Protocol):
         pass
 
     @property
-    def formulation(self) -> str:
+    def formulation(self) -> str | UserString:
         pass
 
     @property
-    def general_feedback(self) -> str | None:
+    def general_feedback(self) -> str | UserString | None:
         pass
 
     @property
-    def specific_feedback(self) -> str | None:
+    def specific_feedback(self) -> str | UserString | None:
         pass
 
     @property
-    def right_answer_description(self) -> str | None:
+    def right_answer_description(self) -> str | UserString | None:
         pass
 
 
@@ -168,7 +169,7 @@ class Attempt(ABC):
         self.scoring_state = scoring_state
 
         self.cache_control = CacheControl.PRIVATE_CACHE
-        self.placeholders: dict[str, str] = {}
+        self.placeholders: dict[str, str | UserString] = {}
         self.css_files: list[str] = []
         self._javascript_calls: list[JsModuleCall] = []
         """LMS has to call these JS modules/functions."""
@@ -215,15 +216,15 @@ class Attempt(ABC):
         pass
 
     @property
-    def general_feedback(self) -> str | None:
+    def general_feedback(self) -> str | UserString | None:
         return None
 
     @property
-    def specific_feedback(self) -> str | None:
+    def specific_feedback(self) -> str | UserString | None:
         return None
 
     @property
-    def right_answer_description(self) -> str | None:
+    def right_answer_description(self) -> str | UserString | None:
         return None
 
     def score_response(self, *, try_scoring_with_countback: bool = False, try_giving_hint: bool = False) -> None:

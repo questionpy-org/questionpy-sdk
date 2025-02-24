@@ -5,29 +5,16 @@ import json
 
 from pydantic import JsonValue
 
-from questionpy import Question
+from questionpy import Question, i18n
 from questionpy._attempt import AttemptProtocol, AttemptScoredProtocol
 from questionpy_common.api.attempt import AttemptModel, AttemptScoredModel, AttemptStartedModel, AttemptUi
 from questionpy_common.api.question import QuestionInterface, QuestionModel
 from questionpy_common.environment import get_qpy_environment
+from questionpy_common.manifest import Bcp47LanguageTag
 
 
-def _get_output_lang() -> str:
-    # TODO: Do something more meaningful per default and allow the package to override.
-    env = get_qpy_environment()
-    supported_langs = env.main_package.manifest.languages
-    preferred_langs = env.request_user.preferred_languages if env.request_user else ()
-    supported_and_preferred_langs = [lang for lang in preferred_langs if lang in supported_langs]
-    if supported_and_preferred_langs:
-        # Use the most preferred supported language if any.
-        return supported_and_preferred_langs[0]
-
-    if supported_langs:
-        # If no preferred language is supported, use any supported one.
-        return next(iter(supported_langs))
-
-    # If the package lists no supported languages, fall back to english.
-    return "en"
+def _get_output_lang() -> Bcp47LanguageTag:
+    return i18n.get_primary_language(get_qpy_environment().main_package)
 
 
 def _export_question(question: Question) -> QuestionModel:

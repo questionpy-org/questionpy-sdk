@@ -40,7 +40,7 @@ def get_attempt_render_context(
 ) -> _AttemptRenderContext:
     renderer_args = (attempt.ui.placeholders, display_options, seed, last_attempt_data)
 
-    html, errors = QuestionFormulationUIRenderer(attempt.ui.formulation, *renderer_args).render()
+    html, errors = QuestionFormulationUIRenderer(str(attempt.ui.formulation), *renderer_args).render()
 
     context: _AttemptRenderContext = {
         "attempt_status": (
@@ -64,17 +64,17 @@ def get_attempt_render_context(
     if errors:
         context["render_errors"]["Formulation"] = errors
     if display_options.general_feedback and attempt.ui.general_feedback:
-        html, errors = QuestionUIRenderer(attempt.ui.general_feedback, *renderer_args).render()
+        html, errors = QuestionUIRenderer(str(attempt.ui.general_feedback), *renderer_args).render()
         context["general_feedback"] = html
         if errors:
             context["render_errors"]["General Feedback"] = errors
     if display_options.specific_feedback and attempt.ui.specific_feedback:
-        html, errors = QuestionUIRenderer(attempt.ui.specific_feedback, *renderer_args).render()
+        html, errors = QuestionUIRenderer(str(attempt.ui.specific_feedback), *renderer_args).render()
         context["specific_feedback"] = html
         if errors:
             context["render_errors"]["Specific Feedback"] = errors
     if display_options.right_answer and attempt.ui.right_answer:
-        html, errors = QuestionUIRenderer(attempt.ui.right_answer, *renderer_args).render()
+        html, errors = QuestionUIRenderer(str(attempt.ui.right_answer), *renderer_args).render()
         context["right_answer"] = html
         if errors:
             context["render_errors"]["Right Answer"] = errors

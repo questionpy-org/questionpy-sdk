@@ -383,5 +383,6 @@ __all__ = [
     "domain_of",
     "dpgettext",
     "get_for",
+    "get_primary_language",
     "get_translations_of_package",
 ]
