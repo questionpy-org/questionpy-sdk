@@ -1,12 +1,12 @@
 #  This file is part of the QuestionPy SDK. (https://questionpy.org)
 #  The QuestionPy SDK is free software released under terms of the MIT license. See LICENSE.md.
 #  (c) Technische Universität Berlin, innoCampus <info@isis.tu-berlin.de>
-from collections import UserString
 from typing import Any, Literal, Optional, TypeAlias, TypeVar, cast, overload
 
 from pydantic.fields import FieldInfo
 from pydantic_core import PydanticUndefined
 
+from questionpy_common import TranslatableString
 from questionpy_common.conditions import Condition, DoesNotEqual, Equals, In, IsChecked, IsNotChecked
 from questionpy_common.elements import (
     CheckboxElement,
@@ -45,12 +45,12 @@ def _listify(value: _ZeroOrMoreConditions) -> list[Condition]:
 
 @overload
 def text_input(
-    label: str | UserString,
+    label: str | TranslatableString,
     *,
     required: Literal[False] = False,
-    default: str | UserString | None = None,
-    placeholder: str | UserString | None = None,
-    help: str | UserString | None = None,
+    default: str | TranslatableString | None = None,
+    placeholder: str | TranslatableString | None = None,
+    help: str | TranslatableString | None = None,
     disable_if: _ZeroOrMoreConditions = None,
     hide_if: _ZeroOrMoreConditions = None,
 ) -> str | None:
@@ -59,12 +59,12 @@ def text_input(
 
 @overload
 def text_input(
-    label: str | UserString,
+    label: str | TranslatableString,
     *,
     required: Literal[True],
-    default: str | UserString | None = None,
-    placeholder: str | UserString | None = None,
-    help: str | UserString | None = None,
+    default: str | TranslatableString | None = None,
+    placeholder: str | TranslatableString | None = None,
+    help: str | TranslatableString | None = None,
     disable_if: None = None,
     hide_if: None = None,
 ) -> str:
@@ -73,12 +73,12 @@ def text_input(
 
 @overload
 def text_input(
-    label: str | UserString,
+    label: str | TranslatableString,
     *,
     required: bool = False,
-    default: str | UserString | None = None,
-    placeholder: str | UserString | None = None,
-    help: str | UserString | None = None,
+    default: str | TranslatableString | None = None,
+    placeholder: str | TranslatableString | None = None,
+    help: str | TranslatableString | None = None,
     disable_if: _OneOrMoreConditions,
     hide_if: _ZeroOrMoreConditions = None,
 ) -> str | None:
@@ -87,12 +87,12 @@ def text_input(
 
 @overload
 def text_input(
-    label: str | UserString,
+    label: str | TranslatableString,
     *,
     required: bool = False,
-    default: str | UserString | None = None,
-    placeholder: str | UserString | None = None,
-    help: str | UserString | None = None,
+    default: str | TranslatableString | None = None,
+    placeholder: str | TranslatableString | None = None,
+    help: str | TranslatableString | None = None,
     disable_if: _ZeroOrMoreConditions = None,
     hide_if: _OneOrMoreConditions,
 ) -> str | None:
@@ -100,12 +100,12 @@ def text_input(
 
 
 def text_input(
-    label: str | UserString,
+    label: str | TranslatableString,
     *,
     required: bool = False,
-    default: str | UserString | None = None,
-    placeholder: str | UserString | None = None,
-    help: str | UserString | None = None,
+    default: str | TranslatableString | None = None,
+    placeholder: str | TranslatableString | None = None,
+    help: str | TranslatableString | None = None,
     disable_if: _ZeroOrMoreConditions = None,
     hide_if: _ZeroOrMoreConditions = None,
 ) -> Any:
@@ -144,12 +144,12 @@ def text_input(
 
 @overload
 def text_area(
-    label: str | UserString,
+    label: str | TranslatableString,
     *,
     required: Literal[False] = False,
-    default: str | UserString | None = None,
-    placeholder: str | UserString | None = None,
-    help: str | UserString | None = None,
+    default: str | TranslatableString | None = None,
+    placeholder: str | TranslatableString | None = None,
+    help: str | TranslatableString | None = None,
     disable_if: _ZeroOrMoreConditions = None,
     hide_if: _ZeroOrMoreConditions = None,
 ) -> str | None:
@@ -158,12 +158,12 @@ def text_area(
 
 @overload
 def text_area(
-    label: str | UserString,
+    label: str | TranslatableString,
     *,
     required: Literal[True],
-    default: str | UserString | None = None,
-    placeholder: str | UserString | None = None,
-    help: str | UserString | None = None,
+    default: str | TranslatableString | None = None,
+    placeholder: str | TranslatableString | None = None,
+    help: str | TranslatableString | None = None,
     disable_if: None = None,
     hide_if: None = None,
 ) -> str:
@@ -172,12 +172,12 @@ def text_area(
 
 @overload
 def text_area(
-    label: str | UserString,
+    label: str | TranslatableString,
     *,
     required: bool = False,
-    default: str | UserString | None = None,
-    placeholder: str | UserString | None = None,
-    help: str | UserString | None = None,
+    default: str | TranslatableString | None = None,
+    placeholder: str | TranslatableString | None = None,
+    help: str | TranslatableString | None = None,
     disable_if: _OneOrMoreConditions,
     hide_if: _ZeroOrMoreConditions = None,
 ) -> str | None:
@@ -186,12 +186,12 @@ def text_area(
 
 @overload
 def text_area(
-    label: str | UserString,
+    label: str | TranslatableString,
     *,
     required: bool = False,
-    default: str | UserString | None = None,
-    placeholder: str | UserString | None = None,
-    help: str | UserString | None = None,
+    default: str | TranslatableString | None = None,
+    placeholder: str | TranslatableString | None = None,
+    help: str | TranslatableString | None = None,
     disable_if: _ZeroOrMoreConditions = None,
     hide_if: _OneOrMoreConditions,
 ) -> str | None:
@@ -199,12 +199,12 @@ def text_area(
 
 
 def text_area(
-    label: str | UserString,
+    label: str | TranslatableString,
     *,
     required: bool = False,
-    default: str | UserString | None = None,
-    placeholder: str | UserString | None = None,
-    help: str | UserString | None = None,
+    default: str | TranslatableString | None = None,
+    placeholder: str | TranslatableString | None = None,
+    help: str | TranslatableString | None = None,
     disable_if: _ZeroOrMoreConditions = None,
     hide_if: _ZeroOrMoreConditions = None,
 ) -> Any:
@@ -242,10 +242,10 @@ def text_area(
 
 
 def static_text(
-    label: str | UserString,
-    text: str | UserString,
+    label: str | TranslatableString,
+    text: str | TranslatableString,
     *,
-    help: str | UserString | None = None,
+    help: str | TranslatableString | None = None,
     disable_if: _ZeroOrMoreConditions = None,
     hide_if: _ZeroOrMoreConditions = None,
 ) -> StaticTextElement:
@@ -273,12 +273,12 @@ def static_text(
 
 @overload
 def checkbox(
-    left_label: str | UserString | None = None,
-    right_label: str | UserString | None = None,
+    left_label: str | TranslatableString | None = None,
+    right_label: str | TranslatableString | None = None,
     *,
     required: Literal[True],
     selected: bool = False,
-    help: str | UserString | None = None,
+    help: str | TranslatableString | None = None,
     disable_if: None = None,
     hide_if: None = None,
 ) -> Literal[True]:
@@ -287,12 +287,12 @@ def checkbox(
 
 @overload
 def checkbox(
-    left_label: str | UserString | None = None,
-    right_label: str | UserString | None = None,
+    left_label: str | TranslatableString | None = None,
+    right_label: str | TranslatableString | None = None,
     *,
     required: Literal[False] = False,
     selected: bool = False,
-    help: str | UserString | None = None,
+    help: str | TranslatableString | None = None,
     disable_if: _ZeroOrMoreConditions = None,
     hide_if: _ZeroOrMoreConditions = None,
 ) -> bool:
@@ -301,12 +301,12 @@ def checkbox(
 
 @overload
 def checkbox(
-    left_label: str | UserString | None = None,
-    right_label: str | UserString | None = None,
+    left_label: str | TranslatableString | None = None,
+    right_label: str | TranslatableString | None = None,
     *,
     required: bool = False,
     selected: bool = False,
-    help: str | UserString | None = None,
+    help: str | TranslatableString | None = None,
     disable_if: _OneOrMoreConditions,
     hide_if: _ZeroOrMoreConditions = None,
 ) -> bool:
@@ -315,12 +315,12 @@ def checkbox(
 
 @overload
 def checkbox(
-    left_label: str | UserString | None = None,
-    right_label: str | UserString | None = None,
+    left_label: str | TranslatableString | None = None,
+    right_label: str | TranslatableString | None = None,
     *,
     required: bool = False,
     selected: bool = False,
-    help: str | UserString | None = None,
+    help: str | TranslatableString | None = None,
     disable_if: _ZeroOrMoreConditions = None,
     hide_if: _OneOrMoreConditions,
 ) -> bool:
@@ -328,12 +328,12 @@ def checkbox(
 
 
 def checkbox(
-    left_label: str | UserString | None = None,
-    right_label: str | UserString | None = None,
+    left_label: str | TranslatableString | None = None,
+    right_label: str | TranslatableString | None = None,
     *,
     required: bool = False,
     selected: bool = False,
-    help: str | UserString | None = None,
+    help: str | TranslatableString | None = None,
     disable_if: _ZeroOrMoreConditions = None,
     hide_if: _ZeroOrMoreConditions = None,
 ) -> Any:
@@ -369,11 +369,11 @@ def checkbox(
 
 @overload
 def radio_group(
-    label: str | UserString,
+    label: str | TranslatableString,
     enum: type[_E],
     *,
     required: Literal[False] = False,
-    help: str | UserString | None = None,
+    help: str | TranslatableString | None = None,
     disable_if: _ZeroOrMoreConditions = None,
     hide_if: _ZeroOrMoreConditions = None,
 ) -> _E | None:
@@ -382,11 +382,11 @@ def radio_group(
 
 @overload
 def radio_group(
-    label: str | UserString,
+    label: str | TranslatableString,
     enum: type[_E],
     *,
     required: Literal[True],
-    help: str | UserString | None = None,
+    help: str | TranslatableString | None = None,
     disable_if: _OneOrMoreConditions,
     hide_if: _ZeroOrMoreConditions = None,
 ) -> _E | None:
@@ -395,11 +395,11 @@ def radio_group(
 
 @overload
 def radio_group(
-    label: str | UserString,
+    label: str | TranslatableString,
     enum: type[_E],
     *,
     required: Literal[True],
-    help: str | UserString | None = None,
+    help: str | TranslatableString | None = None,
     disable_if: _ZeroOrMoreConditions = None,
     hide_if: _OneOrMoreConditions,
 ) -> _E | None:
@@ -408,11 +408,11 @@ def radio_group(
 
 @overload
 def radio_group(
-    label: str | UserString,
+    label: str | TranslatableString,
     enum: type[_E],
     *,
     required: Literal[True],
-    help: str | UserString | None = None,
+    help: str | TranslatableString | None = None,
     disable_if: None = None,
     hide_if: None = None,
 ) -> _E:
@@ -420,11 +420,11 @@ def radio_group(
 
 
 def radio_group(
-    label: str | UserString,
+    label: str | TranslatableString,
     enum: type[_E],
     *,
     required: bool = False,
-    help: str | UserString | None = None,
+    help: str | TranslatableString | None = None,
     disable_if: _ZeroOrMoreConditions = None,
     hide_if: _ZeroOrMoreConditions = None,
 ) -> Any:
@@ -460,12 +460,12 @@ def radio_group(
 
 @overload
 def select(
-    label: str | UserString,
+    label: str | TranslatableString,
     enum: type[_E],
     *,
     required: Literal[False] = False,
     multiple: Literal[False] = False,
-    help: str | UserString | None = None,
+    help: str | TranslatableString | None = None,
     disable_if: _ZeroOrMoreConditions = None,
     hide_if: _ZeroOrMoreConditions = None,
 ) -> _E | None:
@@ -474,12 +474,12 @@ def select(
 
 @overload
 def select(
-    label: str | UserString,
+    label: str | TranslatableString,
     enum: type[_E],
     *,
     required: Literal[True],
     multiple: Literal[False] = False,
-    help: str | UserString | None = None,
+    help: str | TranslatableString | None = None,
     disable_if: _OneOrMoreConditions,
     hide_if: _ZeroOrMoreConditions = None,
 ) -> _E | None:
@@ -488,12 +488,12 @@ def select(
 
 @overload
 def select(
-    label: str | UserString,
+    label: str | TranslatableString,
     enum: type[_E],
     *,
     required: Literal[True],
     multiple: Literal[False] = False,
-    help: str | UserString | None = None,
+    help: str | TranslatableString | None = None,
     disable_if: _ZeroOrMoreConditions = None,
     hide_if: _OneOrMoreConditions,
 ) -> _E | None:
@@ -502,12 +502,12 @@ def select(
 
 @overload
 def select(
-    label: str | UserString,
+    label: str | TranslatableString,
     enum: type[_E],
     *,
     required: Literal[True],
     multiple: Literal[False] = False,
-    help: str | UserString | None = None,
+    help: str | TranslatableString | None = None,
     disable_if: None = None,
     hide_if: None = None,
 ) -> _E:
@@ -516,12 +516,12 @@ def select(
 
 @overload
 def select(
-    label: str | UserString,
+    label: str | TranslatableString,
     enum: type[_E],
     *,
     required: bool = False,
     multiple: Literal[True],
-    help: str | UserString | None = None,
+    help: str | TranslatableString | None = None,
     disable_if: _ZeroOrMoreConditions = None,
     hide_if: _ZeroOrMoreConditions = None,
 ) -> set[_E]:
@@ -529,12 +529,12 @@ def select(
 
 
 def select(
-    label: str | UserString,
+    label: str | TranslatableString,
     enum: type[_E],
     *,
     required: bool = False,
     multiple: bool = False,
-    help: str | UserString | None = None,
+    help: str | TranslatableString | None = None,
     disable_if: _ZeroOrMoreConditions = None,
     hide_if: _ZeroOrMoreConditions = None,
 ) -> Any:
@@ -582,7 +582,9 @@ def select(
     )
 
 
-def option(label: str | UserString, *, selected: bool = False, value: str | UserString | None = None) -> _OptionInfo:
+def option(
+    label: str | TranslatableString, *, selected: bool = False, value: str | TranslatableString | None = None
+) -> _OptionInfo:
     """Adds an option to an [`OptionEnum`][questionpy.form.OptionEnum].
 
     Args:
@@ -623,7 +625,7 @@ def hidden(value: _S, *, disable_if: _ZeroOrMoreConditions = None, hide_if: _Zer
     """Adds a hidden element with a fixed value.
 
     Args:
-        value (str | UserString): Fixed value.
+        value (str | TranslatableString): Fixed value.
         disable_if (Condition | list[Condition] | None): Disable this element if some condition(s) match.
         hide_if (Condition | list[Condition] | None): Hide this element if some condition(s) match.
 
@@ -642,7 +644,7 @@ def hidden(value: _S, *, disable_if: _ZeroOrMoreConditions = None, hide_if: _Zer
     )
 
 
-def section(header: str | UserString, model: type[_F]) -> _F:
+def section(header: str | TranslatableString, model: type[_F]) -> _F:
     """Adds a form section that can be expanded and collapsed.
 
     Args:
@@ -672,10 +674,10 @@ def section(header: str | UserString, model: type[_F]) -> _F:
 
 
 def group(
-    label: str | UserString,
+    label: str | TranslatableString,
     model: type[_F],
     *,
-    help: str | UserString | None = None,
+    help: str | TranslatableString | None = None,
     disable_if: _ZeroOrMoreConditions = None,
     hide_if: _ZeroOrMoreConditions = None,
 ) -> _F:
@@ -735,7 +737,7 @@ def repeat(
     initial: int = 1,
     minimum: int = 1,
     increment: int = 1,
-    button_label: str | UserString | None = None,
+    button_label: str | TranslatableString | None = None,
 ) -> list[_F]:
     """Repeats a sub-model, allowing the user to add new repetitions with the click of a button.
 
@@ -836,7 +838,7 @@ def is_not_checked(name: str) -> IsNotChecked:
     return IsNotChecked(name=name)
 
 
-def equals(name: str, *, value: str | UserString | int | bool) -> Equals:
+def equals(name: str, *, value: str | TranslatableString | int | bool) -> Equals:
     """Condition on the value of another field being equal to some static value.
 
     Many elements can be hidden or disabled client-side by passing conditions to `hide_if` or `disable_if`. See the
@@ -860,7 +862,7 @@ def equals(name: str, *, value: str | UserString | int | bool) -> Equals:
     return Equals(name=name, value=value)
 
 
-def does_not_equal(name: str, *, value: str | UserString | int | bool) -> DoesNotEqual:
+def does_not_equal(name: str, *, value: str | TranslatableString | int | bool) -> DoesNotEqual:
     """Condition on the value of another field *not* being equal to some static value.
 
     Many elements can be hidden or disabled client-side by passing conditions to `hide_if` or `disable_if`. See the
@@ -888,7 +890,7 @@ def does_not_equal(name: str, *, value: str | UserString | int | bool) -> DoesNo
     return DoesNotEqual(name=name, value=value)
 
 
-def is_in(name: str, values: list[str | UserString | int | bool]) -> In:
+def is_in(name: str, values: list[str | TranslatableString | int | bool]) -> In:
     """Condition on the value of another field being one of a number of static values.
 
     Many elements can be hidden or disabled client-side by passing conditions to `hide_if` or `disable_if`. See the

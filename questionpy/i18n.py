@@ -1,12 +1,12 @@
 import logging
-from collections import UserString
-from collections.abc import Callable
+from collections.abc import Callable, Iterable, Mapping
 from contextvars import ContextVar
 from dataclasses import dataclass
 from gettext import GNUTranslations, NullTranslations
 from importlib.resources.abc import Traversable
 from typing import Literal, NewType, TypeAlias, overload
 
+from questionpy_common import TranslatableString
 from questionpy_common.environment import (
     Environment,
     Package,
@@ -186,30 +186,50 @@ def _ensure_initialized(domain: GettextDomain, package: Package, env: Environmen
     return domain_state
 
 
-class _DeferredTranslatedMessage(UserString):
+class _DeferredTranslatedMessage(TranslatableString):
     def __init__(
-        self, domain_state: _DomainState, default_message: str, getter: Callable[[NullTranslations], str]
+        self,
+        domain_state: _DomainState,
+        default_message: str,
+        getter: Callable[[NullTranslations], str],
+        transformations_on_result: Iterable[Callable[[str], str]] = (),
     ) -> None:
-        super().__init__(default_message)
-        self._default_message = default_message
         self._domain_state = domain_state
+        self._default_message = default_message
         self._getter = getter
 
-    @property
-    def data(self) -> str:
+        self._transformations_on_result = transformations_on_result
+
+    def __str__(self) -> str:
         if self._domain_state.request_state:
-            return self._getter(self._domain_state.request_state.translations)
+            result = self._getter(self._domain_state.request_state.translations)
+        else:
+            self._domain_state.logger.warning(
+                "Deferred message '%s' not translated because domain is not initialized for request.",
+                self._default_message,
+            )
+            result = self._default_message
 
-        self._domain_state.logger.debug(
-            "Deferred message '%s' not translated because domain is not initialized for request.",
+        for transformation in self._transformations_on_result:
+            result = transformation(result)
+
+        return result
+
+    def format(self, *args: object, **kwargs: object) -> TranslatableString:
+        return _DeferredTranslatedMessage(
+            self._domain_state,
             self._default_message,
+            self._getter,
+            (*self._transformations_on_result, (lambda s: s.format(*args, **kwargs))),
         )
-        return self._default_message
 
-    @data.setter
-    def data(self, _: str) -> None:
-        # This is just here because MyPy expects data to be a writable property.
-        pass
+    def format_map(self, mapping: Mapping[str, object]) -> TranslatableString:
+        return _DeferredTranslatedMessage(
+            self._domain_state,
+            self._default_message,
+            self._getter,
+            (*self._transformations_on_result, (lambda s: s.format_map(mapping))),
+        )
 
 
 class _Gettext:
@@ -221,15 +241,15 @@ class _Gettext:
         self._domain_state = domain_state
 
     @overload
-    def __call__(self, message: str, /, *, defer: None = None) -> str | UserString: ...
+    def __call__(self, message: str, /, *, defer: None = None) -> str | TranslatableString: ...
 
     @overload
-    def __call__(self, message: str, /, *, defer: Literal[True]) -> UserString: ...
+    def __call__(self, message: str, /, *, defer: Literal[True]) -> TranslatableString: ...
 
     @overload
     def __call__(self, message: str, /, *, defer: Literal[False]) -> str: ...
 
-    def __call__(self, message: str, /, *, defer: bool | None = None) -> str | UserString:
+    def __call__(self, message: str, /, *, defer: bool | None = None) -> str | TranslatableString:
         """Translate the given message.
 
         Args:
@@ -242,15 +262,15 @@ class _Gettext:
         return self._maybe_defer(message, lambda trans: trans.gettext(message), defer=defer)
 
     @overload
-    def ngettext(self, singular: str, plural: str, n: int, /, *, defer: None = None) -> str | UserString: ...
+    def ngettext(self, singular: str, plural: str, n: int, /, *, defer: None = None) -> str | TranslatableString: ...
 
     @overload
-    def ngettext(self, singular: str, plural: str, n: int, /, *, defer: Literal[True]) -> UserString: ...
+    def ngettext(self, singular: str, plural: str, n: int, /, *, defer: Literal[True]) -> TranslatableString: ...
 
     @overload
     def ngettext(self, singular: str, plural: str, n: int, /, *, defer: Literal[False]) -> str: ...
 
-    def ngettext(self, singular: str, plural: str, n: int, /, *, defer: bool | None = None) -> str | UserString:
+    def ngettext(self, singular: str, plural: str, n: int, /, *, defer: bool | None = None) -> str | TranslatableString:
         """Translate the given message, accounting for plural forms.
 
         Args:
@@ -266,15 +286,15 @@ class _Gettext:
         return self._maybe_defer(default_message, lambda trans: trans.ngettext(singular, plural, n), defer=defer)
 
     @overload
-    def pgettext(self, context: str, message: str, /, *, defer: None = None) -> str | UserString: ...
+    def pgettext(self, context: str, message: str, /, *, defer: None = None) -> str | TranslatableString: ...
 
     @overload
-    def pgettext(self, context: str, message: str, /, *, defer: Literal[True]) -> UserString: ...
+    def pgettext(self, context: str, message: str, /, *, defer: Literal[True]) -> TranslatableString: ...
 
     @overload
     def pgettext(self, context: str, message: str, /, *, defer: Literal[False]) -> str: ...
 
-    def pgettext(self, context: str, message: str, /, *, defer: bool | None = None) -> str | UserString:
+    def pgettext(self, context: str, message: str, /, *, defer: bool | None = None) -> str | TranslatableString:
         """Translate the given message in the given context.
 
         The context allows solving ambiguities where the same message may require different translations depending on
@@ -294,17 +314,19 @@ class _Gettext:
     @overload
     def npgettext(
         self, context: str, singular: str, plural: str, n: int, /, *, defer: None = None
-    ) -> str | UserString: ...
+    ) -> str | TranslatableString: ...
 
     @overload
-    def npgettext(self, context: str, singular: str, plural: str, n: int, /, *, defer: Literal[True]) -> UserString: ...
+    def npgettext(
+        self, context: str, singular: str, plural: str, n: int, /, *, defer: Literal[True]
+    ) -> TranslatableString: ...
 
     @overload
     def npgettext(self, context: str, singular: str, plural: str, n: int, /, *, defer: Literal[False]) -> str: ...
 
     def npgettext(
         self, context: str, singular: str, plural: str, n: int, /, *, defer: bool | None = None
-    ) -> str | UserString:
+    ) -> str | TranslatableString:
         """Translate the given message in the given context.
 
         The context allows solving ambiguities where the same message may require different translations depending on
@@ -328,7 +350,7 @@ class _Gettext:
 
     def _maybe_defer(
         self, default_message: str, getter: Callable[[NullTranslations], str], *, defer: bool | None
-    ) -> str | UserString:
+    ) -> str | TranslatableString:
         if defer is None:
             defer = self._domain_state.request_state is None
 
