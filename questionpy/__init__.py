@@ -40,7 +40,6 @@ from questionpy_common.manifest import Manifest, PackageType, SourceManifest
 from . import i18n
 from ._attempt import (
     Attempt,
-    AttemptUiPart,
     BaseAttemptState,
     BaseScoringState,
     InvalidResponseError,
@@ -58,7 +57,6 @@ __all__ = [
     "AttemptScoredModel",
     "AttemptStartedModel",
     "AttemptUi",
-    "AttemptUiPart",
     "BaseAttemptState",
     "BaseQuestionState",
     "BaseScoringState",
