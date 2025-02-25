@@ -65,6 +65,7 @@ def create_jinja2_environment(attempt: "Attempt", question: "Question") -> jinja
     - Package templates are accessible under the prefix ``@<namespace>/<short_name>/``.
     - The prefix is optional when accessing templates of the current package.
     - The QPy environment, attempt, question and question type are available as globals.
+    - The i18n extension is installed and configured to use the relevant package's translations.
     """
     qpy_env = get_qpy_environment()
 
@@ -93,8 +94,7 @@ def create_jinja2_environment(attempt: "Attempt", question: "Question") -> jinja
     })
 
     translations = i18n.get_translations_of_package(package)
-    if translations:
-        env.add_extension("jinja2.ext.i18n")
-        env.install_gettext_translations(translations, newstyle=True)  # type: ignore[attr-defined]
+    env.add_extension("jinja2.ext.i18n")
+    env.install_gettext_translations(translations, newstyle=True)  # type: ignore[attr-defined]
 
     return env

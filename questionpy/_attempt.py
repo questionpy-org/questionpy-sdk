@@ -222,6 +222,7 @@ class Attempt(ABC):
 
     @cached_property
     def jinja2(self) -> jinja2.Environment:
+        """A sensibly configured Jinja2 environment. See [`questionpy.create_jinja2_environment`][] for details."""
         return create_jinja2_environment(self, self.question)
 
     @property
