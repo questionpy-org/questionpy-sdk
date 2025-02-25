@@ -6,3 +6,4 @@ nav:
       - form:
           - form/index.md
           - form/validation.md
+      - i18n: i18n.md
