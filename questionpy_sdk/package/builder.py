@@ -98,7 +98,11 @@ class PackageBuilderBase(AbstractContextManager):
         # pip doesn't offer a public API, so we have to resort to subprocess (pypa/pip#3121)
         try:
             with TemporaryDirectory(prefix=f"qpy_{config.short_name}") as tempdir:
-                subprocess.run(["pip", "install", "--target", tempdir, *pip_args], check=True, capture_output=True)
+                subprocess.run(  # noqa: S603 # Not really applicable here.
+                    ["pip", "install", "--target", tempdir, *pip_args],  # noqa: S607
+                    check=True,
+                    capture_output=True,
+                )
                 self._write_glob(Path(tempdir), "**/*", Path(DIST_DIR) / "dependencies" / "site-packages")
         except subprocess.CalledProcessError as exc:
             msg = f"Failed to install requirements: {exc.stderr.decode()}"
