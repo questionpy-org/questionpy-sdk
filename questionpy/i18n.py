@@ -285,6 +285,8 @@ def dnpgettext(domain: str, context: str, singular: str, plural: str, n: int, /)
 _i18n_state: ContextVar[dict[GettextDomain, _DomainState]] = ContextVar("_i18n_state")
 
 _log = logging.getLogger(__name__)
+if _log.level == logging.NOTSET:
+    _log.setLevel(logging.INFO)
 
 _NULL_TRANSLATIONS = NullTranslations()
 
