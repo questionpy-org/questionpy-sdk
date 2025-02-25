@@ -87,16 +87,21 @@ def get_mro_type_hint(klass: type, attr_name: str, bound: _TypeT) -> _TypeT:
     return hint
 
 
-def get_package_by_attempt(attempt: "Attempt") -> Package:
-    """Returns the package in which the attempt was defined."""
+def get_package_by_python_module(module_name: str) -> Package:
+    """Returns the package which the given Python module is a part of."""
     try:
-        namespace, short_name, *_ = attempt.__module__.split(".", maxsplit=2)
+        namespace, short_name, *_ = module_name.split(".", maxsplit=2)
         env = get_qpy_environment()
         key = PackageNamespaceAndShortName(namespace=namespace, short_name=short_name)
         return env.packages[key]
     except (KeyError, ValueError) as e:
         msg = (
-            "Current package namespace and shortname could not be determined from '__module__' attribute. Please do "
-            "not modify the '__module__' attribute."
+            f"Current package namespace and short name could not be determined from module name '{module_name}'. "
+            f"Please do not modify the '__module__' or '__package__' attributes."
         )
         raise ValueError(msg) from e
+
+
+def get_package_by_attempt(attempt: "Attempt") -> Package:
+    """Returns the package in which the attempt was defined."""
+    return get_package_by_python_module(attempt.__module__)

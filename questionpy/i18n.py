@@ -54,6 +54,8 @@ __all__ = [
     "get_translations_of_package",
 ]
 
+from questionpy._util import get_package_by_python_module
+
 DEFAULT_CATEGORY = "LC_MESSAGES"
 
 GettextDomain = NewType("GettextDomain", str)
@@ -248,7 +250,7 @@ def get_for(module_name: str) -> tuple[Gettext, Callable[[str], str]]:
         print(_.ngettext("One thing", "{} things", 2).format(2))
         ```
     """
-    package = _get_package_owning_module(module_name)
+    package = get_package_by_python_module(module_name)
     domain = domain_of(package.manifest)
     domain_state = _ensure_initialized(domain, package, get_qpy_environment())
 
@@ -338,21 +340,6 @@ def _require_request_state(domain: GettextDomain, domain_state: _DomainState | N
         raise RuntimeError(msg)
 
     return domain_state.request_state
-
-
-def _get_package_owning_module(module_name: str) -> Package:
-    # TODO: Dedupe when #152 is in dev.
-    try:
-        namespace, short_name, *_ = module_name.split(".", maxsplit=2)
-        env = get_qpy_environment()
-        key = PackageNamespaceAndShortName(namespace=namespace, short_name=short_name)
-        return env.packages[key]
-    except (KeyError, ValueError) as e:
-        msg = (
-            "Current package namespace and shortname could not be determined from '__module__' attribute. Please do "
-            "not modify the '__module__' attribute."
-        )
-        raise ValueError(msg) from e
 
 
 def _ensure_initialized(domain: GettextDomain, package: Package, env: Environment) -> _DomainState:
