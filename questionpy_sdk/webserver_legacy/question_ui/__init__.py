@@ -15,6 +15,7 @@ from pydantic import BaseModel
 from questionpy_common.api.attempt import DisplayRole
 from questionpy_sdk.webserver_legacy.question_ui.errors import (
     ConversionError,
+    DuplicateNameError,
     ExpectedAncestorError,
     InvalidAttributeValueError,
     InvalidCleanOptionError,
@@ -594,6 +595,7 @@ class _RenderErrorCollector:
         self._validate_shuffle_contents_and_shuffled_index()
         self._validate_format_floats()
         self._look_for_unknown_qpy_elements_and_attributes()
+        self._check_input_names()
 
         return self.errors
 
@@ -740,3 +742,42 @@ class _RenderErrorCollector:
             if unknown_attributes:
                 unknown_attribute_error = UnknownAttributeError(element=element, attributes=unknown_attributes)
                 self.errors.insert(unknown_attribute_error)
+
+    def _check_input_names(self) -> None:
+        """Check if there are only valid input names.
+
+        Duplicate input names are only allowed for `checkbox` and `radio` elements, but only when their types match and
+        they have different values.
+        """
+        # Maps element name to the reference element and the values.
+        name_map: dict[str, tuple[etree._Element, set[str]]] = {}
+
+        for current_element in _assert_element_list(
+            self._xpath("(//xhtml:button | //xhtml:input | //xhtml:select | //xhtml:textarea)[@name]")
+        ):
+            # Get name, type, and value of the current element.
+            name = str(current_element.attrib["name"])
+            current_type = current_element.get("type", "text")
+            current_value = current_element.get("value", "on")
+
+            if name not in name_map:
+                # This name has not been used yet by other elements.
+                name_map[name] = (current_element, {current_value})
+                continue
+
+            # Get type and values of the other element(s) with the same name.
+            other_element, values = name_map[name]
+            other_type = other_element.get("type", "text")
+
+            if current_type not in {"checkbox", "radio"}:
+                # Duplicate names are not allowed for other elements.
+                error = DuplicateNameError(element=current_element, name=name, other_element=other_element)
+                self.errors.insert(error)
+                continue
+
+            # Check that the types match and the value is unique.
+            if other_type != current_type or current_value in values:
+                error = DuplicateNameError(element=current_element, name=name, other_element=other_element)
+                self.errors.insert(error)
+            else:
+                values.add(current_value)

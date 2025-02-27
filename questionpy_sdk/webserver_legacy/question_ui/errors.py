@@ -27,6 +27,16 @@ def _format_human_readable_list(values: Collection[str], opening: str, closing: 
     return opening + f"{closing}, {opening}".join(values) + f"{closing} and {last_value}"
 
 
+def _element_representation(element: etree._Element) -> str:
+    # Return the whole element if it is a PI.
+    if isinstance(element, etree._ProcessingInstruction):
+        return str(element)
+
+    # Create the prefix of an element. We do not want to keep 'html' as a prefix.
+    prefix = f"{element.prefix}:" if element.prefix and element.prefix != "html" else ""
+    return prefix + etree.QName(element).localname
+
+
 @dataclass(frozen=True)
 class RenderError(ABC):
     """Represents a generic error which occurred during rendering."""
@@ -76,7 +86,7 @@ class RenderElementError(RenderError, ABC):
 
     def _message(self, *, as_html: bool) -> str:
         (opening, closing) = ("<code>", "</code>") if as_html else ("'", "'")
-        template_kwargs = {"element": f"{opening}{self.element_representation}{closing}"}
+        template_kwargs = {"element": f"{opening}{_element_representation(self.element)}{closing}"}
 
         for key, values in self.template_kwargs.items():
             collection = {values} if isinstance(values, str) else values
@@ -91,16 +101,6 @@ class RenderElementError(RenderError, ABC):
     @property
     def html_message(self) -> str:
         return self._message(as_html=True)
-
-    @property
-    def element_representation(self) -> str:
-        # Return the whole element if it is a PI.
-        if isinstance(self.element, etree._ProcessingInstruction):
-            return str(self.element)
-
-        # Create the prefix of an element. We do not want to keep 'html' as a prefix.
-        prefix = f"{self.element.prefix}:" if self.element.prefix and self.element.prefix != "html" else ""
-        return prefix + etree.QName(self.element).localname
 
     @property
     def line(self) -> int | None:
@@ -231,6 +231,22 @@ class UnknownAttributeError(RenderElementError):
             element=element,
             template=f"Unknown attribute{s} {{attributes}} on element {{element}}.",
             template_kwargs={"attributes": attributes},
+        )
+
+
+@dataclass(frozen=True)
+class DuplicateNameError(RenderElementError):
+    """Invalid duplicate input name."""
+
+    def __init__(self, element: etree._Element, name: str, other_element: etree._Element):
+        super().__init__(
+            element=element,
+            template="{element} should not have the same name ({name}) like {other_element} at line {line}.",
+            template_kwargs={
+                "name": name,
+                "other_element": _element_representation(other_element),
+                "line": str(other_element.sourceline or "?"),
+            },
         )
 
 
