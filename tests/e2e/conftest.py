@@ -14,7 +14,7 @@ from selenium import webdriver
 from questionpy import Attempt, NeedsManualScoringError, Question
 from questionpy_common.environment import PackageInitFunction
 from questionpy_common.manifest import Manifest
-from questionpy_sdk.webserver.app import WebServer
+from questionpy_sdk.webserver_legacy.app import WebServer
 from questionpy_server.worker.runtime.package_location import FunctionPackageLocation
 
 
