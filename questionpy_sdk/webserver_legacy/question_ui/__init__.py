@@ -13,7 +13,7 @@ from lxml import etree
 from pydantic import BaseModel
 
 from questionpy_common.api.attempt import DisplayRole
-from questionpy_sdk.webserver.question_ui.errors import (
+from questionpy_sdk.webserver_legacy.question_ui.errors import (
     ConversionError,
     ExpectedAncestorError,
     InvalidAttributeValueError,

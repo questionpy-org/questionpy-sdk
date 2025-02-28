@@ -6,7 +6,7 @@ from typing import TYPE_CHECKING
 
 from aiohttp import web
 
-from questionpy_sdk.webserver.app import SDK_WEBSERVER_APP_KEY
+from questionpy_sdk.webserver_legacy.app import SDK_WEBSERVER_APP_KEY
 
 if TYPE_CHECKING:
     from questionpy_server.worker import Worker

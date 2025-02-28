@@ -4,27 +4,60 @@
 
 import asyncio
 import logging
+import traceback
+from enum import StrEnum
 from functools import cached_property
 from pathlib import Path
 from typing import TYPE_CHECKING
 
+import aiohttp_jinja2
 from aiohttp import web
+from aiohttp.typedefs import Handler
+from jinja2 import PackageLoader
 
+from questionpy_common.api.qtype import InvalidQuestionStateError
 from questionpy_common.constants import MiB
-from questionpy_common.manifest import Manifest
-from questionpy_sdk.webserver.routes.api import serve_api
-from questionpy_sdk.webserver.routes.frontend import serve_frontend
+from questionpy_common.environment import RequestUser
+from questionpy_common.manifest import Bcp47LanguageTag, Manifest
 from questionpy_server import WorkerPool
 from questionpy_server.worker.impl.thread import ThreadWorker
 from questionpy_server.worker.runtime.package_location import PackageLocation
-
-from .constants import WEBSERVER_KEY, StateFilename
 
 if TYPE_CHECKING:
     from questionpy_server.worker import Worker
 
 log = logging.getLogger("questionpy-sdk:web-server")
 
+
+async def _extract_manifest(app: web.Application) -> None:
+    webserver = app[SDK_WEBSERVER_APP_KEY]
+    worker: Worker
+    async with webserver.worker_pool.get_worker(webserver.package_location, 0, None) as worker:
+        app[MANIFEST_APP_KEY] = await worker.get_manifest()
+
+
+@web.middleware
+async def _invalid_question_state_middleware(request: web.Request, handler: Handler) -> web.StreamResponse:
+    webserver = request.app[SDK_WEBSERVER_APP_KEY]
+    try:
+        return await handler(request)
+    except InvalidQuestionStateError as e:
+        question_state = webserver.read_state_file(StateFilename.QUESTION_STATE)
+        context = {"stacktrace": "".join(traceback.format_exception(e)), "manifest": request.app[MANIFEST_APP_KEY]}
+        if question_state is not None:
+            context["question_state"] = question_state
+        return aiohttp_jinja2.render_template("invalid_question_state.html.jinja2", request, context, status=500)
+
+
+class StateFilename(StrEnum):
+    QUESTION_STATE = "question_state.txt"
+    ATTEMPT_STATE = "attempt_state.txt"
+    ATTEMPT_SEED = "attempt_seed.txt"
+    SCORE = "score.json"
+    LAST_ATTEMPT_DATA = "last_attempt_data.json"
+
+
+DEFAULT_STATE_STORAGE_PATH = Path(__file__).parent / "question_state_storage"
 LEN_AF_INET = 2
 LEN_AF_INET6 = 4
 
@@ -44,7 +77,6 @@ class WebServer:
 
         self._web_app: web.Application | None = None
         self._runner: web.AppRunner | None = None
-        self._manifest: Manifest | None = None
         self.worker_pool: WorkerPool = WorkerPool(1, 500 * MiB, worker_type=ThreadWorker)
 
     async def start_server(self) -> None:
@@ -86,12 +118,24 @@ class WebServer:
             self._package_state_dir.rmdir()
 
     def _create_webapp(self) -> web.Application:
-        app = web.Application()
-        app[WEBSERVER_KEY] = self
-        app.on_startup.append(self._extract_manifest)
+        # We import here, so we don't have to work around circular imports.
+        from questionpy_sdk.webserver_legacy.routes.attempt import routes as attempt_routes  # noqa: PLC0415
+        from questionpy_sdk.webserver_legacy.routes.options import routes as options_routes  # noqa: PLC0415
+        from questionpy_sdk.webserver_legacy.routes.worker import routes as worker_routes  # noqa: PLC0415
 
-        serve_api(app)
-        serve_frontend(app)
+        app = web.Application()
+        app[SDK_WEBSERVER_APP_KEY] = self
+
+        app.add_routes(attempt_routes)
+        app.add_routes(options_routes)
+        app.add_routes(worker_routes)
+        app.router.add_static("/static", Path(__file__).parent / "static")
+
+        app.on_startup.append(_extract_manifest)
+        app.middlewares.append(_invalid_question_state_middleware)
+
+        jinja2_extensions = ["jinja2.ext.do"]
+        aiohttp_jinja2.setup(app, loader=PackageLoader(__package__), extensions=jinja2_extensions)
 
         return app
 
@@ -101,21 +145,8 @@ class WebServer:
             msg = "Web app not initialized"
             raise RuntimeError(msg)
 
-        manifest = self.manifest
+        manifest = self._web_app[MANIFEST_APP_KEY]
         return self._state_storage_root / f"{manifest.namespace}-{manifest.short_name}-{manifest.version}"
-
-    @property
-    def manifest(self) -> Manifest:
-        if self._manifest is None:
-            msg = "Web app not initialized"
-            raise RuntimeError(msg)
-
-        return self._manifest
-
-    async def _extract_manifest(self, app: web.Application) -> None:
-        worker: Worker
-        async with self.worker_pool.get_worker(self.package_location, 0, None) as worker:
-            self._manifest = await worker.get_manifest()
 
     def _print_urls(self) -> None:
         if self._runner is None:
@@ -135,3 +166,8 @@ class WebServer:
                 raise ValueError(msg)
 
         log.info("Webserver started: %s", " ".join(urls))
+
+
+SDK_WEBSERVER_APP_KEY = web.AppKey("sdk_webserver_app", WebServer)
+MANIFEST_APP_KEY = web.AppKey("manifest", Manifest)
+DEFAULT_REQUEST_USER = RequestUser([Bcp47LanguageTag("de"), Bcp47LanguageTag("en")])
