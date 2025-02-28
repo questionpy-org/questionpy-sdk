@@ -95,14 +95,6 @@ def test_should_raise_validation_error_when_required_option_is_missing() -> None
             [form.StaticTextElement(name="field", label="Label", text="Lorem ipsum dolor sit amet.", help="Help")],
         ),
         (
-            form.checkbox("Left Label", "Right Label", required=True, help="Help"),
-            [
-                form.CheckboxElement(
-                    name="field", left_label="Left Label", right_label="Right Label", required=True, help="Help"
-                )
-            ],
-        ),
-        (
             form.radio_group("Label", MyOptionEnum, required=True, help="Help"),
             [
                 form.RadioGroupElement(

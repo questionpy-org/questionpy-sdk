@@ -20,8 +20,8 @@ from questionpy_common.elements import (
     StaticTextElement,
     TextInputElement,
 )
-from questionpy_sdk.webserver.context import CxdFormElement, contextualize
-from questionpy_sdk.webserver.elements import (
+from questionpy_sdk.webserver_legacy.context import CxdFormElement, contextualize
+from questionpy_sdk.webserver_legacy.elements import (
     CxdGroupElement,
     CxdOption,
     CxdRadioGroupElement,
