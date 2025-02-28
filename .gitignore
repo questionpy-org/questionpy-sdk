@@ -1,11 +1,12 @@
 /venv
 /.venv
-/.idea
+.idea
 *.iml
 config.ini
 __pycache__
 /dist
-/.vscode
+.vscode
+.DS_Store
 
 /.mypy_cache
 /.pytest_cache

@@ -1,0 +1,11 @@
+logs
+*.log
+npm-debug.log*
+
+node_modules
+coverage
+*.local
+
+*.tsbuildinfo
+/.vite
+/components.d.ts
