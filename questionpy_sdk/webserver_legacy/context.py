@@ -18,7 +18,7 @@ from questionpy_common.elements import (
     TextAreaElement,
     TextInputElement,
 )
-from questionpy_sdk.webserver.elements import (
+from questionpy_sdk.webserver_legacy.elements import (
     CxdCheckboxElement,
     CxdFormElement,
     CxdFormSection,

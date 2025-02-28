@@ -61,14 +61,18 @@ class TestTemplates:
         driver.get(url)
         driver.find_element(By.ID, "submit-options-button").click()
 
-        assert driver.find_element(By.ID, "submit_success_info").is_displayed()
+        WebDriverWait(driver, 2).until(
+            expected_conditions.visibility_of_element_located((By.ID, "submit_success_info"))
+        )
 
     @use_package(package_2_init)
     def test_form_with_required_fields_should_not_submit(self, driver: webdriver.Chrome, url: str) -> None:
         driver.get(url)
         driver.find_element(By.ID, "submit-options-button").click()
 
-        assert "Field required" in driver.find_element(By.CLASS_NAME, "errors").text
+        WebDriverWait(driver, 2).until(
+            expected_conditions.text_to_be_present_in_element((By.CLASS_NAME, "errors"), "Field required")
+        )
 
     @use_package(package_3_init)
     def test_repeat_element_if_present(self, driver: webdriver.Chrome, url: str) -> None:

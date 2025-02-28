@@ -11,9 +11,9 @@ from aiohttp import web
 from pydantic import TypeAdapter
 
 from questionpy_common.api.attempt import AttemptScoredModel, ScoreModel
-from questionpy_sdk.webserver.app import DEFAULT_REQUEST_USER, SDK_WEBSERVER_APP_KEY, StateFilename
-from questionpy_sdk.webserver.attempt import get_attempt_render_context
-from questionpy_sdk.webserver.question_ui import QuestionDisplayOptions
+from questionpy_sdk.webserver_legacy.app import DEFAULT_REQUEST_USER, SDK_WEBSERVER_APP_KEY, StateFilename
+from questionpy_sdk.webserver_legacy.attempt import get_attempt_render_context
+from questionpy_sdk.webserver_legacy.question_ui import QuestionDisplayOptions
 
 if TYPE_CHECKING:
     from questionpy_server.worker import Worker

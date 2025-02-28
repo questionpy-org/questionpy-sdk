@@ -4,12 +4,12 @@
 from typing import Literal, TypedDict
 
 from questionpy_common.api.attempt import AttemptModel, AttemptScoredModel, AttemptStartedModel
-from questionpy_sdk.webserver.question_ui import (
+from questionpy_sdk.webserver_legacy.question_ui import (
     QuestionDisplayOptions,
     QuestionFormulationUIRenderer,
     QuestionUIRenderer,
 )
-from questionpy_sdk.webserver.question_ui.errors import RenderErrorCollections, log_render_errors
+from questionpy_sdk.webserver_legacy.question_ui.errors import RenderErrorCollections, log_render_errors
 
 
 class _AttemptRenderContext(TypedDict):

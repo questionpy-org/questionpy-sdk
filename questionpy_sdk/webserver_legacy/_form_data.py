@@ -3,7 +3,6 @@
 #  (c) Technische Universität Berlin, innoCampus <info@isis.tu-berlin.de>
 
 import operator
-from collections.abc import Iterable
 from typing import Any
 
 
@@ -20,7 +19,7 @@ def _unflatten(flat_form_data: dict[str, str]) -> dict[str, Any]:
         ...     "general[my_repetition][1][role]": "OPT_1",
         ...     "general[my_repetition][1][name][first_name]": "John",
         ... })
-        {'general': {'my_hidden': 'foo', 'my_repetition': [{'role': 'OPT_1', 'name': {'first_name': 'John'}}]}}
+        {'general': {'my_hidden': 'foo', 'my_repetition': {'1': {'role': 'OPT_1', 'name': {'first_name': 'John'}}}}}
     """
     unflattened_dict: dict[str, Any] = {}
     for flat_key, value in flat_form_data.items():
@@ -46,25 +45,19 @@ def _convert_repetition_dict_to_list(dictionary: dict[str, Any]) -> dict[str, An
     for key, value in dictionary.items():
         dictionary[key] = _convert_repetition_dict_to_list(value)
 
-    if all(key.isnumeric() for key in dictionary):
+    if dictionary.pop("qpy_repetition_marker", ...) is not ...:
         # Sort by key (i.e. the index) and put the sorted values into a list.
         return [value for key, value in sorted(dictionary.items(), key=operator.itemgetter(0))]
 
     return dictionary
 
 
-def parse_form_data(form_data: dict[str, Any]) -> dict[str, Any]:
-    """Parses form data from a flat into a nested dictionary to be consumed by Pydantic.
+def parse_form_data(form_data: dict) -> dict:
+    """Parses form data from a flat dictionary into a nested dictionary.
 
-    This function parses a dictionary, where the keys are the references to the Form Elements from the Options Form.
+    This function parses a dictionary, where the keys are the references to the Form Element from the Options Form.
     The references are used to create a nested dictionary with the form data. Elements in the 'general' section are
     moved to the root of the dictionary.
-
-    Args:
-        form_data: The flat dictionary representing the form data.
-
-    Returns:
-        The nested form data.
 
     Examples:
         >>> parse_form_data({
@@ -72,7 +65,7 @@ def parse_form_data(form_data: dict[str, Any]) -> dict[str, Any]:
         ...     "general[my_repetition][1][role]": "OPT_1",
         ...     "general[my_repetition][1][name][first_name]": "John",
         ... })
-        {'my_hidden': 'foo', 'my_repetition': [{'role': 'OPT_1', 'name': {'first_name': 'John'}}]}
+        {'my_hidden': 'foo', 'my_repetition': {'1': {'role': 'OPT_1', 'name': {'first_name': 'John'}}}}
     """
     unflattened_form_data = _unflatten(form_data)
     options = unflattened_form_data.get("general", {})
@@ -82,48 +75,15 @@ def parse_form_data(form_data: dict[str, Any]) -> dict[str, Any]:
     return options
 
 
-def _flatten_value(value: Any, prefix: str, result: dict[str, Any]) -> None:
-    # group
-    if isinstance(value, dict):
-        for k, v in value.items():
-            _flatten_value(v, f"{prefix}[{k}]", result)
+def get_nested_form_data(form_data: dict[str, Any], reference: str) -> object:
+    current_element = form_data
+    parts = reference.replace("]", "").split("[")
 
-    # repetition
-    elif isinstance(value, list) and len(value) > 0 and all(isinstance(item, dict) for item in value):
-        for idx, v in enumerate(value, start=1):
-            item_prefix = f"{prefix}[{idx}]"
-            _flatten_value(v, item_prefix, result)
+    ref = parts.pop(0)
+    if ref != "general":
+        current_element = current_element[ref]
+    while parts:
+        ref = parts.pop(0)
+        current_element = current_element[ref]
 
-    else:
-        result[prefix] = value
-
-
-def flatten_form_data(form_data: dict[str, Any], section_names: Iterable[str]) -> dict[str, Any]:
-    """Flattens form data from a nested dictionary into a flat dictionary to be consumed by the frontend.
-
-    This function flattens a nested dictionary into a flat dictionary, where the keys are references
-    to the Form Elements in the Options Form. Top-level elements are put under the 'general' section,
-    while elements under the given `section_names` are put under their respective sections.
-
-    Args:
-        form_data: The nested dictionary representing the form data.
-        section_names: An iterable of section names that should be treated as sections and not put
-                       under 'general'.
-
-    Returns:
-        The flat form data.
-
-    Examples:
-        >>> flatten_form_data(
-        ...     {
-        ...         "my_hidden": "foo",
-        ...         "my_repetition": [{"input": "foo"}],
-        ...     },
-        ...     section_names=[],
-        ... )
-        {'general[my_hidden]': 'foo', 'general[my_repetition][1][input]': 'foo'}
-    """
-    result: dict[str, Any] = {}
-    for key, value in form_data.items():
-        _flatten_value(value, key if key in section_names else f"general[{key}]", result)
-    return result
+    return current_element
