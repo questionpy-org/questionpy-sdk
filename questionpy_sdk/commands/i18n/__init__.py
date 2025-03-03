@@ -7,7 +7,7 @@ from questionpy_sdk.commands.i18n._update import update
 
 @click.group()
 def i18n() -> None:
-    pass
+    """Manage translations for a package."""
 
 
 i18n.add_command(extract)

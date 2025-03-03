@@ -38,14 +38,22 @@ def _update_domain(
 
 
 @click.command()
-@click.argument("package_path", type=click.Path(exists=True, file_okay=False, path_type=Path))
-@click.option("-t", "--pot", type=click.Path(exists=True, dir_okay=False, path_type=Path))
-@click.option("-d", "--domain", "only_domain")
+@click.argument("package", type=click.Path(exists=True, file_okay=False, path_type=Path))
+@click.option(
+    "-t",
+    "--pot",
+    type=click.Path(exists=True, dir_okay=False, path_type=Path),
+    help="Use a different catalog template.",
+    show_default="<PACKAGE>/locale/<namespace>.<short_name>.pot",
+)
+@click.option(
+    "-d", "--domain", "only_domain", help="Only update catalogs for the given domain instead of all catalogs."
+)
 @click.pass_context
 def update(
-    ctx: click.Context, package_path: Path, pot: Path | None = None, only_domain: GettextDomain | None = None
+    ctx: click.Context, package: Path, pot: Path | None = None, only_domain: GettextDomain | None = None
 ) -> None:
-    """Updates .po files from .pot files.
+    """Update catalogs (.po files) from updated catalog templates (.pot files).
 
     \b
     Examples:
@@ -61,12 +69,13 @@ def update(
 
             questionpy-sdk i18n update my-package-source-dir/ --domain foo --pot template.pot
     """  # noqa: D301 (it's a click feature)
-    package = PackageSource(package_path)
+    package_source = PackageSource(package)
     pos_by_domain = {
-        domain: list(pos) for domain, pos in itertools.groupby(package.discover_po_files(), operator.itemgetter(0))
+        domain: list(pos)
+        for domain, pos in itertools.groupby(package_source.discover_po_files(), operator.itemgetter(0))
     }
 
-    pots_by_domain = dict(package.discover_pot_files())
+    pots_by_domain = dict(package_source.discover_pot_files())
     if pot:
         if not only_domain:
             # Assume the .pot filename still follows our convention of <domain>.pot.
