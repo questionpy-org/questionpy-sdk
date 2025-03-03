@@ -54,9 +54,25 @@ def _init_in_source_dir(ctx: click.Context, package: PackageSource, locale: Bcp4
 @click.command
 @click.argument("pot_or_package", type=click.Path(exists=True, path_type=Path))
 @click.argument("locales", nargs=-1)
-@click.option("--force", "-f", is_flag=True)
+@click.option(
+    "--force",
+    "-f",
+    is_flag=True,
+    help="Instead of ignoring or failing languages whose catalogs already exists, this flag will cause them to be "
+    "overwritten. YOU WILL LOSE ALL TRANSLATIONS IN THOSE FILES. To update a catalog, use the `update` command.",
+)
 @click.pass_context
 def init(ctx: click.Context, pot_or_package: Path, locales: Collection[Bcp47LanguageTag] = (), *, force: bool) -> None:
+    """Create new catalogs (.po files) from a template (.pot file).
+
+    POT_OR_PACKAGE can be a package source directory, in which case the template catalog (.pot file) file will be
+    expected at the default path `<POT_OR_PACKAGE>/locale/<namespace>.<short_name>.pot`, or POT_OR_PACKAGE can specify
+    an explicit template catalog to use.
+
+    LOCALES can be used to specify the languages (in BCP 47 format) for which to create catalogs. When POT_OR_PACKAGE is
+    a package source directory, LOCALES can be omitted to use all uninitialized the languages listed in the package
+    config's `languages` field.
+    """
     if pot_or_package.is_file() and pot_or_package.suffix == ".pot":
         if not locales:
             msg = "When initializing from an explicit .pot file, you must specify which locales to initialize."
