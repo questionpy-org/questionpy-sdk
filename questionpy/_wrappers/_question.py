@@ -7,6 +7,7 @@ from pydantic import JsonValue
 
 from questionpy import Question, i18n
 from questionpy._attempt import AttemptProtocol, AttemptScoredProtocol
+from questionpy_common import TranslatableString
 from questionpy_common.api.attempt import AttemptModel, AttemptScoredModel, AttemptStartedModel, AttemptUi
 from questionpy_common.api.question import QuestionInterface, QuestionModel
 from questionpy_common.environment import get_qpy_environment
@@ -15,6 +16,12 @@ from questionpy_common.manifest import Bcp47LanguageTag
 
 def _get_output_lang() -> Bcp47LanguageTag:
     return i18n.get_primary_language(get_qpy_environment().main_package)
+
+
+def _str_or_none(string: str | TranslatableString | None) -> str | None:
+    if string is None:
+        return None
+    return str(string)
 
 
 def _export_question(question: Question) -> QuestionModel:
@@ -36,11 +43,11 @@ def _export_attempt(attempt: AttemptProtocol) -> dict:
         "lang": _get_output_lang(),
         "variant": attempt.variant,
         "ui": AttemptUi(
-            formulation=attempt.formulation,
-            general_feedback=attempt.general_feedback,
-            specific_feedback=attempt.specific_feedback,
-            right_answer=attempt.right_answer_description,
-            placeholders=attempt.placeholders,
+            formulation=str(attempt.formulation),
+            general_feedback=_str_or_none(attempt.general_feedback),
+            specific_feedback=_str_or_none(attempt.specific_feedback),
+            right_answer=_str_or_none(attempt.right_answer_description),
+            placeholders={key: str(value) for key, value in attempt.placeholders.items()},
             css_files=attempt.css_files,
             javascript_calls=attempt.javascript_calls,
             files=attempt.files,
