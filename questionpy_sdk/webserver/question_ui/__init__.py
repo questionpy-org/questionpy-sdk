@@ -5,7 +5,7 @@ from __future__ import annotations
 
 import re
 from random import Random
-from typing import TYPE_CHECKING, Any
+from typing import Any
 
 import lxml.html
 import lxml.html.clean
@@ -25,9 +25,6 @@ from questionpy_sdk.webserver.question_ui.errors import (
     UnknownElementError,
     XMLSyntaxError,
 )
-
-if TYPE_CHECKING:
-    from questionpy_common import TranslatableString
 
 _XHTML_NAMESPACE: str = "http://www.w3.org/1999/xhtml"
 _QPY_NAMESPACE: str = "http://questionpy.org/ns/question"
@@ -202,7 +199,7 @@ class QuestionUIRenderer:
     def __init__(
         self,
         xml: str,
-        placeholders: dict[str, str | TranslatableString],
+        placeholders: dict[str, str],
         options: QuestionDisplayOptions,
         seed: int | None = None,
         attempt: dict | None = None,
@@ -293,7 +290,7 @@ class QuestionUIRenderer:
 
             if clean_option == "plain":
                 # Treat the value as plain text.
-                _add_text_before(p_instruction, str(raw_value))
+                _add_text_before(p_instruction, raw_value)
             else:
                 # html.clean works on different element classes than etree, so we need to use different parse functions.
                 # Since the HTML elements are subclasses of the etree elements though, we can reuse them without dumping
@@ -525,7 +522,7 @@ class QuestionFormulationUIRenderer(QuestionUIRenderer):
     def __init__(
         self,
         xml: str,
-        placeholders: dict[str, str | TranslatableString],
+        placeholders: dict[str, str],
         options: QuestionDisplayOptions,
         seed: int | None = None,
         attempt: dict | None = None,
@@ -572,7 +569,7 @@ class _RenderErrorCollector:
     def __init__(
         self,
         xml: str,
-        placeholders: dict[str, str | TranslatableString],
+        placeholders: dict[str, str],
     ) -> None:
         self.errors = RenderErrorCollection()
 

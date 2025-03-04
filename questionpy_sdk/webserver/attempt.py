@@ -40,7 +40,7 @@ def get_attempt_render_context(
 ) -> _AttemptRenderContext:
     renderer_args = (attempt.ui.placeholders, display_options, seed, last_attempt_data)
 
-    html, errors = QuestionFormulationUIRenderer(str(attempt.ui.formulation), *renderer_args).render()
+    html, errors = QuestionFormulationUIRenderer(attempt.ui.formulation, *renderer_args).render()
 
     context: _AttemptRenderContext = {
         "attempt_status": (
