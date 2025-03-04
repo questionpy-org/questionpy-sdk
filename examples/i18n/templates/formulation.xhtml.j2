@@ -1,15 +1,14 @@
-<div xmlns="http://www.w3.org/1999/xhtml"
->
+<div xmlns="http://www.w3.org/1999/xhtml">
     {# TRANSLATORS: This comment will be shown in the .pot file. #}
-    <p><code>gettext</code>: {{ _("This string should be localized!") }}</p>
-    <p><code>ngettext</code>: {{ ngettext("One Thing", "More Things", 1) }}, {{ ngettext("One Thing", "More Things", 99) }}
+    <p><code>gettext</code>: {{ __("This string should be localized!") }}</p>
+    <p><code>ngettext</code>: {{ ngettext("One Thing", "More Things", 1) }}, {{ __.n("One Thing", "More Things", 99) }}
     </p>
-    <p><code>pgettext</code>: {{ pgettext("Context 1", "My Message") }}, {{ pgettext("Context 2", "My Message") }}</p>
+    <p><code>pgettext</code>: {{ pgettext("Context 1", "My Message") }}, {{ __.p("Context 2", "My Message") }}</p>
     <p><code>npgettext</code></p>
     <ul>
         <li>{{ npgettext("Context 1", "One Thing", "More Things", 1) }}</li>
-        <li>{{ npgettext("Context 1", "One Thing", "More Things", 2) }}</li>
-        <li>{{ npgettext("Context 2", "One Thing", "More Things", 1) }}</li>
+        <li>{{ __.npgettext("Context 1", "One Thing", "More Things", 2) }}</li>
+        <li>{{ __.np("Context 2", "One Thing", "More Things", 1) }}</li>
         <li>{{ npgettext("Context 2", "One Thing", "More Things", 2) }} </li>
     </ul>
 </div>

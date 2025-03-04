@@ -8,40 +8,45 @@ msgid ""
 msgstr ""
 "Project-Id-Version: @local/i18n 0.1.0\n"
 "Report-Msgid-Bugs-To: Jane Doe <jane.doe@example.org>\n"
-"POT-Creation-Date: 2025-02-24 15:42+0100\n"
-"PO-Revision-Date: 2025-02-24 15:34+0100\n"
-"Last-Translator: FULL NAME <EMAIL@ADDRESS>\n"
-"Language: en\n"
+"POT-Creation-Date: 2025-03-04 17:05+0100\n"
+"PO-Revision-Date: 2025-03-04 17:15+0100\n"
+"Last-Translator: \n"
 "Language-Team: en <LL@li.org>\n"
-"Plural-Forms: nplurals=2; plural=(n != 1);\n"
+"Language: en\n"
 "MIME-Version: 1.0\n"
 "Content-Type: text/plain; charset=utf-8\n"
 "Content-Transfer-Encoding: 8bit\n"
+"Plural-Forms: nplurals=2; plural=(n != 1);\n"
 "Generated-By: Babel 2.17.0\n"
+"X-Generator: Poedit 3.5\n"
 
-#: python/local/i18n/__init__.py:14
+#: python/local/i18n/__init__.py:11
+msgid "I'm marked using a no-op function and later dynamically translated."
+msgstr ""
+
+#: python/local/i18n/__init__.py:15
 msgid "Status of the file"
 msgstr ""
 
-#: python/local/i18n/__init__.py:14
+#: python/local/i18n/__init__.py:15
 msgctxt "File"
 msgid "Opened"
 msgstr ""
 
-#: python/local/i18n/__init__.py:16
+#: python/local/i18n/__init__.py:17
 msgid "Status of the amusement park"
 msgstr ""
 
-#: python/local/i18n/__init__.py:16
+#: python/local/i18n/__init__.py:17
 msgctxt "Amusement Park"
 msgid "Opened"
 msgstr ""
 
-#: python/local/i18n/__init__.py:20
+#: python/local/i18n/__init__.py:21
 msgid "npgettext combines pluralization support and contextualization."
 msgstr ""
 
-#: python/local/i18n/__init__.py:21
+#: python/local/i18n/__init__.py:22
 #, python-brace-format
 msgctxt "Home Depot"
 msgid "There is a light."
@@ -49,7 +54,7 @@ msgid_plural "There are {} lights!"
 msgstr[0] ""
 msgstr[1] ""
 
-#: python/local/i18n/__init__.py:23
+#: python/local/i18n/__init__.py:24
 #, python-brace-format
 msgctxt "Picard"
 msgid "There is a light."
@@ -57,61 +62,57 @@ msgid_plural "There are {} lights!"
 msgstr[0] ""
 msgstr[1] ""
 
-#: python/local/i18n/__init__.py:27
+#: python/local/i18n/__init__.py:28
 msgid "First Option"
 msgstr ""
 
-#: python/local/i18n/__init__.py:28
+#: python/local/i18n/__init__.py:29
 msgid "Second Option"
 msgstr ""
 
-#: python/local/i18n/__init__.py:29
+#: python/local/i18n/__init__.py:30
 msgid "Third Option"
 msgstr ""
 
 #. This comment will be shown in the .pot file.
-#: python/local/i18n/__init__.py:35
+#: python/local/i18n/__init__.py:36
 msgid "This is a localized FormModel."
 msgstr ""
 
-#: python/local/i18n/__init__.py:36
+#: python/local/i18n/__init__.py:37
 msgid ""
 "The FormModel is defined before any initialization, so message "
 "translation needs to be deferred!"
 msgstr ""
 
-#: python/local/i18n/__init__.py:40
+#: python/local/i18n/__init__.py:41
 msgid "This is a text_input, and its label is localized!"
 msgstr ""
 
-#: python/local/i18n/__init__.py:42
+#: python/local/i18n/__init__.py:43
 msgid "Even this placeholder is localized!"
 msgstr ""
 
-#: python/local/i18n/__init__.py:43
+#: python/local/i18n/__init__.py:44
 msgid "Now you can get help in your language!"
 msgstr ""
 
-#: python/local/i18n/__init__.py:47
+#: python/local/i18n/__init__.py:48
 #, python-brace-format
 msgid "Choose exactly one option."
 msgid_plural "Choose exactly {} options."
 msgstr[0] ""
 msgstr[1] ""
 
-#: python/local/i18n/__init__.py:50
+#: python/local/i18n/__init__.py:51
 msgid "This section shows contextualized messages."
 msgstr ""
 
-#: python/local/i18n/__init__.py:63
+#: python/local/i18n/__init__.py:64
 msgid "Programmatic translation!"
 msgstr ""
 
 #. This comment will be shown in the .pot file.
-#: templates/formulation.xhtml.j2:4
-msgid "This string should be localized!"
-msgstr ""
-
 #: templates/formulation.xhtml.j2:5
 msgid "One Thing"
 msgid_plural "More Things"
@@ -129,7 +130,6 @@ msgid "My Message"
 msgstr ""
 
 #: templates/formulation.xhtml.j2:10 templates/formulation.xhtml.j2:11
-#, fuzzy
 msgctxt "Context 1"
 msgid "One Thing"
 msgid_plural "More Things"
@@ -137,7 +137,6 @@ msgstr[0] ""
 msgstr[1] ""
 
 #: templates/formulation.xhtml.j2:12 templates/formulation.xhtml.j2:13
-#, fuzzy
 msgctxt "Context 2"
 msgid "One Thing"
 msgid_plural "More Things"

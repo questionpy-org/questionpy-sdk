@@ -8,8 +8,8 @@ msgid ""
 msgstr ""
 "Project-Id-Version: @local/i18n 0.1.0\n"
 "Report-Msgid-Bugs-To: Jane Doe <jane.doe@example.org>\n"
-"POT-Creation-Date: 2025-02-24 15:42+0100\n"
-"PO-Revision-Date: 2025-02-24 15:56+0100\n"
+"POT-Creation-Date: 2025-03-04 17:05+0100\n"
+"PO-Revision-Date: 2025-03-04 17:40+0100\n"
 "Last-Translator: \n"
 "Language-Team: de <LL@li.org>\n"
 "Language: de\n"
@@ -20,29 +20,35 @@ msgstr ""
 "Generated-By: Babel 2.17.0\n"
 "X-Generator: Poedit 3.5\n"
 
-#: python/local/i18n/__init__.py:14
+#: python/local/i18n/__init__.py:11
+msgid "I'm marked using a no-op function and later dynamically translated."
+msgstr ""
+"Ich bin mit einer no-op-Funktion markiert und werde später dynamisch "
+"übersetzt."
+
+#: python/local/i18n/__init__.py:15
 msgid "Status of the file"
 msgstr "Status der Datei"
 
-#: python/local/i18n/__init__.py:14
+#: python/local/i18n/__init__.py:15
 msgctxt "File"
 msgid "Opened"
 msgstr "Geöffnet"
 
-#: python/local/i18n/__init__.py:16
+#: python/local/i18n/__init__.py:17
 msgid "Status of the amusement park"
 msgstr "Status des Freizeitparks"
 
-#: python/local/i18n/__init__.py:16
+#: python/local/i18n/__init__.py:17
 msgctxt "Amusement Park"
 msgid "Opened"
 msgstr "Eröffnet"
 
-#: python/local/i18n/__init__.py:20
+#: python/local/i18n/__init__.py:21
 msgid "npgettext combines pluralization support and contextualization."
 msgstr "npgettext erlaubt sowohl Pluralisierung als auch Kontextualisierung."
 
-#: python/local/i18n/__init__.py:21
+#: python/local/i18n/__init__.py:22
 #, python-brace-format
 msgctxt "Home Depot"
 msgid "There is a light."
@@ -50,7 +56,7 @@ msgid_plural "There are {} lights!"
 msgstr[0] "Da ist eine Lampe."
 msgstr[1] "Da sind {} Lampen!"
 
-#: python/local/i18n/__init__.py:23
+#: python/local/i18n/__init__.py:24
 #, python-brace-format
 msgctxt "Picard"
 msgid "There is a light."
@@ -58,24 +64,24 @@ msgid_plural "There are {} lights!"
 msgstr[0] "Da ist ein Licht."
 msgstr[1] "Da sind {} Lichter!"
 
-#: python/local/i18n/__init__.py:27
+#: python/local/i18n/__init__.py:28
 msgid "First Option"
 msgstr "Erste Option"
 
-#: python/local/i18n/__init__.py:28
+#: python/local/i18n/__init__.py:29
 msgid "Second Option"
 msgstr "Zweite Option"
 
-#: python/local/i18n/__init__.py:29
+#: python/local/i18n/__init__.py:30
 msgid "Third Option"
 msgstr "Dritte Option"
 
 #. This comment will be shown in the .pot file.
-#: python/local/i18n/__init__.py:35
+#: python/local/i18n/__init__.py:36
 msgid "This is a localized FormModel."
 msgstr "Das ist ein lokalisiertes FormModel."
 
-#: python/local/i18n/__init__.py:36
+#: python/local/i18n/__init__.py:37
 msgid ""
 "The FormModel is defined before any initialization, so message translation "
 "needs to be deferred!"
@@ -83,38 +89,34 @@ msgstr ""
 "Das FormModel wird vor jeder Initialisierung definiert, deshalb müssen "
 "Übersetzungen später geschehen!"
 
-#: python/local/i18n/__init__.py:40
+#: python/local/i18n/__init__.py:41
 msgid "This is a text_input, and its label is localized!"
 msgstr "Das ist ein text_input, und sein Label ist lokalisiert!"
 
-#: python/local/i18n/__init__.py:42
+#: python/local/i18n/__init__.py:43
 msgid "Even this placeholder is localized!"
 msgstr "Selbst dieser Platzhalter ist lokalisiert!"
 
-#: python/local/i18n/__init__.py:43
+#: python/local/i18n/__init__.py:44
 msgid "Now you can get help in your language!"
 msgstr "Jetzt kannst du in deiner Sprache Hilfe erhalten!"
 
-#: python/local/i18n/__init__.py:47
+#: python/local/i18n/__init__.py:48
 #, python-brace-format
 msgid "Choose exactly one option."
 msgid_plural "Choose exactly {} options."
 msgstr[0] "Wähle genau eine Option."
 msgstr[1] "Wähle genau {} Optionen."
 
-#: python/local/i18n/__init__.py:50
+#: python/local/i18n/__init__.py:51
 msgid "This section shows contextualized messages."
 msgstr "Dieser Abschnitt zeigt kontextualisierte Übersetzungen."
 
-#: python/local/i18n/__init__.py:63
+#: python/local/i18n/__init__.py:64
 msgid "Programmatic translation!"
 msgstr "Programmatische Übersetzung!"
 
 #. This comment will be shown in the .pot file.
-#: templates/formulation.xhtml.j2:4
-msgid "This string should be localized!"
-msgstr "Diese Zeichenkette sollte lokalisiert sein!"
-
 #: templates/formulation.xhtml.j2:5
 msgid "One Thing"
 msgid_plural "More Things"
@@ -144,3 +146,6 @@ msgid "One Thing"
 msgid_plural "More Things"
 msgstr[0] "Eine Sache in Kontext 2"
 msgstr[1] "Mehrere Sachen in Kontext 2"
+
+#~ msgid "This string should be localized!"
+#~ msgstr "Diese Zeichenkette sollte lokalisiert sein!"

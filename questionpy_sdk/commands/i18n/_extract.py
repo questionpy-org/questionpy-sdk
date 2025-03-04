@@ -1,4 +1,5 @@
 from pathlib import Path
+from typing import Literal
 
 import babel.messages
 import babel.messages.pofile
@@ -9,6 +10,30 @@ from questionpy.i18n import domain_of
 from questionpy_sdk.package.source import PackageSource
 
 _BABEL_MAPPING = [("python/**.py", "python"), ("templates/**.j2", "jinja2")]
+# See Babel's DEFAULT_KEYWORDS for comparison.
+_BABEL_KEYWORDS: dict[str, tuple[int | tuple[int, Literal["c"]], ...]] = {
+    # Full names
+    "gettext": (1,),
+    "ngettext": (1, 2),
+    "pgettext": ((1, "c"), 2),
+    "npgettext": ((1, "c"), 2, 3),
+    "dgettext": (2,),
+    "dngettext": (2, 3),
+    "dpgettext": ((2, "c"), 3),
+    "dnpgettext": ((2, "c"), 3, 4),
+    # Short names encouraged by us
+    "__": (1,),
+    "n": (1, 2),
+    "p": ((1, "c"), 2),
+    "np": ((1, "c"), 2, 3),
+    # No-op markers
+    "gettext_noop": (1,),
+    "ngettext_noop": (1, 2),
+    "pgettext_noop": ((1, "c"), 2),
+    "npgettext_noop": ((1, "c"), 2, 3),
+    # We don't encourage '_' in Python, but it's the default in Jinja's i18n extension so people may be used to it.
+    "_": (1,),
+}
 
 
 @click.command
@@ -38,7 +63,7 @@ def extract(package: Path, output: Path | None = None) -> None:
     )
 
     for filename, lineno, message, comments, context in extract_from_dir(
-        package, _BABEL_MAPPING, comment_tags=("TRANSLATORS:",), strip_comment_tags=True
+        package, _BABEL_MAPPING, comment_tags=("TRANSLATORS:",), strip_comment_tags=True, keywords=_BABEL_KEYWORDS
     ):
         catalog.add(message, None, [(filename, lineno)], auto_comments=comments, context=context)
 

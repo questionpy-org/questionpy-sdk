@@ -76,7 +76,9 @@ class _DomainState:
     request_state: _RequestState | None = None
 
 
-class Gettext:
+class Gettext:  # noqa: PLR0904 (ruff seems to count each overload separately)
+    """Container for gettext-family functions. Usually called `__`. See [i18n.get_for][questionpy.i18n.get_for]."""
+
     def __init__(self, package: Package, domain: GettextDomain, domain_state: _DomainState) -> None:
         self._package = package
         self._domain = domain
@@ -194,6 +196,35 @@ class Gettext:
             default_message, lambda trans: trans.npgettext(context, singular, plural, n), defer=defer
         )
 
+    gettext = __call__
+    """Alias of [`__(message)`][questionpy.i18n.Gettext.__call__]."""
+    n = ngettext
+    """Alias of [`__.ngettext`][questionpy.i18n.Gettext.ngettext]."""
+    p = pgettext
+    """Alias of [`__.pgettext`][questionpy.i18n.Gettext.pgettext]."""
+    np = npgettext
+    """Alias of [`__.npgettext`][questionpy.i18n.Gettext.npgettext]."""
+
+    @staticmethod
+    def gettext_noop(message: str, /) -> str:
+        """Mark a regular message for translation."""
+        return message
+
+    @staticmethod
+    def ngettext_noop(singular: str, plural: str, n: int, /) -> tuple[str, str, int]:
+        """Mark a pluralizable message for translation."""
+        return singular, plural, n
+
+    @staticmethod
+    def pgettext_noop(context: str, message: str, /) -> tuple[str, str]:
+        """Mark a contextualized message for translation."""
+        return context, message
+
+    @staticmethod
+    def npgettext_noop(context: str, singular: str, plural: str, n: int) -> tuple[str, str, str, int]:
+        """Mark a both pluralizable and contextualized message for translation."""
+        return context, singular, plural, n
+
     def _maybe_defer(
         self, default_message: str, getter: Callable[[NullTranslations], str], *, defer: bool | None
     ) -> str | TranslatableString:
@@ -230,31 +261,28 @@ def get_primary_language(package: Package) -> Bcp47LanguageTag:
     return package.manifest.languages[0]
 
 
-def get_for(module_name: str) -> tuple[Gettext, Callable[[str], str]]:
+def get_for(module_name: str) -> Gettext:
     """Initializes i18n for the package owning the given Python module and returns the gettext-family functions.
 
     Args:
         module_name: The Python `__package__` or `__module__` whose domain should be used.
 
-    Returns:
-        _: (usually assigned to `_`) the main translation function. Compatible with the standard library's
-            [gettext.gettext][]. The other gettext-family functions are available as methods on `gettext`: `.ngettext`,
-            `.pgettext` and `.npgettext`.
-        _N: A function which just returns the passed-in message untranslated. Useful for marking a message as
-            translatable without translating it at that time.
+    Returns: The main translation function, usually assigned to `__`. Compatible with the standard library's
+        [gettext.gettext][]. The other gettext-family functions are available as methods on `gettext`: `.n`, `.p` and
+        `.np`.
 
     Example:
         ```py
-        _, _N = i18n.get_for(__package__)
-        print(_("I'm translated!"))
-        print(_.ngettext("One thing", "{} things", 2).format(2))
+        __ = i18n.get_for(__package__)
+        print(__("I'm translated!"))
+        print(__.n("One thing", "{} things", 2).format(2))
         ```
     """
     package = get_package_by_python_module(module_name)
     domain = domain_of(package.manifest)
     domain_state = _ensure_initialized(domain, package, get_qpy_environment())
 
-    return Gettext(package, domain, domain_state), lambda message: message
+    return Gettext(package, domain, domain_state)
 
 
 def dgettext(domain: str, message: str, /) -> str:
