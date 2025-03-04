@@ -20,7 +20,7 @@ from questionpy_common.elements import FormElement, FormSection, OptionsFormDefi
 class _OptionInfo:
     label: str | TranslatableString
     selected: bool
-    value: str | TranslatableString | None = None
+    value: str | None = None
     """If None, set to the name by `OptionEnum.__init__` because __set_name__ doesn't get called for enum members."""
 
 

@@ -582,9 +582,7 @@ def select(
     )
 
 
-def option(
-    label: str | TranslatableString, *, selected: bool = False, value: str | TranslatableString | None = None
-) -> _OptionInfo:
+def option(label: str | TranslatableString, *, selected: bool = False, value: str | None = None) -> _OptionInfo:
     """Adds an option to an [`OptionEnum`][questionpy.form.OptionEnum].
 
     Args:
@@ -625,7 +623,7 @@ def hidden(value: _S, *, disable_if: _ZeroOrMoreConditions = None, hide_if: _Zer
     """Adds a hidden element with a fixed value.
 
     Args:
-        value (str | TranslatableString): Fixed value.
+        value (str): Fixed value.
         disable_if (Condition | list[Condition] | None): Disable this element if some condition(s) match.
         hide_if (Condition | list[Condition] | None): Hide this element if some condition(s) match.
 
@@ -838,7 +836,7 @@ def is_not_checked(name: str) -> IsNotChecked:
     return IsNotChecked(name=name)
 
 
-def equals(name: str, *, value: str | TranslatableString | int | bool) -> Equals:
+def equals(name: str, *, value: str | int | bool) -> Equals:
     """Condition on the value of another field being equal to some static value.
 
     Many elements can be hidden or disabled client-side by passing conditions to `hide_if` or `disable_if`. See the
@@ -862,7 +860,7 @@ def equals(name: str, *, value: str | TranslatableString | int | bool) -> Equals
     return Equals(name=name, value=value)
 
 
-def does_not_equal(name: str, *, value: str | TranslatableString | int | bool) -> DoesNotEqual:
+def does_not_equal(name: str, *, value: str | int | bool) -> DoesNotEqual:
     """Condition on the value of another field *not* being equal to some static value.
 
     Many elements can be hidden or disabled client-side by passing conditions to `hide_if` or `disable_if`. See the
@@ -890,7 +888,7 @@ def does_not_equal(name: str, *, value: str | TranslatableString | int | bool) -
     return DoesNotEqual(name=name, value=value)
 
 
-def is_in(name: str, values: list[str | TranslatableString | int | bool]) -> In:
+def is_in(name: str, values: list[str | int | bool]) -> In:
     """Condition on the value of another field being one of a number of static values.
 
     Many elements can be hidden or disabled client-side by passing conditions to `hide_if` or `disable_if`. See the
