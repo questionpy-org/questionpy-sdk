@@ -59,6 +59,27 @@ def _get_loader(package: Package) -> jinja2.BaseLoader | None:
     return _TraversableTemplateLoader(templates_directory)
 
 
+def _jinja_call_proxy(name: str) -> staticmethod:
+    # Inspired by jinja2.ext._gettext_alias.
+    @jinja2.pass_context
+    def function(__context: jinja2.runtime.Context, /, *args: object, **kwargs: object) -> object:
+        return __context.call(__context.resolve(name), *args, **kwargs)
+
+    return staticmethod(function)
+
+
+class _Jinja2Gettext:
+    """Provides an interface compatible with both our preferred Python convention and the Jinja extension's defaults.
+
+    We proxy to Jinja's functions instead of our own because Jinja has built-in formatting.
+    """
+
+    __call__ = gettext = _jinja_call_proxy("gettext")
+    n = ngettext = _jinja_call_proxy("ngettext")
+    p = pgettext = _jinja_call_proxy("pgettext")
+    np = npgettext = _jinja_call_proxy("npgettext")
+
+
 def create_jinja2_environment(attempt: "Attempt", question: "Question") -> jinja2.Environment:
     """Creates a Jinja2 environment with sensible default configuration.
 
@@ -96,5 +117,6 @@ def create_jinja2_environment(attempt: "Attempt", question: "Question") -> jinja
     translations = i18n.get_translations_of_package(package)
     env.add_extension("jinja2.ext.i18n")
     env.install_gettext_translations(translations, newstyle=True)  # type: ignore[attr-defined]
+    env.globals["__"] = _Jinja2Gettext()
 
     return env
