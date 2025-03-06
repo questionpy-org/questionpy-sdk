@@ -391,21 +391,6 @@ files = [
 toml = ["tomli ; python_full_version <= \"3.11.0a6\""]
 
 [[package]]
-name = "faker"
-version = "36.1.1"
-description = "Faker is a Python package that generates fake data for you."
-optional = false
-python-versions = ">=3.9"
-groups = ["main"]
-files = [
-    {file = "Faker-36.1.1-py3-none-any.whl", hash = "sha256:ad1f1be7fd692ec0256517404a9d7f007ab36ac5d4674082fa72404049725eaa"},
-    {file = "faker-36.1.1.tar.gz", hash = "sha256:7cb2bbd4c8f040e4a340ae4019e9a48b6cf1db6a71bda4e5a61d8d13b7bef28d"},
-]
-
-[package.dependencies]
-tzdata = "*"
-
-[[package]]
 name = "frozenlist"
 version = "1.5.0"
 description = "A list-like structure which implements collections.abc.MutableSequence"
@@ -548,14 +533,14 @@ files = [
 
 [[package]]
 name = "jinja2"
-version = "3.1.5"
+version = "3.1.6"
 description = "A very fast and expressive template engine."
 optional = false
 python-versions = ">=3.7"
 groups = ["main"]
 files = [
-    {file = "jinja2-3.1.5-py3-none-any.whl", hash = "sha256:aba0f4dc9ed8013c424088f68a5c226f7d6097ed89b246d7749c2ec4175c6adb"},
-    {file = "jinja2-3.1.5.tar.gz", hash = "sha256:8fefff8dc3034e27bb80d67c671eb8a9bc424c0ef4c0826edbff304cceff43bb"},
+    {file = "jinja2-3.1.6-py3-none-any.whl", hash = "sha256:85ece4451f492d0c13c5dd7c13a64681a86afae63a5f347908daf103ce6d2f67"},
+    {file = "jinja2-3.1.6.tar.gz", hash = "sha256:0137fb05990d35f1275a587e9aee6d56da821fc83491a0fb838183be43f66d6d"},
 ]
 
 [package.dependencies]
@@ -1032,31 +1017,6 @@ files = [
 [package.extras]
 dev = ["pre-commit", "tox"]
 testing = ["pytest", "pytest-benchmark"]
-
-[[package]]
-name = "polyfactory"
-version = "2.19.0"
-description = "Mock data generation factories"
-optional = false
-python-versions = "<4.0,>=3.8"
-groups = ["main"]
-files = [
-    {file = "polyfactory-2.19.0-py3-none-any.whl", hash = "sha256:0137f5eaf1bc31c62c16ccbab9467e96a7352748ca426ef363bd081c149a3e3f"},
-    {file = "polyfactory-2.19.0.tar.gz", hash = "sha256:6d4273fb1f23e1fccc7aa7c64e28ddc3c20105cc499df32ebc478465daa7fa72"},
-]
-
-[package.dependencies]
-faker = "*"
-typing-extensions = ">=4.6.0"
-
-[package.extras]
-attrs = ["attrs (>=22.2.0)"]
-beanie = ["beanie", "pydantic[email]"]
-full = ["attrs", "beanie", "msgspec", "odmantic", "pydantic", "sqlalchemy"]
-msgspec = ["msgspec"]
-odmantic = ["odmantic (<1.0.0)", "pydantic[email]"]
-pydantic = ["pydantic[email] (>=1.10)"]
-sqlalchemy = ["sqlalchemy (>=1.4.29)"]
 
 [[package]]
 name = "propcache"
@@ -1551,7 +1511,7 @@ files = [
 
 [[package]]
 name = "questionpy-server"
-version = "0.4.0"
+version = "0.5.0"
 description = "QuestionPy application server"
 optional = false
 python-versions = "^3.11"
@@ -1561,8 +1521,7 @@ develop = false
 
 [package.dependencies]
 aiohttp = "^3.11.11"
-jinja2 = "^3.1.5"
-polyfactory = "^2.15.0"
+jinja2 = "^3.1.6"
 psutil = "^6.0.0"
 pydantic = "^2.8.2"
 pydantic-settings = "^2.2.1"
@@ -1572,8 +1531,8 @@ watchdog = "^6.0.0"
 [package.source]
 type = "git"
 url = "https://github.com/questionpy-org/questionpy-server.git"
-reference = "e76d8e6b24ebac872e94e19928c0785f4a84608b"
-resolved_reference = "e76d8e6b24ebac872e94e19928c0785f4a84608b"
+reference = "866025b2be71626ccc291d476ac2d148ab691bff"
+resolved_reference = "866025b2be71626ccc291d476ac2d148ab691bff"
 
 [[package]]
 name = "ruff"
@@ -1718,18 +1677,6 @@ groups = ["main", "test", "type-checker"]
 files = [
     {file = "typing_extensions-4.12.2-py3-none-any.whl", hash = "sha256:04e5ca0351e0f3f85c6853954072df659d0d13fac324d0072316b67d7794700d"},
     {file = "typing_extensions-4.12.2.tar.gz", hash = "sha256:1a7ead55c7e559dd4dee8856e3a88b41225abfe1ce8df57b7c13915fe121ffb8"},
-]
-
-[[package]]
-name = "tzdata"
-version = "2025.1"
-description = "Provider of IANA time zone data"
-optional = false
-python-versions = ">=2"
-groups = ["main"]
-files = [
-    {file = "tzdata-2025.1-py2.py3-none-any.whl", hash = "sha256:7e127113816800496f027041c570f50bcd464a020098a3b6b199517772303639"},
-    {file = "tzdata-2025.1.tar.gz", hash = "sha256:24894909e88cdb28bd1636c6887801df64cb485bd593f2fd83ef29075a81d694"},
 ]
 
 [[package]]
@@ -1928,4 +1875,4 @@ propcache = ">=0.2.0"
 [metadata]
 lock-version = "2.1"
 python-versions = "^3.11"
-content-hash = "169d3054d1c659d7ab8f93f8e47190064b9ad58e55758d9585b738418fe7bb2a"
+content-hash = "e4beab1d2351283f3bb8afd6a3d5a4967d571ba3ba47b05f3056aed40f892506"
