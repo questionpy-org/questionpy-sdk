@@ -10,7 +10,6 @@ from pydantic import BaseModel, Field, computed_field
 
 from questionpy_common.elements import (
     CheckboxElement,
-    CheckboxGroupElement,
     FormElement,  # noqa: F401
     FormSection,
     GeneratedIdElement,
@@ -104,33 +103,6 @@ class CxdCheckboxElement(CheckboxElement, _CxdFormElement):
     def add_form_data_value(self, element_form_data: Any) -> None:
         if element_form_data:
             self.selected = element_form_data
-
-
-class CxdCheckboxGroupElement(CheckboxGroupElement, _CxdFormElement):
-    cxd_checkboxes: list[CxdCheckboxElement] = []
-
-    def __init__(self, **data: Any):
-        super().__init__(**data)
-        for checkbox in self.checkboxes:
-            path = data.get("path")
-            if not isinstance(path, list):
-                msg = f"Path should be of type list but is {type(path)}"
-                raise TypeError(msg)
-            path.append(checkbox.name)
-            self.cxd_checkboxes.append(CxdCheckboxElement(**checkbox.model_dump(), path=path))
-            path.pop()
-        self.checkboxes = []
-
-    def contextualize(self, pattern: Pattern[str], replacement: str) -> None:
-        for cxd_checkbox in self.cxd_checkboxes:
-            cxd_checkbox.contextualize(pattern, replacement)
-
-    def add_form_data_value(self, element_form_data: Any) -> None:
-        if not element_form_data:
-            return
-
-        for checkbox in self.cxd_checkboxes:
-            checkbox.selected = checkbox.name in element_form_data
 
 
 class CxdOption(Option, _CxdFormElement):
@@ -229,7 +201,6 @@ CxdFormElement: TypeAlias = Annotated[
     | CxdTextInputElement
     | CxdTextAreaElement
     | CxdCheckboxElement
-    | CxdCheckboxGroupElement
     | CxdRadioGroupElement
     | CxdSelectElement
     | CxdHiddenElement

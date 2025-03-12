@@ -43,7 +43,6 @@ References:
 from questionpy_common.elements import (
     CanHaveConditions,
     CheckboxElement,
-    CheckboxGroupElement,
     FormElement,
     FormSection,
     GeneratedIdElement,
@@ -84,7 +83,6 @@ from ._model import FormModel, OptionEnum
 __all__ = [
     "CanHaveConditions",
     "CheckboxElement",
-    "CheckboxGroupElement",
     "FormElement",
     "FormModel",
     "FormSection",
