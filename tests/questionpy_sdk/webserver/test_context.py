@@ -9,7 +9,6 @@ from _pytest.fixtures import SubRequest
 
 from questionpy_common.elements import (
     CheckboxElement,
-    CheckboxGroupElement,
     FormElement,
     FormSection,
     GroupElement,
@@ -23,7 +22,6 @@ from questionpy_common.elements import (
 )
 from questionpy_sdk.webserver.context import CxdFormElement, contextualize
 from questionpy_sdk.webserver.elements import (
-    CxdCheckboxGroupElement,
     CxdGroupElement,
     CxdOption,
     CxdRadioGroupElement,
@@ -38,21 +36,6 @@ from questionpy_sdk.webserver.elements import (
             TextInputElement(name="text", label="Text", default="Df { qpy:repno }", placeholder="Ph { qpy:repno }"),
             StaticTextElement(name="static", label="Static", text="Sample text { qpy:repno }"),
             CheckboxElement(name="chk", left_label="ll { qpy:repno }", right_label="rr { qpy:repno }"),
-            CheckboxGroupElement(
-                name="chk_group",
-                checkboxes=[
-                    CheckboxElement(
-                        name="chk1",
-                        left_label="l1 { qpy:repno }",
-                        right_label="r1 { qpy:repno }",
-                    ),
-                    CheckboxElement(
-                        name="chk2",
-                        left_label="l2 { qpy:repno }",
-                        right_label="r2 { qpy:repno }",
-                    ),
-                ],
-            ),
             RadioGroupElement(
                 name="radio",
                 label="Text",
@@ -105,8 +88,6 @@ def _substring_in_cxd_element(element: CxdFormElement | CxdOption, substring: st
         return any(_substring_in_cxd_element(opt, substring) for opt in element.cxd_options)
     if isinstance(element, CxdGroupElement):
         return any(_substring_in_cxd_element(el, substring) for el in element.cxd_elements)
-    if isinstance(element, CxdCheckboxGroupElement):
-        return any(_substring_in_cxd_element(chk, substring) for chk in element.cxd_checkboxes)
 
     return False
 

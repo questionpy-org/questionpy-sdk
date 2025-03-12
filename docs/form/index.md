@@ -17,7 +17,6 @@
             - static_text
             - text_input
             - CheckboxElement
-            - CheckboxGroupElement
             - FormModel
             - FormSection
             - GroupElement

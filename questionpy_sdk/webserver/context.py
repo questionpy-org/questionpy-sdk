@@ -6,7 +6,6 @@ from typing import Any
 
 from questionpy_common.elements import (
     CheckboxElement,
-    CheckboxGroupElement,
     FormElement,
     GeneratedIdElement,
     GroupElement,
@@ -21,7 +20,6 @@ from questionpy_common.elements import (
 )
 from questionpy_sdk.webserver.elements import (
     CxdCheckboxElement,
-    CxdCheckboxGroupElement,
     CxdFormElement,
     CxdFormSection,
     CxdGeneratedIdElement,
@@ -41,7 +39,6 @@ element_mapping: dict[type, type] = {
     TextInputElement: CxdTextInputElement,
     TextAreaElement: CxdTextAreaElement,
     CheckboxElement: CxdCheckboxElement,
-    CheckboxGroupElement: CxdCheckboxGroupElement,
     RadioGroupElement: CxdRadioGroupElement,
     SelectElement: CxdSelectElement,
     HiddenElement: CxdHiddenElement,
