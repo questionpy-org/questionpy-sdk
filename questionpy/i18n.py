@@ -340,7 +340,10 @@ def _get_available_mos(package: Package) -> dict[Bcp47LanguageTag, Traversable]:
     result = {}
     locale_dir = package.get_path("locale")
 
-    for lang_dir in locale_dir.iterdir() if locale_dir.is_dir() else ():
+    if not locale_dir.is_dir():
+        return {}
+
+    for lang_dir in locale_dir.iterdir():
         if not lang_dir.is_dir():
             continue
 
