@@ -14,11 +14,11 @@ from questionpy_sdk.commands.i18n import extract
 from questionpy_sdk.package.source import PackageSource
 
 
-def _init_explicit(ctx: click.Context, pot: Path, localedir: Path, locale: Bcp47LanguageTag, *, force: bool) -> None:
+def _init_explicit(ctx: click.Context, pot: Path, output_dir: Path, locale: Bcp47LanguageTag, *, force: bool) -> None:
     init_cmd = babel.messages.frontend.InitCatalog()
     init_cmd.locale = bcp47_to_posix(locale)
     init_cmd.input_file = pot
-    init_cmd.output_file = localedir / f"{locale}.po"
+    init_cmd.output_file = output_dir / f"{locale}.po"
 
     if init_cmd.output_file.exists() and not force:
         update_cmd = f"{ctx.parent.command_path} update" if ctx.parent else "update"
@@ -30,25 +30,6 @@ def _init_explicit(ctx: click.Context, pot: Path, localedir: Path, locale: Bcp47
 
     init_cmd.ensure_finalized()
     init_cmd.run()
-
-
-def _init_in_source_dir(ctx: click.Context, package: PackageSource, locale: Bcp47LanguageTag, *, force: bool) -> None:
-    domain = domain_of(package.config)
-
-    pot_file = package.path / "locale" / f"{domain}.pot"
-    if not pot_file.exists():
-        ctx.invoke(extract, source=package.path)
-
-    output_mo_file = package.path / "locale" / f"{locale}.po"
-    if output_mo_file.exists() and not force:
-        update_cmd = f"{ctx.parent.command_path} update" if ctx.parent else "update"
-        msg = (
-            f"Output file '{output_mo_file}' already exists. Use '{update_cmd}' to update existing translations "
-            f"or pass '--force' to overwrite."
-        )
-        raise click.ClickException(msg)
-
-    _init_explicit(ctx, pot_file, package.path / "locale", locale, force=force)
 
 
 @click.command
@@ -79,32 +60,42 @@ def init(ctx: click.Context, pot_or_package: Path, locales: Collection[Bcp47Lang
             raise click.UsageError(msg)
 
         for locale in locales:
-            _init_explicit(ctx, pot_or_package, pot_or_package.parent / f"{locale}.po", locale, force=force)
+            _init_explicit(ctx, pot_or_package, pot_or_package.parent, locale, force=force)
 
     elif pot_or_package.is_dir():
-        package = PackageSource(pot_or_package)
-
-        if not locales:
-            locales = package.config.languages.copy()
-
-            if not force:
-                for _, already_present_locale, _ in package.discover_po_files():
-                    locales.remove(already_present_locale)
-
-            if not locales:
-                update_cmd = f"{ctx.parent.command_path} update" if ctx.parent else "update"
-                msg = (
-                    f"The package contains no uninitialized locales. Use '{update_cmd} {package.path}' if you wish to "
-                    f"update them."
-                )
-                raise ClickException(msg)
-
-            click.echo(f"Will initialize PO files for locale(s) {', '.join(locales)}.")
-
-        for locale in locales:
-            _init_in_source_dir(ctx, package, locale, force=force)
+        _init_in_source_dir(ctx, pot_or_package, locales, force=force)
 
     else:
         # TODO: Support zipped-up packages.
         msg = f"Expected .pot file or package source directory, got '{pot_or_package}'."
         raise click.ClickException(msg)
+
+
+def _init_in_source_dir(
+    ctx: click.Context, package_path: Path, locales: Collection[Bcp47LanguageTag], *, force: bool
+) -> None:
+    package = PackageSource(package_path)
+    if not locales:
+        locales = package.config.languages.copy()
+
+        if not force:
+            for _, already_present_locale, _ in package.discover_po_files():
+                locales.remove(already_present_locale)
+
+        if not locales:
+            update_cmd = f"{ctx.parent.command_path} update" if ctx.parent else "update"
+            msg = (
+                f"The package contains no uninitialized locales. Use '{update_cmd} {package.path}' if you wish to "
+                f"update them."
+            )
+            raise ClickException(msg)
+
+        click.echo(f"Will initialize PO files for locale(s) {', '.join(locales)}.")
+
+    domain = domain_of(package.config)
+    pot_file = package.path / "locale" / f"{domain}.pot"
+    if not pot_file.exists():
+        ctx.invoke(extract, source=package.path)
+
+    for locale in locales:
+        _init_explicit(ctx, pot_file, package.path / "locale", locale, force=force)
