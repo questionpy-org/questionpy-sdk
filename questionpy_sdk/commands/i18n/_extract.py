@@ -1,3 +1,4 @@
+import os
 from pathlib import Path
 from typing import Literal
 
@@ -36,6 +37,12 @@ _BABEL_KEYWORDS: dict[str, tuple[int | tuple[int, Literal["c"]], ...]] = {
 }
 
 
+def _directory_filter(dir_path: str) -> bool:
+    """By default, Babel also excludes dirs starting with `_`, which we don't want."""
+    subdir = os.path.basename(dir_path)
+    return subdir != "__pycache__" and not subdir.startswith(".")
+
+
 @click.command
 @click.argument("package", type=click.Path(exists=True, file_okay=False, path_type=Path))
 @click.option(
@@ -63,7 +70,12 @@ def extract(package: Path, output: Path | None = None) -> None:
     )
 
     for filename, lineno, message, comments, context in extract_from_dir(
-        package, _BABEL_MAPPING, comment_tags=("TRANSLATORS:",), strip_comment_tags=True, keywords=_BABEL_KEYWORDS
+        package,
+        _BABEL_MAPPING,
+        comment_tags=("TRANSLATORS:",),
+        strip_comment_tags=True,
+        keywords=_BABEL_KEYWORDS,
+        directory_filter=_directory_filter,
     ):
         catalog.add(message, None, [(filename, lineno)], auto_comments=comments, context=context)
 
