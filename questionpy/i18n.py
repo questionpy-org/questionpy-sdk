@@ -10,9 +10,9 @@ is automatically initialized to use the owning package's translations.
 
 Example:
         ```py
-        _, _N = i18n.get_for(__package__)
-        print(_("I'm translated!"))
-        print(_.ngettext("One thing", "{} things", 2).format(2))
+        __ = i18n.get_for(__package__)
+        print(__("I'm translated!"))
+        print(__.n("One thing", "{} things", 2).format(2))
         ```
 
 Deferred Translation:
