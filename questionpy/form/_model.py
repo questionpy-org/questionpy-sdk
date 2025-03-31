@@ -1,11 +1,11 @@
 #  This file is part of the QuestionPy SDK. (https://questionpy.org)
 #  The QuestionPy SDK is free software released under terms of the MIT license. See LICENSE.md.
 #  (c) Technische Universität Berlin, innoCampus <info@isis.tu-berlin.de>
-from collections.abc import Callable
+from collections.abc import Callable, Sequence
 from dataclasses import dataclass
 from enum import Enum
 from itertools import starmap
-from typing import TYPE_CHECKING, Any, ClassVar, Literal, get_args, get_origin
+from typing import TYPE_CHECKING, Annotated, Any, ClassVar, Literal, get_args, get_origin
 
 from pydantic import BaseModel, Field
 from pydantic._internal._model_construction import ModelMetaclass  # noqa: PLC2701
@@ -75,6 +75,8 @@ class _FieldInfo:
     functions are called. So they provide a callable instead that takes the name and returns the complete form element.
     """
     pydantic_field_info: FieldInfo | None = None
+    annotate_with: Sequence[object] = ()
+    """Annotations as in [typing.Annotated][] to add to the field type. Useful for [pydantic.BeforeValidator][]."""
 
 
 @dataclass
@@ -130,11 +132,14 @@ class _FormModelMeta(ModelMetaclass):
         form = OptionsFormDefinition()
 
         for key, value in namespace.items():
+            annotate_with: list[object] = []
             if isinstance(value, _FieldInfo):
                 expected_type = value.type
                 form.general.append(value.build(key))
                 if value.pydantic_field_info is not None:
                     new_namespace[key] = value.pydantic_field_info
+                if value.annotate_with:
+                    annotate_with.extend(value.annotate_with)
             elif isinstance(value, _SectionInfo):
                 form.sections.append(FormSection(name=key, header=value.header, elements=value.model.qpy_form.general))
                 expected_type = value.model
@@ -161,6 +166,10 @@ class _FormModelMeta(ModelMetaclass):
                 # no explicit type defined, set the default
                 # this won't help type checkers or code completion, but will allow pydantic to validate inputs
                 annotations[key] = expected_type
+
+            if annotate_with:
+                # If the field type has been annotated by the user, this will add our annotations to theirs.
+                annotations[key] = Annotated[annotations[key], *annotate_with]
 
         new_namespace["qpy_form"] = form
         new_namespace["__annotations__"] = annotations
