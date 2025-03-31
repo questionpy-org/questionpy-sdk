@@ -1,8 +1,10 @@
 #  This file is part of the QuestionPy SDK. (https://questionpy.org)
 #  The QuestionPy SDK is free software released under terms of the MIT license. See LICENSE.md.
 #  (c) Technische Universität Berlin, innoCampus <info@isis.tu-berlin.de>
+from collections.abc import Collection
 from typing import Any, Literal, Optional, TypeAlias, TypeVar, cast, overload
 
+from pydantic import BeforeValidator
 from pydantic.fields import FieldInfo
 from pydantic_core import PydanticUndefined
 
@@ -27,6 +29,7 @@ from ._model import FormModel, OptionEnum, _FieldInfo, _OptionInfo, _SectionInfo
 # TODO: - Add support for numeric inputs (and maybe others?)
 #       - Make labels optional
 
+
 _S = TypeVar("_S", bound=str)
 _F = TypeVar("_F", bound=FormModel)
 _E = TypeVar("_E", bound=OptionEnum)
@@ -34,13 +37,26 @@ _E = TypeVar("_E", bound=OptionEnum)
 _OneOrMoreConditions: TypeAlias = Condition | list[Condition]
 _ZeroOrMoreConditions: TypeAlias = _OneOrMoreConditions | None
 
+_T = TypeVar("_T")
 
-def _listify(value: _ZeroOrMoreConditions) -> list[Condition]:
+
+@overload
+def _wrap_in(coll_type: type[set], value: _T | Collection[_T] | None) -> set[_T]: ...
+
+
+@overload
+def _wrap_in(coll_type: type[list], value: _T | Collection[_T] | None) -> list[_T]: ...
+
+
+def _wrap_in(coll_type: type[set] | type[list], value: _T | Collection[_T] | None) -> Collection[_T]:
     if value is None:
-        return []
-    if isinstance(value, list):
-        return value
-    return [value]
+        return coll_type()
+    if isinstance(value, coll_type):
+        return cast(Collection[_T], value)
+    if isinstance(value, Collection) and not isinstance(value, str):  # (str is a subclass of Collection)
+        return coll_type(value)
+
+    return coll_type((cast(_T, value),))  # MyPy gets confused here without the cast.
 
 
 @overload
@@ -132,8 +148,8 @@ def text_input(
             default=default,
             placeholder=placeholder,
             help=help,
-            disable_if=_listify(disable_if),
-            hide_if=_listify(hide_if),
+            disable_if=_wrap_in(list, disable_if),
+            hide_if=_wrap_in(list, hide_if),
         ),
         pydantic_field_info=FieldInfo(
             default=None if not required or disable_if or hide_if else PydanticUndefined,
@@ -231,8 +247,8 @@ def text_area(
             default=default,
             placeholder=placeholder,
             help=help,
-            disable_if=_listify(disable_if),
-            hide_if=_listify(hide_if),
+            disable_if=_wrap_in(list, disable_if),
+            hide_if=_wrap_in(list, hide_if),
         ),
         pydantic_field_info=FieldInfo(
             default=None if not required or disable_if or hide_if else PydanticUndefined,
@@ -265,7 +281,12 @@ def static_text(
         StaticTextElement,
         _StaticElementInfo(
             lambda name: StaticTextElement(
-                name=name, label=label, text=text, help=help, disable_if=_listify(disable_if), hide_if=_listify(hide_if)
+                name=name,
+                label=label,
+                text=text,
+                help=help,
+                disable_if=_wrap_in(list, disable_if),
+                hide_if=_wrap_in(list, hide_if),
             )
         ),
     )
@@ -360,8 +381,8 @@ def checkbox(
             required=required,
             help=help,
             selected=selected,
-            disable_if=_listify(disable_if),
-            hide_if=_listify(hide_if),
+            disable_if=_wrap_in(list, disable_if),
+            hide_if=_wrap_in(list, hide_if),
         ),
         pydantic_field_info=FieldInfo(default=False if not required or disable_if or hide_if else PydanticUndefined),
     )
@@ -451,8 +472,8 @@ def radio_group(
             options=options,
             required=required,
             help=help,
-            disable_if=_listify(disable_if),
-            hide_if=_listify(hide_if),
+            disable_if=_wrap_in(list, disable_if),
+            hide_if=_wrap_in(list, hide_if),
         ),
         pydantic_field_info=FieldInfo(default=None if not required or disable_if or hide_if else PydanticUndefined),
     )
@@ -556,9 +577,11 @@ def select(
 
     expected_type: type
     default: object
+    annotate_with: tuple[object, ...] = ()
     if multiple:
         expected_type = set[enum]  # type: ignore[valid-type]
         default = set() if not required or disable_if or hide_if else PydanticUndefined
+        annotate_with = (BeforeValidator(lambda value: _wrap_in(set, value)),)
     elif not required or disable_if or hide_if:
         expected_type = enum | None  # type: ignore[assignment]
         default = None
@@ -575,10 +598,11 @@ def select(
             required=required,
             options=options,
             help=help,
-            disable_if=_listify(disable_if),
-            hide_if=_listify(hide_if),
+            disable_if=_wrap_in(list, disable_if),
+            hide_if=_wrap_in(list, hide_if),
         ),
         pydantic_field_info=FieldInfo(default=default),
+        annotate_with=annotate_with,
     )
 
 
@@ -635,7 +659,7 @@ def hidden(value: _S, *, disable_if: _ZeroOrMoreConditions = None, hide_if: _Zer
         _FieldInfo(
             type=Optional[Literal[value]] if disable_if or hide_if else Literal[value],  # noqa: UP007
             build=lambda name: HiddenElement(
-                name=name, value=value, disable_if=_listify(disable_if), hide_if=_listify(hide_if)
+                name=name, value=value, disable_if=_wrap_in(list, disable_if), hide_if=_wrap_in(list, hide_if)
             ),
             pydantic_field_info=FieldInfo(default=None if disable_if or hide_if else PydanticUndefined),
         ),
@@ -715,8 +739,8 @@ def group(
                 label=label,
                 elements=model.qpy_form.general,
                 help=help,
-                disable_if=_listify(disable_if),
-                hide_if=_listify(hide_if),
+                disable_if=_wrap_in(list, disable_if),
+                hide_if=_wrap_in(list, hide_if),
             ),
             # When the group dict is not provided at all in the form data, we want Pydantic to use the default values
             # for all grouped fields and raise if there are any required ones. Creating the nested model in a
@@ -778,6 +802,7 @@ def repeat(
                 button_label=button_label,
                 elements=model.qpy_form.general,
             ),
+            annotate_with=(BeforeValidator(lambda value: _wrap_in(list, value)),),
         ),
     )
 
