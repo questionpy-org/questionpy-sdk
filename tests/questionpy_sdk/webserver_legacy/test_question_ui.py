@@ -15,6 +15,7 @@ from questionpy_sdk.webserver_legacy.question_ui import (
 )
 from questionpy_sdk.webserver_legacy.question_ui.errors import (
     ConversionError,
+    DuplicateNameError,
     ExpectedAncestorError,
     InvalidAttributeValueError,
     InvalidCleanOptionError,
@@ -211,8 +212,8 @@ def test_should_set_input_values(renderer: QuestionUIRenderer) -> None:
 
             <input class="form-control qpy-input" type="hidden" name="my_hidden" value="new"/>
 
-            <input class="btn btn-primary qpy-input" name="my_button" type="button" value="value1"/>
-            <input class="btn btn-primary qpy-input" name="my_button" type="button" value="value2"/>
+            <input class="btn btn-primary qpy-input" name="button_1" type="button" value="value1"/>
+            <input class="btn btn-primary qpy-input" name="button_2" type="button" value="value2"/>
 
             <textarea class="form-control qpy-input" name="my_textarea">new</textarea>
         </div>
@@ -243,8 +244,8 @@ def test_should_disable_inputs(renderer: QuestionUIRenderer) -> None:
 
             <input class="form-control qpy-input" type="hidden" name="my_hidden" value="original" disabled="disabled"/>
 
-            <input class="btn btn-primary qpy-input" name="my_button" type="button" value="value1" disabled="disabled"/>
-            <input class="btn btn-primary qpy-input" name="my_button" type="button" value="value2" disabled="disabled"/>
+            <input class="btn btn-primary qpy-input" name="button_1" type="button" value="value1" disabled="disabled"/>
+            <input class="btn btn-primary qpy-input" name="button_2" type="button" value="value2" disabled="disabled"/>
 
             <textarea class="form-control qpy-input" name="my_textarea" disabled="disabled">original</textarea>
         </div>
@@ -390,6 +391,8 @@ def test_errors_should_be_collected(renderer: QuestionUIRenderer) -> None:
             <div>Missing placeholder.</div>
             <div>Empty placeholder.</div>
             <div>Unknown attribute.</div>
+            <input type="checkbox" name="duplicate" class="qpy-input"></input>
+            <input type="radio" name="duplicate" class="qpy-input"></input>
             <span>Missing attribute value.</span>
         </div>
     """  # noqa: E501
@@ -397,7 +400,7 @@ def test_errors_should_be_collected(renderer: QuestionUIRenderer) -> None:
 
     expected_errors: list[tuple[type[RenderError], int]] = [
         # Even though the syntax error occurs after all the other errors, it should be listed first.
-        (XMLSyntaxError, 17),
+        (XMLSyntaxError, 19),
         (InvalidAttributeValueError, 2),
         (UnknownElementError, 3),
         (InvalidAttributeValueError, 4),
@@ -411,6 +414,7 @@ def test_errors_should_be_collected(renderer: QuestionUIRenderer) -> None:
         (PlaceholderReferenceError, 14),
         (ExpectedAncestorError, 15),
         (UnknownAttributeError, 16),
+        (DuplicateNameError, 18),
     ]
 
     assert len(errors) == len(expected_errors)
