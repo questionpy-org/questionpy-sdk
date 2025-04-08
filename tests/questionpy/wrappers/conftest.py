@@ -10,7 +10,7 @@ import pytest
 from questionpy import Attempt, BaseAttemptState, BaseQuestionState, Question
 from questionpy.form import FormModel, text_input
 from questionpy_common.environment import Environment, set_qpy_environment
-from questionpy_common.manifest import Manifest, PackageFile
+from questionpy_common.manifest import Bcp47LanguageTag, Manifest, PackageFile
 from questionpy_sdk.webserver.constants import DEFAULT_REQUEST_USER
 from questionpy_server.worker.runtime.manager import EnvironmentImpl
 from questionpy_server.worker.runtime.package import ImportablePackage
@@ -18,7 +18,7 @@ from questionpy_server.worker.runtime.package import ImportablePackage
 STATIC_FILES = {
     "css/my-styles.css": PackageFile(mime_type="text/css", size=42),
     "js/main.js": PackageFile(mime_type="text/javascript", size=534),
-    "static/logo.svg": PackageFile(mime_type="image/svg+xml", size=1253),
+    "logo.svg": PackageFile(mime_type="image/svg+xml", size=1253),
 }
 
 
@@ -33,7 +33,7 @@ def package() -> ImportablePackage:
                 version="1.2.3",
                 author="Testy McTestface",
                 api_version="0.3",
-                languages={"en"},
+                languages=[Bcp47LanguageTag("en")],
                 static_files=STATIC_FILES,
             )
         ),

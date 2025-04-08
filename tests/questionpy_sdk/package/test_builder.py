@@ -136,7 +136,7 @@ def test_runs_pre_build_hook(tmp_path: Path, source_path: Path) -> None:
     with config_path.open("r") as f:
         config = yaml.safe_load(f)
     config["build_hooks"] = {
-        "pre": "mkdir -p static && touch static/my_custom_pre_build_hook",
+        "pre": "mkdir -p js && touch js/my_custom_pre_build_hook.js",
     }
     with config_path.open("w") as f:
         yaml.dump(config, f)
@@ -146,7 +146,7 @@ def test_runs_pre_build_hook(tmp_path: Path, source_path: Path) -> None:
         builder.write_package()
 
     with ZipFile(qpy_pkg_path) as zipfile:
-        assert zipfile.getinfo(f"{DIST_DIR}/static/my_custom_pre_build_hook")
+        assert zipfile.getinfo(f"{DIST_DIR}/static/js/my_custom_pre_build_hook.js")
 
 
 @pytest.mark.source_pkg("static-files")
