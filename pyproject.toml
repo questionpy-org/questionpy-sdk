@@ -28,7 +28,7 @@ questionpy-sdk = 'questionpy_sdk.__main__:cli'
 
 [tool.poetry.dependencies]
 click = "^8.1.7"
-python = "^3.11"
+python = "^3.12"
 aiohttp = "^3.9.3"
 pydantic = "^2.6.4"
 PyYAML = "^6.0.1"
