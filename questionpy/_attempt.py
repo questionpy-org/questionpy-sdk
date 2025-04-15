@@ -3,6 +3,7 @@ from abc import ABC, abstractmethod
 from collections.abc import Mapping
 from functools import cached_property
 from typing import TYPE_CHECKING, ClassVar, Protocol
+from urllib.parse import urlparse
 
 import jinja2
 from pydantic import BaseModel, JsonValue
@@ -132,7 +133,8 @@ class Attempt(ABC):
 
         self.cache_control = CacheControl.PRIVATE_CACHE
         self.placeholders: dict[str, str | TranslatableString] = {}
-        self.css_files: list[str] = []
+        self._css_files: list[str] = []
+        """CSS files as QPy-URLs. Use [use_css][questionpy.Attempt.use_css] to add file paths."""
         self._javascript_calls: list[JsModuleCall] = []
         """LMS has to call these JS modules/functions."""
 
@@ -228,6 +230,33 @@ class Attempt(ABC):
     @property
     def variant(self) -> int:
         return self.attempt_state.variant
+
+    def use_css(self, path_or_uri: str) -> None:
+        url = urlparse(path_or_uri)
+        if url.scheme in {"https", "qpy"} and path_or_uri not in self._css_files:
+            # path_or_uri is already a supported URI.
+            self._css_files.append(path_or_uri)
+            return
+        if url.scheme:
+            msg = f"Unsupported scheme for CSS file URI: '{url.scheme}'"
+            raise ValueError(msg)
+
+        # path_or_uri is not a URI. Interpret it as a path.
+        if path_or_uri.startswith("/"):
+            msg = "Absolute CSS file paths are not supported."
+            raise ValueError(msg)
+
+        # Interpret path to be relative to the css folder.
+        package = get_package_by_attempt(self)
+        qpy_uri = f"qpy://static/{package.manifest.namespace}/{package.manifest.short_name}/css/{path_or_uri}"
+
+        if qpy_uri not in self._css_files:
+            self._css_files.append(qpy_uri)
+
+    @property
+    def css_files(self) -> list[str]:
+        # Remove duplicates while preserving order.
+        return list(dict.fromkeys(self._css_files))
 
     def call_js(
         self,
