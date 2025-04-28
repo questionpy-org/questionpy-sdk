@@ -8,8 +8,7 @@ import traceback
 
 from aiohttp import ClientConnectionResetError, ClientConnectorError, ClientSession, web
 from aiohttp.typedefs import Handler
-
-from questionpy_sdk.webserver.constants import API_PATH_PREFIX
+from aiohttp.web_urldispatcher import MatchInfoError
 
 VITE_DEV_SERVER = os.getenv("VITE_DEV_SERVER", "http://localhost:5173").rstrip("/")
 WS_HEADERS = ("sec-websocket-extensions", "sec-websocket-key", "sec-websocket-version")
@@ -47,8 +46,8 @@ async def _proxy_websocket(request: web.Request) -> web.WebSocketResponse:
 
 @web.middleware
 async def vite_devserver_middleware(request: web.Request, handler: Handler) -> web.StreamResponse:
-    # API requests pass through
-    if request.path.startswith(f"{API_PATH_PREFIX}/"):
+    # If request matched any route, we let it pass through
+    if not isinstance(request.match_info, MatchInfoError):
         return await handler(request)
 
     # Handle Websocket connection (used by HMR, dev tools, etc.)

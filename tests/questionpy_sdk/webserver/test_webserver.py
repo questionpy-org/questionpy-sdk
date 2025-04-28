@@ -13,7 +13,7 @@ from questionpy_common.api.qtype import QuestionTypeInterface
 from questionpy_common.constants import DIST_DIR
 from questionpy_sdk.package.builder import DirPackageBuilder
 from questionpy_sdk.package.source import PackageSource
-from questionpy_sdk.webserver.app import WebServer
+from questionpy_sdk.webserver.server import WebServer
 from questionpy_server.hash import calculate_hash
 from questionpy_server.worker.runtime.package_location import (
     DirPackageLocation,

@@ -3,7 +3,6 @@
 #  (c) Technische Universität Berlin, innoCampus <info@isis.tu-berlin.de>
 
 import logging
-from functools import cached_property
 from pathlib import Path
 from types import TracebackType
 from typing import TYPE_CHECKING, Self
@@ -12,21 +11,21 @@ from aiohttp import web
 
 from questionpy_common.constants import MiB
 from questionpy_common.manifest import Manifest
-from questionpy_sdk.webserver.routes.api import serve_api
-from questionpy_sdk.webserver.routes.frontend import serve_frontend
+from questionpy_sdk.webserver.middlewares.controller import inject_controller_middleware
+from questionpy_sdk.webserver.middlewares.error import api_error_middleware, error_middleware
+from questionpy_sdk.webserver.routes import api_routes
+from questionpy_sdk.webserver.routes.frontend import routes as frontend_routes
+from questionpy_sdk.webserver.state import StateManager
 from questionpy_server import WorkerPool
 from questionpy_server.worker.impl.thread import ThreadWorker
 from questionpy_server.worker.runtime.package_location import PackageLocation
 
-from .constants import WEBSERVER_KEY, StateFilename
+from .constants import API_PATH_PREFIX, USE_VITE_DEV_SERVER, WEBSERVER_KEY
 
 if TYPE_CHECKING:
     from questionpy_server.worker import Worker
 
 log = logging.getLogger("questionpy-sdk:web-server")
-
-LEN_AF_INET = 2
-LEN_AF_INET6 = 4
 
 
 class WebServer:
@@ -44,23 +43,30 @@ class WebServer:
 
         self._web_app: web.Application
         self._runner: web.AppRunner
+
         self._manifest: Manifest
+        self._state_manager: StateManager
         self._worker_pool: WorkerPool
 
     async def __aenter__(self) -> Self:
-        # Worker pool
-        self._worker_pool = WorkerPool(1, 500 * MiB, worker_type=ThreadWorker)
+        # Add worker pool
+        self._worker_pool = await WorkerPool(1, 500 * MiB, worker_type=ThreadWorker).__aenter__()
 
         # Load manifest
         worker: Worker
         async with self._worker_pool.get_worker(self.package_location, 0, None) as worker:
             self._manifest = await worker.get_manifest()
 
-        self._web_app = self._create_webapp()
-        self._runner = web.AppRunner(self._web_app)
+        # Initialize state manager
+        pkg_dirname = f"{self._manifest.namespace}-{self._manifest.short_name}-{self._manifest.version}"
+        self._state_manager = StateManager(self._state_storage_root / pkg_dirname)
+
+        # Create web app
+        self._app = self._create_webapp()
+        self._runner = web.AppRunner(self.app)
         await self._runner.setup()
         await web.TCPSite(self._runner, self._host, self._port).start()
-        self._print_urls()
+        self._print_status()
 
         return self
 
@@ -70,40 +76,52 @@ class WebServer:
         await self._runner.cleanup()
         await self._worker_pool.__aexit__(exc_type, exc_val, exc_tb)
 
-    def read_state_file(self, filename: StateFilename) -> str | None:
-        try:
-            return (self._package_state_dir / filename).read_text()
-        except FileNotFoundError:
-            return None
-
-    def write_state_file(self, filename: StateFilename, data: str) -> None:
-        self._package_state_dir.mkdir(parents=True, exist_ok=True)
-        (self._package_state_dir / filename).write_text(data)
-
-    def delete_state_files(self, filename_1: StateFilename, *filenames: StateFilename) -> None:
-        for filename in (filename_1, *filenames):
-            (self._package_state_dir / filename).unlink(missing_ok=True)
-        if not any(self._package_state_dir.iterdir()):
-            # Remove package state dir if it's now empty.
-            self._package_state_dir.rmdir()
-
     def _create_webapp(self) -> web.Application:
         app = web.Application()
         app[WEBSERVER_KEY] = self
 
-        serve_api(app)
-        serve_frontend(app)
+        app.middlewares.append(inject_controller_middleware)
+        app.middlewares.append(error_middleware)
+
+        # API
+        api_app = web.Application()
+        api_app.middlewares.append(api_error_middleware)
+        for routes in api_routes:
+            api_app.add_routes(routes)
+        app.add_subapp(API_PATH_PREFIX, api_app)
+
+        # Frontend
+        if USE_VITE_DEV_SERVER:
+            # Reverse proxy dev server...
+            from questionpy_sdk.webserver.middlewares.vite_dev import vite_devserver_middleware  # noqa: PLC0415
+
+            app.middlewares.append(vite_devserver_middleware)
+        else:
+            # ...or serve static frontend
+            app.add_routes(frontend_routes)
 
         return app
 
-    @cached_property
-    def _package_state_dir(self) -> Path:
-        if self._web_app is None:
-            msg = "Web app not initialized"
-            raise RuntimeError(msg)
+    def _print_status(self) -> None:
+        len_af_inet = 2
+        len_af_inet6 = 4
+        urls = []
+        for addr in self._runner.addresses:
+            # IPv4 (e.g., ('192.168.0.1', 8080))
+            if len(addr) == len_af_inet:
+                urls.append(f"http://{addr[0]}:{addr[1]}")
+            # IPv6 (e.g., ('::1', 8080, 0, 0))
+            elif len(addr) == len_af_inet6:
+                urls.append(f"http://[{addr[0]}]:{addr[1]}")
+            else:
+                msg = f"Unknown address format: {addr}"
+                raise ValueError(msg)
 
-        manifest = self.manifest
-        return self._state_storage_root / f"{manifest.namespace}-{manifest.short_name}-{manifest.version}"
+        log.info("Webserver started: %s", " ".join(urls))
+
+    @property
+    def app(self) -> web.Application:
+        return self._app
 
     @property
     def manifest(self) -> Manifest:
@@ -113,21 +131,6 @@ class WebServer:
     def worker_pool(self) -> WorkerPool:
         return self._worker_pool
 
-    def _print_urls(self) -> None:
-        if self._runner is None:
-            msg = "Web app is not running"
-            raise RuntimeError(msg)
-
-        urls = []
-        for addr in self._runner.addresses:
-            # IPv4 (e.g., ('192.168.0.1', 8080))
-            if len(addr) == LEN_AF_INET:
-                urls.append(f"http://{addr[0]}:{addr[1]}")
-            # IPv6 (e.g., ('::1', 8080, 0, 0))
-            elif len(addr) == LEN_AF_INET6:
-                urls.append(f"http://[{addr[0]}]:{addr[1]}")
-            else:
-                msg = f"Unknown address format: {addr}"
-                raise ValueError(msg)
-
-        log.info("Webserver started: %s", " ".join(urls))
+    @property
+    def state_manager(self) -> StateManager:
+        return self._state_manager
