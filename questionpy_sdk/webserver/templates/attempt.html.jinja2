@@ -1,0 +1,113 @@
+{% extends "page.html.jinja2" %}
+
+{% block head %}
+    {{ super() }}
+    <base target="_blank">
+    <style>
+        :root {
+            color-scheme: light dark;
+        }
+        body {
+            height: auto; /* Make iframe body grow and shrink with page content. */
+            display: flow-root; /* Prevent margin-collapse across bottom boundary. */
+            background-color: transparent;
+            padding: 0;
+            margin: 0;
+            color: var(--text-color);
+        }
+        :root[data-theme="dark"] {
+            --text-color: white;
+        }
+        :root[data-theme="light"] {
+            --text-color: black;
+        }
+    </style>
+{% endblock %}
+
+{% block content %}
+    <div class="container-question-preview">
+        <form id="question-preview">
+            {{ formulation|safe }}
+        </form>
+    </div>
+
+    {% if general_feedback or specific_feedback or right_answer %}
+        <div class="container-feedback">
+            {% if general_feedback %}
+                <div class="container-general-feedback">
+                    {{ general_feedback|safe }}
+                </div>
+            {% endif %}
+
+            {% if specific_feedback %}
+                <div class="container-specific-feedback">
+                    {{ specific_feedback|safe }}
+                </div>
+            {% endif %}
+
+            {% if right_answer %}
+                <div class="container-right-answer">
+                    {{ right_answer|safe }}
+                </div>
+            {% endif %}
+        </div>
+    {% endif %}
+    <script>
+        "use strict";
+        (function () {
+            // Resize iframe when content height changes
+            let rafId = null
+            const onResize = ([entry]) => {
+                if (rafId !== null) {
+                    cancelAnimationFrame(rafId)
+                }
+                rafId = requestAnimationFrame(() => {
+                    rafId = null
+                    const msg = { type: 'RESIZE_EVENT', height: entry.contentRect.height }
+                    window.parent.postMessage(msg, window.origin)
+                })
+            }
+            const resizeObserver = new ResizeObserver(onResize)
+            resizeObserver.observe(document.body)
+            window.addEventListener('unload', () => resizeObserver.disconnect())
+
+            // Collect form data
+            function getFormData() {
+                const form = document.getElementById("question-preview")
+                const formData = {}
+                for (const [key, val] of new FormData(form)) {
+                    if (formData[key]) {
+                        formData[key].push(val)
+                    } else if (key.endsWith('_[]')) {
+                        formData[key] = [val]
+                    } else {
+                        formData[key] = val
+                    }
+                }
+
+                for (var entry in formData) {
+                    if (entry.endsWith('_[]')) {
+                        formData[entry.substring(0, entry.length - 3)] = formData[entry]
+                        delete formData[entry]
+                    }
+                }
+
+                return formData
+            }
+
+            // Handle incoming messages
+            window.addEventListener('message', (event) => {
+                if (event.origin === window.origin) {
+                    switch (event.data.type) {
+                        case 'COLOR_MODE_UPDATE':
+                            document.documentElement.setAttribute('data-theme', event.data.mode)
+                            break
+                        case 'GET_FORM_DATA':
+                            event.source.postMessage({ type: 'FORM_DATA', formData: getFormData() }, window.origin)
+                            break
+                    }
+                }
+            })
+        })();
+    </script>
+{% endblock %}

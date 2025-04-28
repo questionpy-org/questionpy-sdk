@@ -27,6 +27,6 @@ def get_webserver(
 
         return WebServerLegacy(package_location, state_storage_path, host, port)
 
-    from questionpy_sdk.webserver.app import WebServer as WebServerSpa  # noqa: PLC0415
+    from questionpy_sdk.webserver import WebServer as WebServerSpa  # noqa: PLC0415
 
     return WebServerSpa(package_location, state_storage_path, host, port)
