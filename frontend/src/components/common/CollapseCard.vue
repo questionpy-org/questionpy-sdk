@@ -9,10 +9,11 @@
         <BCollapse v-model="expanded">
             <template #header="{ id, toggle }">
                 <BButton
-                    :class="['d-flex align-items-center w-100', { expanded }]"
+                    :class="['fs-4 d-flex align-items-center w-100', { expanded }]"
                     @click="toggle"
                     :aria-controls="id"
                     :aria-expanded="expanded"
+                    :variant="variant"
                 >
                     <div class="flex-grow-1 text-start text-truncate pe-2">
                         <slot name="button-title" :expanded />
@@ -20,21 +21,33 @@
                     <i-mdi-chevron-up :class="['fs-3 collapse-icon', { collapsed: !expanded }]" />
                 </BButton>
             </template>
-            <BCard no-body class="card overflow-hidden">
-                <slot />
+            <BCard no-body :class="['card', 'overflow-hidden', cardTextCls]" :variant="variant">
+                <BCardBody :bg-variant="cardBgVariant">
+                    <slot />
+                </BCardBody>
             </BCard>
         </BCollapse>
     </div>
 </template>
 
 <script lang="ts" setup>
-import { ref } from 'vue'
+import { storeToRefs } from 'pinia'
+import { computed, ref } from 'vue'
+import type { ColorExtendables, ColorVariant } from 'bootstrap-vue-next'
 
-const { expanded: initialExpanded = false } = defineProps<{
+import useAppStateStore from '@/stores/useAppStateStore'
+
+const { colorMode } = storeToRefs(useAppStateStore())
+
+const { expanded: initialExpanded = false, variant } = defineProps<{
     expanded?: boolean
+    variant?: ColorVariant
 }>()
 
 const expanded = ref(initialExpanded)
+
+const cardBgVariant = computed(() => (variant ? `${variant}-subtle` : null) as ColorExtendables['bgVariant'])
+const cardTextCls = computed(() => (colorMode.value === 'dark' ? 'text-light' : 'text-dark'))
 </script>
 
 <style lang="scss" scoped>

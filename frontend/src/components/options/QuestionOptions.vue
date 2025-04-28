@@ -83,7 +83,7 @@ onBeforeRouteLeave(async () => {
 
 async function saveAndPreview() {
     if (isClean.value || (await submit())) {
-        await router.push('/question/preview')
+        await router.push('/attempt')
     }
 }
 async function saveAndReturn() {
