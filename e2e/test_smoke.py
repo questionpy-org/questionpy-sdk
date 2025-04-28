@@ -13,5 +13,5 @@ async def test_package(page: Page) -> None:
     await page.get_by_role("textbox", name="Static text label").fill("foo bar")
     await page.get_by_role("button", name="Save and preview").click()
 
-    await expect(page).to_have_title(re.compile("Question preview"))
-    await expect(page.get_by_text("TODO: Question preview")).to_be_visible()
+    await expect(page).to_have_title(re.compile("Attempt preview"))
+    await expect(page.frame_locator("iframe").get_by_text("Formulation text")).to_be_visible()

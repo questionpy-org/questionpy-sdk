@@ -6,8 +6,9 @@
 
 <template>
     <PackageCard />
+    <h2>Saved questions</h2>
     <ButtonGroup>
-        <IconButton :iconComponent="IMdiImport" variant="link" @click="importOnClick"> Import question </IconButton>
+        <IconButton :iconComponent="IMdiImport" variant="link" @click="importQuestion">Import question</IconButton>
         <IconButton :iconComponent="IMdiAdd" to="/question" variant="primary">New question</IconButton>
     </ButtonGroup>
 </template>
@@ -16,7 +17,7 @@
 import IMdiAdd from '~icons/mdi/add'
 import IMdiImport from '~icons/mdi/import'
 
-function importOnClick() {
+function importQuestion() {
     // TODO: import question
 }
 </script>

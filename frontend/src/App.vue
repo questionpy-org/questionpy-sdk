@@ -28,11 +28,13 @@
     <BContainer class="pt-4" fluid="md">
         <RouterView />
     </BContainer>
+
+    <ErrorModal />
 </template>
 
 <script setup lang="ts">
 import { useColorMode } from 'bootstrap-vue-next'
-import { computed } from 'vue'
+import { computed, watch } from 'vue'
 import type { BasicColorMode, BasicColorSchema } from '@vueuse/core'
 
 import useAppStateStore from '@/stores/useAppStateStore'
@@ -45,9 +47,12 @@ appStateStore.$subscribe(() => {
     document.title = appStateStore.displayPageTitle
 })
 
+function colorSchemaToMode(schema: BasicColorSchema): BasicColorMode {
+    return schema === 'auto' ? mode.system.value : schema
+}
+
 function invertColorSchema(schema: BasicColorSchema): BasicColorMode {
-    const colorMode = schema === 'auto' ? mode.system.value : schema
-    return colorMode === 'dark' ? 'light' : 'dark'
+    return colorSchemaToMode(schema) === 'dark' ? 'light' : 'dark'
 }
 
 function switchColorMode() {
@@ -55,6 +60,12 @@ function switchColorMode() {
 }
 
 const inverseColorMode = computed(() => invertColorSchema(mode.value))
+
+// Sync current color mode to app state
+appStateStore.colorMode = colorSchemaToMode(mode.value)
+watch(mode, (newColorSchema) => {
+    appStateStore.colorMode = colorSchemaToMode(newColorSchema)
+})
 </script>
 
 <style lang="scss" scoped>
