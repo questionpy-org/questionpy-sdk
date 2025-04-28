@@ -19,6 +19,7 @@
         "bootstrap-vue-next": "^0.26.30",
         "core-js": "^3.40.0",
         "pinia": "^3.0.1",
+        "pinia-plugin-persistedstate": "^4.2.0",
         "uuid": "^11.1.0",
         "vue": "^3.5.13",
         "vue-router": "^4.5.0",

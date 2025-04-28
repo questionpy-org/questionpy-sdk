@@ -5,5 +5,5 @@
 -->
 
 <template>
-    <code>TODO: Attempt</code>
+    <AttemptPreview />
 </template>

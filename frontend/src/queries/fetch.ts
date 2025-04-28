@@ -6,6 +6,7 @@
 
 import { z } from 'zod'
 
+import { serverErrorSchema } from '@/schema/error'
 import { serverValidationErrorsSchema } from '@/schema/options'
 import type { ServerValidationErrors } from '@/schema/options/types'
 
@@ -18,6 +19,8 @@ class FetchError extends Error {
     status: number
     /** The status text corresponding to the HTTP status code. */
     statusText: string
+    /** An optional detailed description of the error. */
+    details?: string
 
     /**
      * Creates a new `FetchError` instance.
@@ -25,12 +28,36 @@ class FetchError extends Error {
      * @param status The HTTP status code of the response.
      * @param statusText The status text corresponding to the HTTP status code.
      * @param message A human-readable error message.
+     * @param details An optional detailed description of the error.
      */
-    constructor(status: number, statusText: string, message: string) {
+    constructor(status: number, statusText: string, message: string, details: string | undefined = undefined) {
         super(message)
         this.status = status
         this.statusText = statusText
         this.name = 'FetchError'
+        this.details = details
+    }
+
+    /**
+     * Creates a `FetchError` from a `Response` object.
+     * Tries to parse the response body as JSON and extract `error` and `details`.
+     *
+     * @param response The Response object to create the error from.
+     * @returns A Promise resolving to a FetchError instance.
+     */
+    static async fromResponse(response: Response): Promise<FetchError> {
+        let message = `${response.status} ${response.statusText}`
+        let details: string | undefined = undefined
+
+        try {
+            const errorObj = serverErrorSchema.parse(await response.json())
+            message = errorObj.error
+            details = errorObj.details
+        } catch {
+            // Ignore parse errors
+        }
+
+        return new FetchError(response.status, response.statusText, message, details)
     }
 }
 
@@ -39,13 +66,30 @@ class FetchError extends Error {
  *
  * @param path The relative API endpoint path (e.g., `manifest` or `options`).
  * @param schema The Zod schema used to validate the response data.
+ * @param params Optional query parameters.
  * @returns A promise that resolves to the validated data.
  * @throws {@link FetchError} If the response is not OK (status code outside the 200-299 range).
  */
-async function get<T>(path: string, schema: z.ZodType<T>): Promise<T> {
-    const response = await fetch(`/api/${path}`)
+async function get<T>(
+    path: string,
+    schema: z.ZodType<T>,
+    params?: Record<string, string | number | boolean | string[]>,
+): Promise<T> {
+    const url = new URL(`/api/${path}`, window.location.origin)
+
+    if (params) {
+        Object.entries(params).forEach(([key, value]) => {
+            if (Array.isArray(value)) {
+                value.forEach((v) => url.searchParams.append(key, v.toString()))
+            } else {
+                url.searchParams.append(key, value.toString())
+            }
+        })
+    }
+
+    const response = await fetch(url)
     if (!response.ok) {
-        throw new FetchError(response.status, response.statusText, 'Failed to fetch data')
+        throw await FetchError.fromResponse(response)
     }
     return schema.parse(await response.json())
 }
@@ -59,12 +103,12 @@ async function get<T>(path: string, schema: z.ZodType<T>): Promise<T> {
  *          or `undefined` if the request is successful.
  * @throws {@link FetchError} If the response is not OK (status code outside the 200-299 range) and not 422.
  */
-async function post(path: string, body: string): Promise<ServerValidationErrors | undefined> {
+async function post(path: string, body?: string): Promise<ServerValidationErrors | undefined> {
     const response = await fetch(`/api/${path}`, { method: 'POST', body })
     if (response.status === 422) {
         return serverValidationErrorsSchema.parse(await response.json())
     } else if (!response.ok) {
-        throw new FetchError(response.status, response.statusText, 'Failed to post data')
+        throw await FetchError.fromResponse(response)
     }
 }
 
