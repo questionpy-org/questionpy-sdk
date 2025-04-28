@@ -2,7 +2,8 @@
 #  The QuestionPy SDK is free software released under terms of the MIT license. See LICENSE.md.
 #  (c) Technische Universität Berlin, innoCampus <info@isis.tu-berlin.de>
 
-from enum import StrEnum
+import os
+from pathlib import Path
 from typing import TYPE_CHECKING
 
 from aiohttp import web
@@ -11,18 +12,13 @@ from questionpy_common.environment import RequestUser
 from questionpy_common.manifest import Bcp47LanguageTag
 
 if TYPE_CHECKING:
-    from .app import WebServer
+    from questionpy_sdk.webserver import WebServer
 
 API_PATH_PREFIX = "/api"
 
-WEBSERVER_KEY: web.AppKey["WebServer"] = web.AppKey("webserver")
+WEBSERVER_KEY: web.AppKey["WebServer"] = web.AppKey("qpy_webserver")
+REQUEST_CONTROLLER_KEY = "qpy_controller"
 
 DEFAULT_REQUEST_USER = RequestUser([Bcp47LanguageTag("de"), Bcp47LanguageTag("en")])
-
-
-class StateFilename(StrEnum):
-    QUESTION_STATE = "question_state.txt"
-    ATTEMPT_STATE = "attempt_state.txt"
-    ATTEMPT_SEED = "attempt_seed.txt"
-    SCORE = "score.json"
-    LAST_ATTEMPT_DATA = "last_attempt_data.json"
+USE_VITE_DEV_SERVER = os.getenv("USE_VITE_DEV_SERVER") in {"true", "TRUE", "1"}
+STATIC_DIR = Path(__file__).parent / "static"
