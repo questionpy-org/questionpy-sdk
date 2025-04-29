@@ -22,9 +22,9 @@ async def test_get_manifest(client: TestClient, mock_controller: AsyncMock) -> N
         author="Jane Doe <jane.doe@example.org>",
         languages=["de", "en"],
     )
-    resp = await client.get("/manifest")
 
-    assert resp.status == HTTPOk.status_code
-    data = await resp.json()
-    assert data["short_name"] == "foo"
-    assert data["version"] == "0.0.1"
+    async with client.get("/manifest") as resp:
+        assert resp.status == HTTPOk.status_code
+        data = await resp.json()
+        assert data["short_name"] == "foo"
+        assert data["version"] == "0.0.1"
