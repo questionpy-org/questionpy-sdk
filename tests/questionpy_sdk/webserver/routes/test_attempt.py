@@ -20,49 +20,45 @@ async def test_get_attempt(client: TestClient, mock_controller: AsyncMock) -> No
         "attempt_status": "STARTED",
     }
 
-    resp = await client.get(
-        "/attempt",
-        params=(
-            ("generalFeedback", "false"),
-            ("roles", "PROCTOR"),
-            ("roles", "DEVELOPER"),
-        ),
+    params = (
+        ("generalFeedback", "false"),
+        ("roles", "PROCTOR"),
+        ("roles", "DEVELOPER"),
     )
 
-    assert resp.status == HTTPOk.status_code
-    data = await resp.json()
-    assert data["attempt_html"] == "<html>Test</html>"
-    assert data["attempt_status"] == "STARTED"
+    async with client.get("/attempt", params=params) as resp:
+        assert resp.status == HTTPOk.status_code
+        data = await resp.json()
+        assert data["attempt_html"] == "<html>Test</html>"
+        assert data["attempt_status"] == "STARTED"
 
-    args, _ = mock_controller.get_attempt.call_args
-    display_options = args[0]
-    assert isinstance(display_options, QuestionDisplayOptions)
-    assert display_options.general_feedback is False
-    assert len(display_options.roles) == 2
-    assert DisplayRole.PROCTOR in display_options.roles
-    assert DisplayRole.DEVELOPER in display_options.roles
+        args, _ = mock_controller.get_attempt.call_args
+        display_options = args[0]
+        assert isinstance(display_options, QuestionDisplayOptions)
+        assert display_options.general_feedback is False
+        assert len(display_options.roles) == 2
+        assert DisplayRole.PROCTOR in display_options.roles
+        assert DisplayRole.DEVELOPER in display_options.roles
 
 
 @pytest.mark.app_routes(attempt.routes)
 async def test_post_attempt(client: TestClient, mock_controller: AsyncMock) -> None:
     test_data = {"answer": "42"}
-    resp = await client.post("/attempt", json=test_data)
 
-    assert resp.status == HTTPOk.status_code
-    mock_controller.save_attempt.assert_awaited_once_with(test_data)
+    async with client.post("/attempt", json=test_data) as resp:
+        assert resp.status == HTTPOk.status_code
+        mock_controller.save_attempt.assert_awaited_once_with(test_data)
 
 
 @pytest.mark.app_routes(attempt.routes)
 async def test_post_attempt_score(client: TestClient, mock_controller: AsyncMock) -> None:
-    resp = await client.post("/attempt/score")
-
-    assert resp.status == HTTPOk.status_code
-    mock_controller.score_attempt.assert_awaited_once()
+    async with client.post("/attempt/score") as resp:
+        assert resp.status == HTTPOk.status_code
+        mock_controller.score_attempt.assert_awaited_once()
 
 
 @pytest.mark.app_routes(attempt.routes)
 async def test_post_attempt_restart(client: TestClient, mock_controller: AsyncMock) -> None:
-    resp = await client.post("/attempt/restart")
-
-    assert resp.status == HTTPOk.status_code
-    mock_controller.reset_attempt.assert_awaited_once()
+    async with client.post("/attempt/restart") as resp:
+        assert resp.status == HTTPOk.status_code
+        mock_controller.reset_attempt.assert_awaited_once()

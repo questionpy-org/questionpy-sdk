@@ -16,36 +16,35 @@ from questionpy_sdk.webserver.routes.options import routes
 @pytest.mark.app_routes(routes)
 async def test_get_options(client: TestClient, mock_controller: AsyncMock) -> None:
     mock_controller.get_form_definition.return_value = OptionsFormDefinition()
-    resp = await client.get("/options")
 
-    assert resp.status == HTTPOk.status_code
-    data = await resp.json()
-    assert data["general"] == []
+    async with client.get("/options") as resp:
+        assert resp.status == HTTPOk.status_code
+        data = await resp.json()
+        assert data["general"] == []
 
 
 @pytest.mark.app_routes(routes)
 async def test_get_options_state(client: TestClient, mock_controller: AsyncMock) -> None:
     mock_controller.get_options_state.return_value = {"foo": "bar"}
-    resp = await client.get("/options/state")
 
-    assert resp.status == HTTPOk.status_code
-    data = await resp.json()
-    assert data["foo"] == "bar"
+    async with client.get("/options/state") as resp:
+        assert resp.status == HTTPOk.status_code
+        data = await resp.json()
+        assert data["foo"] == "bar"
 
 
 @pytest.mark.app_routes(routes)
 async def test_post_options_state(client: TestClient, mock_controller: AsyncMock) -> None:
-    resp = await client.post("/options/state", json={"foo": "bar"})
-
-    assert resp.status == HTTPOk.status_code
-    mock_controller.save_options_state.assert_awaited_once()
+    async with client.post("/options/state", json={"foo": "bar"}) as resp:
+        assert resp.status == HTTPOk.status_code
+        mock_controller.save_options_state.assert_awaited_once()
 
 
 @pytest.mark.app_routes(routes)
 async def test_post_options_state_validation_error(client: TestClient, mock_controller: AsyncMock) -> None:
     mock_controller.save_options_state.side_effect = OptionsFormValidationError({"some": "error"})
-    resp = await client.post("/options/state", json={"foo": "bar"})
 
-    assert resp.status == HTTPUnprocessableEntity.status_code
-    data = await resp.json()
-    assert data["some"] == "error"
+    async with client.post("/options/state", json={"foo": "bar"}) as resp:
+        assert resp.status == HTTPUnprocessableEntity.status_code
+        data = await resp.json()
+        assert data["some"] == "error"

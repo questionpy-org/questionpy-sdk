@@ -26,17 +26,17 @@ def mock_static_dir(tmp_path: Path, monkeypatch: pytest.MonkeyPatch) -> Iterator
 
 @pytest.mark.app_routes(routes)
 async def test_root_serves_index(client: TestClient, mock_static_dir: Path) -> None:
-    resp = await client.get("/")
-    assert resp.status == HTTPOk.status_code
-    assert await resp.text() == "index content"
+    async with client.get("/") as resp:
+        assert resp.status == HTTPOk.status_code
+        assert await resp.text() == "index content"
 
 
 @pytest.mark.parametrize("path", ["/some/path/", "/some/route", "/another/path", "/deep/nested/route"])
 @pytest.mark.app_routes(routes)
 async def test_nested_path_serves_index(path: str, client: TestClient, mock_static_dir: Path) -> None:
-    resp = await client.get(path)
-    assert resp.status == HTTPOk.status_code
-    assert await resp.text() == "index content"
+    async with client.get(path) as resp:
+        assert resp.status == HTTPOk.status_code
+        assert await resp.text() == "index content"
 
 
 @pytest.mark.parametrize(
@@ -48,6 +48,6 @@ async def test_nested_path_serves_index(path: str, client: TestClient, mock_stat
 )
 @pytest.mark.app_routes(routes)
 async def test_existing_file_serves_file(path: str, expected: str, client: TestClient, mock_static_dir: Path) -> None:
-    resp = await client.get(path)
-    assert resp.status == HTTPOk.status_code
-    assert await resp.text() == expected
+    async with client.get(path) as resp:
+        assert resp.status == HTTPOk.status_code
+        assert await resp.text() == expected
