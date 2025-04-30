@@ -2,11 +2,11 @@
 #  The QuestionPy SDK is free software released under terms of the MIT license. See LICENSE.md.
 #  (c) Technische Universität Berlin, innoCampus <info@isis.tu-berlin.de>
 
-import asyncio
 import logging
 from functools import cached_property
 from pathlib import Path
-from typing import TYPE_CHECKING
+from types import TracebackType
+from typing import TYPE_CHECKING, Self
 
 from aiohttp import web
 
@@ -42,15 +42,19 @@ class WebServer:
         self._host = host
         self._port = port
 
-        self._web_app: web.Application | None = None
-        self._runner: web.AppRunner | None = None
-        self._manifest: Manifest | None = None
-        self.worker_pool: WorkerPool = WorkerPool(1, 500 * MiB, worker_type=ThreadWorker)
+        self._web_app: web.Application
+        self._runner: web.AppRunner
+        self._manifest: Manifest
+        self._worker_pool: WorkerPool
 
-    async def start_server(self) -> None:
-        if self._web_app:
-            msg = "Web app is already running"
-            raise RuntimeError(msg)
+    async def __aenter__(self) -> Self:
+        # Worker pool
+        self._worker_pool = WorkerPool(1, 500 * MiB, worker_type=ThreadWorker)
+
+        # Load manifest
+        worker: Worker
+        async with self._worker_pool.get_worker(self.package_location, 0, None) as worker:
+            self._manifest = await worker.get_manifest()
 
         self._web_app = self._create_webapp()
         self._runner = web.AppRunner(self._web_app)
@@ -58,15 +62,13 @@ class WebServer:
         await web.TCPSite(self._runner, self._host, self._port).start()
         self._print_urls()
 
-    async def stop_server(self) -> None:
-        if self._runner:
-            await self._runner.cleanup()
-            self._web_app = None
-            self._runner = None
+        return self
 
-    async def run_forever(self) -> None:
-        await self.start_server()
-        await asyncio.Event().wait()  # run forever
+    async def __aexit__(
+        self, exc_type: type[BaseException] | None, exc_val: BaseException | None, exc_tb: TracebackType | None
+    ) -> None:
+        await self._runner.cleanup()
+        await self._worker_pool.__aexit__(exc_type, exc_val, exc_tb)
 
     def read_state_file(self, filename: StateFilename) -> str | None:
         try:
@@ -88,7 +90,6 @@ class WebServer:
     def _create_webapp(self) -> web.Application:
         app = web.Application()
         app[WEBSERVER_KEY] = self
-        app.on_startup.append(self._extract_manifest)
 
         serve_api(app)
         serve_frontend(app)
@@ -106,16 +107,11 @@ class WebServer:
 
     @property
     def manifest(self) -> Manifest:
-        if self._manifest is None:
-            msg = "Web app not initialized"
-            raise RuntimeError(msg)
-
         return self._manifest
 
-    async def _extract_manifest(self, app: web.Application) -> None:
-        worker: Worker
-        async with self.worker_pool.get_worker(self.package_location, 0, None) as worker:
-            self._manifest = await worker.get_manifest()
+    @property
+    def worker_pool(self) -> WorkerPool:
+        return self._worker_pool
 
     def _print_urls(self) -> None:
         if self._runner is None:

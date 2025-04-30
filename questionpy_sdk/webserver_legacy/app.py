@@ -2,13 +2,13 @@
 #  The QuestionPy SDK is free software released under terms of the MIT license. See LICENSE.md.
 #  (c) Technische Universität Berlin, innoCampus <info@isis.tu-berlin.de>
 
-import asyncio
 import logging
 import traceback
 from enum import StrEnum
 from functools import cached_property
 from pathlib import Path
-from typing import TYPE_CHECKING
+from types import TracebackType
+from typing import TYPE_CHECKING, Self
 
 import aiohttp_jinja2
 from aiohttp import web
@@ -77,7 +77,18 @@ class WebServer:
 
         self._web_app: web.Application | None = None
         self._runner: web.AppRunner | None = None
-        self.worker_pool: WorkerPool = WorkerPool(1, 500 * MiB, worker_type=ThreadWorker)
+        self.worker_pool: WorkerPool
+
+    async def __aenter__(self) -> Self:
+        self.worker_pool = await WorkerPool(1, 500 * MiB, worker_type=ThreadWorker).__aenter__()
+        await self.start_server()
+        return self
+
+    async def __aexit__(
+        self, exc_type: type[BaseException] | None, exc_val: BaseException | None, exc_tb: TracebackType | None
+    ) -> None:
+        await self.worker_pool.__aexit__(exc_type, exc_val, exc_tb)
+        await self.stop_server()
 
     async def start_server(self) -> None:
         if self._web_app:
@@ -95,10 +106,6 @@ class WebServer:
             await self._runner.cleanup()
             self._web_app = None
             self._runner = None
-
-    async def run_forever(self) -> None:
-        await self.start_server()
-        await asyncio.Event().wait()  # run forever
 
     def read_state_file(self, filename: StateFilename) -> str | None:
         try:

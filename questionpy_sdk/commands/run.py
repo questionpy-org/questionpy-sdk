@@ -12,7 +12,7 @@ from questionpy_sdk.commands._helper import get_package_location
 from questionpy_sdk.constants import DEFAULT_STATE_STORAGE_PATH
 from questionpy_sdk.get_webserver import get_webserver
 from questionpy_sdk.watcher import Watcher
-from questionpy_server.worker.runtime.package_location import DirPackageLocation
+from questionpy_server.worker.runtime.package_location import DirPackageLocation, PackageLocation
 
 if TYPE_CHECKING:
     from collections.abc import Coroutine
@@ -31,6 +31,13 @@ async def run_watcher(
         pkg_path, pkg_location, state_storage_path, host, port, legacy_frontend=legacy_frontend
     ) as watcher:
         await watcher.run_forever()
+
+
+async def async_run(
+    pkg_location: PackageLocation, state_storage_path: Path, host: str, port: int, *, legacy_frontend: bool
+) -> None:
+    async with get_webserver(pkg_location, state_storage_path, host, port, legacy_frontend=legacy_frontend):
+        await asyncio.Event().wait()  # Run forever
 
 
 @click.command()
@@ -77,8 +84,6 @@ def run(package: str, state_storage_path: Path, host: str, port: int, *, watch: 
             raise click.BadParameter(msg)
         coro = run_watcher(pkg_path, pkg_location, state_storage_path, host, port, legacy_frontend=legacy_frontend)
     else:
-        coro = get_webserver(
-            pkg_location, state_storage_path, host, port, legacy_frontend=legacy_frontend
-        ).run_forever()
+        coro = async_run(pkg_location, state_storage_path, host, port, legacy_frontend=legacy_frontend)
 
     asyncio.run(coro)

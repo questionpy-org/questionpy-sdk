@@ -21,14 +21,6 @@ from questionpy_sdk.package.errors import PackageBuildError
 from questionpy_sdk.package.source import PackageSource
 
 
-@pytest.fixture
-def qpy_pkg_path(tmp_path: Path, source_path: Path) -> Path:
-    qpy_path = tmp_path / "package.qpy"
-    with ZipPackageBuilder(qpy_path, PackageSource(source_path)) as builder:
-        builder.write_package()
-    return qpy_path
-
-
 def test_installs_questionpy(qpy_pkg_path: Path) -> None:
     with ZipFile(qpy_pkg_path) as zipfile:
         assert zipfile.getinfo(f"{DIST_DIR}/dependencies/site-packages/questionpy/__init__.py")

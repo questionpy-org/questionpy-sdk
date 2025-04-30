@@ -3,15 +3,17 @@
 #  (c) Technische Universität Berlin, innoCampus <info@isis.tu-berlin.de>
 
 from pathlib import Path
-from typing import Protocol
+from types import TracebackType
+from typing import Protocol, Self
 
 from questionpy_server.worker.runtime.package_location import PackageLocation
 
 
 class WebServerProtocol(Protocol):
-    async def run_forever(self) -> None: ...
-    async def stop_server(self) -> None: ...
-    async def start_server(self) -> None: ...
+    async def __aenter__(self) -> Self: ...
+    async def __aexit__(
+        self, exc_type: type[BaseException] | None, exc_val: BaseException | None, exc_tb: TracebackType | None
+    ) -> None: ...
 
 
 def get_webserver(
