@@ -9,6 +9,8 @@ from shutil import copytree
 import pytest
 
 from questionpy_common.constants import DIST_DIR
+from questionpy_sdk.package.builder import ZipPackageBuilder
+from questionpy_sdk.package.source import PackageSource
 
 
 @pytest.fixture
@@ -21,6 +23,14 @@ def source_path(request: pytest.FixtureRequest, tmp_path: Path) -> Path:
     copytree(src_path, dest_path, ignore=lambda src, names: (DIST_DIR,))
 
     return dest_path
+
+
+@pytest.fixture
+def qpy_pkg_path(tmp_path: Path, source_path: Path) -> Path:
+    qpy_path = tmp_path / "package.qpy"
+    with ZipPackageBuilder(qpy_path, PackageSource(source_path)) as builder:
+        builder.write_package()
+    return qpy_path
 
 
 @pytest.fixture

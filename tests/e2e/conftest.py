@@ -38,7 +38,11 @@ def driver() -> Iterator[webdriver.Chrome]:
 
 
 def start_runner(web_app: WebServer) -> None:
-    asyncio.run(web_app.run_forever())
+    async def _run() -> None:
+        async with web_app:
+            await asyncio.Event().wait()
+
+    asyncio.run(_run())
 
 
 @pytest.fixture

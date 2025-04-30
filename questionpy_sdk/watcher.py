@@ -126,7 +126,7 @@ class Watcher(AbstractAsyncContextManager):
         if self._observer.is_alive():
             self._observer.stop()
         self._event_handler.stop()
-        await self._webserver.stop_server()
+        await self._webserver.__aexit__(exc_type, exc_value, traceback)
 
     def _schedule(self) -> None:
         if self._watch is None:
@@ -144,7 +144,7 @@ class Watcher(AbstractAsyncContextManager):
 
     async def run_forever(self) -> None:
         try:
-            await self._webserver.start_server()
+            await self._webserver.__aenter__()  # noqa: PLC2801
         except Exception:
             log.exception("Failed to start webserver. The exception was:")
             # When user messed up the their package on initial run, we just bail out.
@@ -167,7 +167,7 @@ class Watcher(AbstractAsyncContextManager):
 
         # Stop webserver.
         try:
-            await self._webserver.stop_server()
+            await self._webserver.__aexit__(None, None, None)
         except Exception:
             log.exception("Failed to stop web server. The exception was:")
             raise  # Should not happen, thus we're propagating.
@@ -183,6 +183,6 @@ class Watcher(AbstractAsyncContextManager):
 
         # Start server.
         try:
-            await self._webserver.start_server()
+            await self._webserver.__aenter__()  # noqa: PLC2801
         except Exception:
             log.exception("Failed to start web server. The exception was:")
