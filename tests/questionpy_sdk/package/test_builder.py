@@ -201,7 +201,7 @@ def test_copy_sources(copy_sources: bool, tmp_path: Path, source_path: Path) -> 
     with ZipFile(qpy_pkg_path) as zipfile:
         filenames = [zipinfo.filename for zipinfo in zipfile.infolist()]
         assert (PACKAGE_CONFIG_FILENAME in filenames) == copy_sources
-        assert (".gitignore" in filenames) == copy_sources
+        assert ".gitignore" not in filenames
         assert ("python/local/minimal_example/__init__.py" in filenames) == copy_sources
 
 
