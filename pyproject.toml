@@ -49,9 +49,10 @@ pytest = "^8.1.1"
 pytest-aiohttp = "^1.0.5"
 pytest-md = "^0.2.0"
 coverage = { extras = ["toml"], version = "^7.4.4" }
-selenium = "^4.19.0"
 lxml-stubs = "^0.5.1"
 pytest-archon = "^0.0.6"
+pytest-asyncio = "^0.26.0"
+pytest-playwright-asyncio = "^0.7.0"
 
 [tool.poetry.group.linter]
 dependencies = { ruff = "^0.6.3" }
@@ -78,10 +79,15 @@ allow-dunder-method-names = ["__get_pydantic_core_schema__"]
 
 [tool.pytest.ini_options]
 addopts = "--doctest-modules --ignore examples"
+markers = ["render_params", "source_pkg", "ui_file"]
+
 # https://github.com/pytest-dev/pytest-asyncio#auto-mode
 asyncio_mode = "auto"
-asyncio_default_fixture_loop_scope="function"
-markers = ["render_params", "source_pkg", "ui_file"]
+# Module scope is recommended: https://pytest-asyncio.readthedocs.io/en/stable/concepts.html#asyncio-event-loops
+asyncio_default_test_loop_scope = "module"
+asyncio_default_fixture_loop_scope="module"
+# We run E2E tests separately
+norecursedirs = "e2e"
 
 # This section is read automatically by Coverage.py when its working directory is .
 # https://coverage.readthedocs.io/en/6.5.0/config.html#configuration-reference
