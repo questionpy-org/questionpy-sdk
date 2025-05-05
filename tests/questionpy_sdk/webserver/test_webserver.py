@@ -3,14 +3,19 @@
 #  (c) Technische Universität Berlin, innoCampus <info@isis.tu-berlin.de>
 
 import asyncio
+import logging
+from collections.abc import Iterator
 from pathlib import Path
+from unittest.mock import AsyncMock, Mock
 
 import pytest
+from aiohttp import web
 
 from questionpy import Attempt, NeedsManualScoringError, Package, Question, QuestionTypeWrapper
 from questionpy.form import FormModel
 from questionpy_common.api.qtype import QuestionTypeInterface
 from questionpy_common.constants import DIST_DIR
+from questionpy_common.manifest import Bcp47LanguageTag, Manifest
 from questionpy_sdk.package.builder import DirPackageBuilder
 from questionpy_sdk.package.source import PackageSource
 from questionpy_sdk.webserver.server import WebServer
@@ -21,6 +26,150 @@ from questionpy_server.worker.runtime.package_location import (
     PackageLocation,
     ZipPackageLocation,
 )
+
+
+@pytest.fixture
+def mock_worker_pool(monkeypatch: pytest.MonkeyPatch, mock_worker: AsyncMock) -> Iterator[tuple[Mock, AsyncMock]]:
+    with monkeypatch.context() as mp:
+        mock_get_worker_context = Mock()
+        mock_get_worker_context.return_value = AsyncMock(
+            __aenter__=AsyncMock(return_value=mock_worker),
+            __aexit__=AsyncMock(return_value=None),
+        )
+
+        mock_worker_pool_instance = AsyncMock(get_worker=mock_get_worker_context)
+        mock_worker_pool_cls = Mock()
+        mock_worker_pool_cls.return_value = AsyncMock(
+            __aenter__=AsyncMock(return_value=mock_worker_pool_instance),
+            __aexit__=AsyncMock(return_value=None),
+        )
+
+        mp.setattr("questionpy_sdk.webserver.server.WorkerPool", mock_worker_pool_cls)
+        yield mock_worker_pool_cls, mock_worker_pool_instance
+
+
+@pytest.fixture
+def mock_worker() -> AsyncMock:
+    mock_worker = AsyncMock()
+    manifest = Manifest(
+        short_name="my_short_name",
+        version="7.3.1",
+        api_version="9.4",
+        author="Testy McTestface",
+        languages=[Bcp47LanguageTag("en")],
+    )
+    mock_worker.get_manifest = AsyncMock(return_value=manifest)
+    return mock_worker
+
+
+@pytest.fixture
+def mock_web_components(monkeypatch: pytest.MonkeyPatch) -> Iterator[tuple[Mock, AsyncMock]]:
+    with monkeypatch.context() as mp:
+        mock_app_runner = AsyncMock()
+        mp.setattr("questionpy_sdk.webserver.server.web.AppRunner", Mock(return_value=mock_app_runner))
+
+        mock_tcp_site = Mock()
+        mock_tcp_site.return_value.start = AsyncMock()
+        mp.setattr("questionpy_sdk.webserver.server.web.TCPSite", mock_tcp_site)
+
+        yield mock_app_runner, mock_tcp_site
+
+
+@pytest.fixture
+def mock_state_manager(monkeypatch: pytest.MonkeyPatch) -> Iterator[Mock]:
+    with monkeypatch.context() as mp:
+        mock_state_manager_cls = Mock()
+        mp.setattr("questionpy_sdk.webserver.server.StateManager", mock_state_manager_cls)
+        yield mock_state_manager_cls
+
+
+async def test_webserver_startup(
+    mock_worker_pool: tuple[Mock, AsyncMock],
+    mock_worker: AsyncMock,
+    mock_web_components: tuple[Mock, AsyncMock],
+    mock_state_manager: Mock,
+) -> None:
+    mock_worker_pool_cls, mock_worker_pool_instance = mock_worker_pool
+    mock_app_runner, mock_tcp_site = mock_web_components
+
+    package_location = Mock()
+    state_storage_path = Path("/tmp/storage")
+
+    async with WebServer(package_location, state_storage_path):
+        mock_worker_pool_cls.assert_called_once()
+
+        mock_worker_pool_instance.get_worker.assert_called_once_with(package_location, 0, None)
+        mock_worker.get_manifest.assert_awaited_once()
+
+        expected_path = state_storage_path / "local-my_short_name-7.3.1"
+        mock_state_manager.assert_called_once_with(expected_path)
+
+        mock_app_runner.setup.assert_awaited_once()
+        mock_tcp_site.return_value.start.assert_awaited_once()
+
+
+async def test_webserver_shutdown(
+    mock_worker_pool: tuple[Mock, AsyncMock], mock_web_components: tuple[Mock, AsyncMock]
+) -> None:
+    _, mock_worker_pool_instance = mock_worker_pool
+    mock_app_runner, _ = mock_web_components
+
+    async with WebServer(Mock(), Path("/tmp")):
+        pass
+
+    mock_app_runner.cleanup.assert_awaited_once()
+    mock_worker_pool_instance.__aexit__.assert_awaited_once()
+
+
+def test_create_webapp_frontend_routes(monkeypatch: pytest.MonkeyPatch) -> None:
+    with monkeypatch.context() as mp:
+        mp.setattr("questionpy_sdk.webserver.server.USE_VITE_DEV_SERVER", False)
+
+        routes = web.RouteTableDef()
+
+        @routes.get("/")
+        async def some_route(r: web.Request) -> web.Response:  # noqa: RUF029
+            return web.Response()
+
+        mp.setattr("questionpy_sdk.webserver.server.frontend_routes", routes)
+
+        server = WebServer(Mock(), Path("/tmp"))
+        app = server._create_webapp()
+
+        assert some_route in (route.handler for route in app.router.routes())
+
+
+def test_create_webapp_vite_middleware(monkeypatch: pytest.MonkeyPatch) -> None:
+    with monkeypatch.context() as mp:
+        mp.setattr("questionpy_sdk.webserver.server.USE_VITE_DEV_SERVER", True)
+        mock_middleware = Mock()
+        mp.setattr("questionpy_sdk.webserver.middlewares.vite_dev.vite_devserver_middleware", mock_middleware)
+
+        server = WebServer(Mock(), Path("/tmp"))
+        app = server._create_webapp()
+
+        assert mock_middleware in app.middlewares
+
+
+def test_print_status_logs_urls(caplog: pytest.LogCaptureFixture) -> None:
+    with caplog.at_level(logging.INFO):
+        server = WebServer(Mock(), Path("/tmp"))
+        server._runner = Mock()
+        server._runner.addresses = [("127.0.0.1", 8080), ("::1", 8080, 0, 0)]
+
+        server._print_status()
+
+        assert "http://127.0.0.1:8080" in caplog.text
+        assert "http://[::1]:8080" in caplog.text
+
+
+def test_print_status_raises_on_invalid_address() -> None:
+    server = WebServer(Mock(), Path("/tmp"))
+    server._runner = Mock()
+    server._runner.addresses = [("invalid",)]
+
+    with pytest.raises(ValueError, match="Unknown address format"):
+        server._print_status()
 
 
 def _pkg_init(package: Package) -> QuestionTypeInterface:
