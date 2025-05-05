@@ -6,13 +6,15 @@ from pathlib import Path
 
 from pathspec import GitIgnoreSpec
 
+from questionpy_common.constants import DIST_DIR
 from questionpy_common.manifest import SourceManifest
 
-_DEFAULT_IGNORES = """
+_DEFAULT_IGNORES = f"""
     # General
     *.tmp
     *cache
     .DS_Store
+    {DIST_DIR}
 
     # Python
     venv
@@ -25,14 +27,15 @@ _DEFAULT_IGNORES = """
 
     # IDE
     .idea
+    *.iml
     .vscode
 
-    # Version control systems
+    # VCS
     .git
-    .gitignore
     .svn
     .hg
     .bzr
+    .jj
 """
 
 
