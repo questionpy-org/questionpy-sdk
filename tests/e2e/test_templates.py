@@ -49,7 +49,7 @@ def package_3_init(package: Package) -> QuestionTypeInterface:
     return QuestionTypeWrapper(Package3Question, package)
 
 
-@pytest.mark.usefixtures("_start_runner_thread")
+@pytest.mark.usefixtures("_webserver_thread")
 class TestTemplates:
     @use_package(package_1_init)
     def test_page_contains_correct_page_title(self, driver: webdriver.Chrome, url: str) -> None:

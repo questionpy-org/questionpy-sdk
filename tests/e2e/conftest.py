@@ -3,7 +3,9 @@
 #  (c) Technische Universität Berlin, innoCampus <info@isis.tu-berlin.de>
 
 import asyncio
+import sys
 import threading
+import warnings
 from collections.abc import Callable, Iterator
 from pathlib import Path
 from typing import Any, TypeVar, cast
@@ -46,10 +48,31 @@ def start_runner(web_app: WebServer) -> None:
 
 
 @pytest.fixture
-def _start_runner_thread(sdk_web_server: WebServer) -> None:
-    app_thread = threading.Thread(target=start_runner, args=(sdk_web_server,))
-    app_thread.daemon = True  # Set the thread as a daemon to automatically stop when main thread exits
+def _webserver_thread(sdk_web_server: WebServer) -> Iterator[None]:
+    loop = asyncio.new_event_loop()
+    app_thread = threading.Thread(
+        target=loop.run_forever,
+        name="SDK WebServer under test",
+        # Set the thread as a daemon to automatically stop when main thread exits
+        daemon=True,
+    )
     app_thread.start()
+
+    asyncio.run_coroutine_threadsafe(sdk_web_server.__aenter__(), loop).result()  # noqa: PLC2801 (manual __aenter__)
+
+    try:
+        yield
+    finally:
+        asyncio.run_coroutine_threadsafe(sdk_web_server.__aexit__(*sys.exc_info()), loop).result()
+        loop.call_soon_threadsafe(loop.stop)
+
+        # After stopping the loop, loop.run_forever should return or raise, causing the thread to end.
+        app_thread.join(2)
+        if app_thread.is_alive():
+            # If it doesn't, the loop and server probably won't be cleaned up, and that's a problem.
+            warnings.warn("WebServer thread for E2E tests did not end gracefully.", stacklevel=1)
+
+        loop.close()
 
 
 _C = TypeVar("_C", bound=Callable)
