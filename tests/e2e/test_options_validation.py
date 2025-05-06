@@ -40,7 +40,7 @@ def await_and_assert_msg(driver: webdriver.Chrome, selector: str) -> None:
     assert el_error.text == "Field required"
 
 
-@pytest.mark.usefixtures("_start_runner_thread")
+@pytest.mark.usefixtures("_webserver_thread")
 @use_package(package_init)
 def test_shows_validation_errors(driver: webdriver.Chrome, url: str) -> None:
     driver.get(url)
