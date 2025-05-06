@@ -35,7 +35,7 @@ def _run_command(args: list[str], rel_path: str) -> None:
 
 def build_frontend() -> None:
     _run_command(["npm", "ci", "--ignore-scripts"], "frontend")
-    _run_command(["npm", "run", "build"], "frontend")
+    _run_command(["npm", "run", "build-only"], "frontend")
 
 
 def build(_setup_kwargs: Any) -> None:

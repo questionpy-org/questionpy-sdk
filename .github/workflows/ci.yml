@@ -8,10 +8,52 @@ on:
       - opened
 
 jobs:
-  ci:
+  python:
     # https://github.com/questionpy-org/.github
     uses: questionpy-org/.github/.github/workflows/python-ci.yml@v8.1
     with:
       # GitHub workflow inputs do not support lists, so we pass JSON.
-      pytest-python-versions: '["3.11", "3.12", "3.13"]'
+      pytest-python-versions: '["3.12", "3.13"]'
       packages: questionpy questionpy_sdk tests
+
+  node:
+    uses: ./.github/workflows/node-ci.yml
+
+  e2e-tests:
+    timeout-minutes: 30
+    runs-on: ubuntu-latest
+    env:
+      POETRY_VIRTUALENVS_IN_PROJECT: true
+    steps:
+      - name: Check out repo
+        uses: actions/checkout@v4
+
+      - name: Install Poetry
+        run: pipx install 'poetry~=2.1.0'
+
+      - name: Set up Python 3.13
+        uses: actions/setup-python@v5
+        with:
+          python-version: "3.13"
+          cache: "poetry"
+
+      - name: Install dependencies
+        run: poetry install --no-interaction --only main,test
+
+      - name: Activate virtualenv
+        run: |
+          echo "VIRTUAL_ENV=$PWD/.venv" >> $GITHUB_ENV
+          echo "$PWD/.venv/bin" >> $GITHUB_PATH
+
+      - name: Install Chromium
+        run: playwright install chromium
+
+      - name: Run E2E tests
+        run: ./run_e2e_tests.sh
+
+      - name: Upload traces
+        uses: actions/upload-artifact@v4
+        if: ${{ !cancelled() && hashFiles('e2e-results/**') }}
+        with:
+          name: playwright-traces
+          path: e2e-results/

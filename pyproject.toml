@@ -85,7 +85,7 @@ markers = ["render_params", "source_pkg", "ui_file"]
 asyncio_mode = "auto"
 # Module scope is recommended: https://pytest-asyncio.readthedocs.io/en/stable/concepts.html#asyncio-event-loops
 asyncio_default_test_loop_scope = "module"
-asyncio_default_fixture_loop_scope="module"
+asyncio_default_fixture_loop_scope = "module"
 # We run E2E tests separately
 norecursedirs = "e2e"
 
