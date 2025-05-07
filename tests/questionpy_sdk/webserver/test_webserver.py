@@ -189,8 +189,31 @@ def _pkg_init(package: Package) -> QuestionTypeInterface:
     return QuestionTypeWrapper(PackageQuestion, package)
 
 
-async def _assert_graceful_shutdown(pkg_location: PackageLocation, storage_path: Path, port: int) -> None:
-    async with WebServer(pkg_location, state_storage_path=storage_path, port=port):
+@pytest.fixture
+def function_pkg_location() -> FunctionPackageLocation:
+    return FunctionPackageLocation.from_function(_pkg_init)
+
+
+@pytest.fixture
+def dir_pkg_location(source_path: Path) -> DirPackageLocation:
+    with DirPackageBuilder(PackageSource(source_path)) as builder:
+        builder.write_package()
+    return DirPackageLocation(source_path / DIST_DIR)
+
+
+@pytest.fixture
+def zip_pkg_location(qpy_pkg_path: Path) -> ZipPackageLocation:
+    return ZipPackageLocation(qpy_pkg_path, calculate_hash(qpy_pkg_path))
+
+
+@pytest.fixture(params=["function_pkg_location", "dir_pkg_location", "zip_pkg_location"])
+def pkg_location(request: pytest.FixtureRequest) -> PackageLocation:
+    return request.getfixturevalue(request.param)
+
+
+@pytest.mark.asyncio(loop_scope="function")
+async def test_webserver_graceful_shutdown(pkg_location: PackageLocation, tmp_path: Path, port: int) -> None:
+    async with WebServer(pkg_location, state_storage_path=tmp_path, port=port):
         await asyncio.sleep(0)
 
     pending = [t for t in asyncio.all_tasks() if t is not asyncio.current_task() and not t.done()]
@@ -200,26 +223,3 @@ async def _assert_graceful_shutdown(pkg_location: PackageLocation, storage_path:
             task.cancel()
         await asyncio.gather(*pending, return_exceptions=True)
         pytest.fail(f"Pending tasks after shutdown:\n{pending_tasks_display}")
-
-
-@pytest.mark.asyncio(loop_scope="function")
-async def test_webserver_shutdown_function(tmp_path: Path, port: int) -> None:
-    pkg_location = FunctionPackageLocation.from_function(_pkg_init)
-
-    await _assert_graceful_shutdown(pkg_location, tmp_path, port)
-
-
-@pytest.mark.asyncio(loop_scope="function")
-async def test_webserver_shutdown_dir(tmp_path: Path, port: int, source_path: Path) -> None:
-    with DirPackageBuilder(PackageSource(source_path)) as builder:
-        builder.write_package()
-    pkg_location = DirPackageLocation(source_path / DIST_DIR)
-
-    await _assert_graceful_shutdown(pkg_location, tmp_path, port)
-
-
-@pytest.mark.asyncio(loop_scope="function")
-async def test_webserver_shutdown_zip(tmp_path: Path, port: int, qpy_pkg_path: Path) -> None:
-    pkg_location = ZipPackageLocation(qpy_pkg_path, calculate_hash(qpy_pkg_path))
-
-    await _assert_graceful_shutdown(pkg_location, tmp_path, port)
