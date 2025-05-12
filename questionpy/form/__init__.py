@@ -56,7 +56,6 @@ from questionpy_common.elements import (
     StaticTextElement,
     TextAreaElement,
     TextInputElement,
-    is_form_element,
 )
 
 from ._dsl import (
@@ -105,7 +104,6 @@ __all__ = [
     "group",
     "hidden",
     "is_checked",
-    "is_form_element",
     "is_in",
     "is_not_checked",
     "option",
