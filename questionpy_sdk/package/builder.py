@@ -25,6 +25,7 @@ from questionpy_common.constants import DIST_DIR, MANIFEST_FILENAME
 from questionpy_common.manifest import Manifest, PackageFile
 from questionpy_sdk._i18n_utils import bcp47_to_posix
 from questionpy_sdk.models import BuildHookName
+from questionpy_sdk.package._helper import create_ignore_file_callable
 from questionpy_sdk.package.errors import PackageBuildError
 from questionpy_sdk.package.source import PackageSource
 
@@ -152,9 +153,11 @@ class PackageBuilderBase(AbstractContextManager):
             raise PackageBuildError(msg)
 
     def _copy_source_files(self) -> None:
+        ignore_file = create_ignore_file_callable(self._source.path, self._source.config.ignore)
+
         for source_file in self._source.path.glob("**/*"):
             path_in_pkg = source_file.relative_to(self._source.path)
-            if self._skip_file(source_file) or path_in_pkg.parts[0] == DIST_DIR:
+            if ignore_file(path_in_pkg):
                 continue
             log.debug("%s: %s", source_file, path_in_pkg)
             self._write_file(source_file, path_in_pkg)
@@ -187,7 +190,7 @@ class PackageBuilderBase(AbstractContextManager):
         self, source_dir: Path, glob: str, prefix: str | Path = "", *, add_to_static_files: bool = False
     ) -> None:
         for source_file in source_dir.glob(glob):
-            if self._skip_file(source_file):
+            if "__pycache__" in source_file.parts:
                 continue
             path_in_pkg = prefix / source_file.relative_to(source_dir)
             log.debug("%s: %s", path_in_pkg, source_file)
@@ -199,10 +202,6 @@ class PackageBuilderBase(AbstractContextManager):
                 file_size = source_file.stat().st_size
                 path_in_dist = str(path_in_pkg.relative_to(DIST_DIR))
                 self._static_files[path_in_dist] = PackageFile(mime_type=mime_type, size=file_size)
-
-    @staticmethod
-    def _skip_file(path: Path) -> bool:
-        return "__pycache__" in path.parts
 
     @abstractmethod
     def _write_file(self, source_path: Path, dest_path: Path) -> None:

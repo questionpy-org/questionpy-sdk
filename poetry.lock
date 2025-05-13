@@ -1066,6 +1066,18 @@ files = [
 ]
 
 [[package]]
+name = "pathspec"
+version = "0.12.1"
+description = "Utility library for gitignore style pattern matching of file paths."
+optional = false
+python-versions = ">=3.8"
+groups = ["main"]
+files = [
+    {file = "pathspec-0.12.1-py3-none-any.whl", hash = "sha256:a0d503e138a4c123b27490a4f7beda6a01c6f288df0e4a8b79c7eb0dc7b4cc08"},
+    {file = "pathspec-0.12.1.tar.gz", hash = "sha256:a482d51503a1ab33b1c67a6c3813a26953dbdc71c31dacaef9a838c4e29f5712"},
+]
+
+[[package]]
 name = "playwright"
 version = "1.52.0"
 description = "A high-level API to automate web browsers"
@@ -1926,4 +1938,4 @@ propcache = ">=0.2.0"
 [metadata]
 lock-version = "2.1"
 python-versions = "^3.12"
-content-hash = "deeb4ef5c354c9d040ded8a850fb56bda848ffef73880a1026bf7998cec1d79c"
+content-hash = "8875b88e59681f695f1057bdbb8907d64456b64bac4ad4524cd872e20f3ab198"

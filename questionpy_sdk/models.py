@@ -18,6 +18,7 @@ class PackageConfig(SourceManifest):
     """
 
     build_hooks: Mapping[BuildHookName, str | list[str]] = {}
+    ignore: list[str] = []
 
     @property
     def manifest(self) -> SourceManifest:
