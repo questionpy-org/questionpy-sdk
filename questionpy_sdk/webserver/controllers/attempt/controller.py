@@ -8,6 +8,7 @@ from typing import TYPE_CHECKING, Any, Literal, TypedDict, overload
 
 import jinja2
 from aiohttp import web
+from pydantic import JsonValue
 
 from questionpy import AttemptModel, AttemptScoredModel, AttemptStartedModel, ScoreModel
 from questionpy_sdk.webserver.constants import DEFAULT_REQUEST_USER
@@ -75,7 +76,7 @@ class AttemptController(BaseController):
         return data
 
     async def _get_or_start_attempt(
-        self, attempt_state: str | None, last_attempt_data: dict, score: ScoreModel | None
+        self, attempt_state: str | None, last_attempt_data: dict[str, JsonValue], score: ScoreModel | None
     ) -> tuple[AttemptModel, str]:
         question_state = await self._get_question_state()
         worker: Worker
@@ -107,7 +108,7 @@ class AttemptController(BaseController):
         self,
         attempt: AttemptModel,
         display_options: QuestionDisplayOptions,
-        last_attempt_data: dict,
+        last_attempt_data: dict[str, JsonValue],
         score: ScoreModel | None,
     ) -> tuple[AttemptTemplateContext, RenderErrorCollections]:
         # Force display options if not scored
@@ -205,7 +206,7 @@ class AttemptController(BaseController):
         except FileNotFoundError:
             return None
 
-    async def _get_last_attempt_data(self, *, allow_missing: bool = False) -> Any:
+    async def _get_last_attempt_data(self, *, allow_missing: bool = False) -> dict[str, JsonValue]:
         try:
             return await self._state_manager.read_last_attempt_data()
         except FileNotFoundError as err:

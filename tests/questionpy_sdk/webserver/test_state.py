@@ -3,11 +3,15 @@
 #  (c) Technische Universität Berlin, innoCampus <info@isis.tu-berlin.de>
 
 from pathlib import Path
+from typing import TYPE_CHECKING
 
 import pytest
 
 from questionpy import ScoreModel, ScoringCode
 from questionpy_sdk.webserver.state import StateFilename, StateManager
+
+if TYPE_CHECKING:
+    from pydantic import JsonValue
 
 
 async def test_write_read_question_state(tmp_path: Path) -> None:
@@ -44,7 +48,7 @@ async def test_write_read_score(tmp_path: Path) -> None:
 
 async def test_write_read_last_attempt_data(tmp_path: Path) -> None:
     sm = StateManager(tmp_path)
-    test_data = {"key": "value", "number": 123}
+    test_data: dict[str, JsonValue] = {"key": "value", "number": 123}
     await sm.write_last_attempt_data(test_data)
     result = await sm.read_last_attempt_data()
     assert result == test_data
