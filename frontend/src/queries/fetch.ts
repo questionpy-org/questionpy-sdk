@@ -30,7 +30,7 @@ class FetchError extends Error {
      * @param message A human-readable error message.
      * @param details An optional detailed description of the error.
      */
-    constructor(status: number, statusText: string, message: string, details: string | undefined = undefined) {
+    constructor(status: number, statusText: string, message: string, details?: string) {
         super(message)
         this.status = status
         this.statusText = statusText
