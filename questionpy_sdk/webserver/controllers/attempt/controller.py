@@ -7,12 +7,12 @@ from enum import StrEnum, auto
 from typing import TYPE_CHECKING, Any, Literal, TypedDict, overload
 
 import jinja2
-from aiohttp import web
 from pydantic import JsonValue
 
 from questionpy import AttemptModel, AttemptScoredModel, AttemptStartedModel, ScoreModel
 from questionpy_sdk.webserver.constants import DEFAULT_REQUEST_USER
 from questionpy_sdk.webserver.controllers.base import BaseController
+from questionpy_sdk.webserver.controllers.errors import MissingAttemptDataError, MissingAttemptStateError
 
 from .errors import RenderErrorCollections, log_render_errors
 from .question_ui import QuestionDisplayOptions, QuestionFormulationUIRenderer, QuestionUIRenderer
@@ -190,7 +190,7 @@ class AttemptController(BaseController):
         except FileNotFoundError as err:
             if allow_missing:
                 return None
-            raise web.HTTPConflict(text="No attempt state found") from err
+            raise MissingAttemptStateError from err
 
     async def _get_attempt_seed(self) -> int:
         try:
@@ -212,4 +212,4 @@ class AttemptController(BaseController):
         except FileNotFoundError as err:
             if allow_missing:
                 return {}
-            raise web.HTTPConflict(text="Last attempt data not found") from err
+            raise MissingAttemptDataError from err
