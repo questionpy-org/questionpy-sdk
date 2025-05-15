@@ -18,16 +18,24 @@
             </BListGroupItem>
         </BListGroup>
     </div>
-    <div v-else class="font-monospace">
-        {{ error.message }}
-    </div>
 </template>
 
 <script lang="ts" setup>
+import { watch } from 'vue'
 import { z } from 'zod'
 import { fromZodIssue } from 'zod-validation-error'
 
 import { FetchError } from '@/queries/fetch'
 
-defineProps<{ error: Error }>()
+const props = defineProps<{ error: Error }>()
+
+watch(
+    () => props.error,
+    (error) => {
+        if (!(error instanceof FetchError || error instanceof z.ZodError)) {
+            throw error
+        }
+    },
+    { immediate: true },
+)
 </script>

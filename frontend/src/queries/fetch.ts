@@ -53,8 +53,10 @@ class FetchError extends Error {
             const errorObj = serverErrorSchema.parse(await response.json())
             message = errorObj.error
             details = errorObj.details
-        } catch {
-            // Ignore parse errors
+        } catch (err) {
+            if (err instanceof Error) {
+                console.error(err.stack)
+            }
         }
 
         return new FetchError(response.status, response.statusText, message, details)
@@ -91,7 +93,14 @@ async function get<T>(
     if (!response.ok) {
         throw await FetchError.fromResponse(response)
     }
-    return schema.parse(await response.json())
+    try {
+        return schema.parse(await response.json())
+    } catch (err) {
+        if (err instanceof Error) {
+            console.error(err.stack)
+        }
+        throw err
+    }
 }
 
 /**
@@ -106,7 +115,14 @@ async function get<T>(
 async function post(path: string, body?: string): Promise<ServerValidationErrors | undefined> {
     const response = await fetch(`/api/${path}`, { method: 'POST', body })
     if (response.status === 422) {
-        return serverValidationErrorsSchema.parse(await response.json())
+        try {
+            return serverValidationErrorsSchema.parse(await response.json())
+        } catch (err) {
+            if (err instanceof Error) {
+                console.error(err.stack)
+            }
+            throw err
+        }
     } else if (!response.ok) {
         throw await FetchError.fromResponse(response)
     }
