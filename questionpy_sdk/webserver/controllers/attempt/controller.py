@@ -2,10 +2,12 @@
 #  The QuestionPy SDK is free software released under terms of the MIT license. See LICENSE.md.
 #  (c) Technische Universität Berlin, innoCampus <info@isis.tu-berlin.de>
 
+import random
 from enum import StrEnum, auto
-from typing import TYPE_CHECKING, Any, TypedDict
+from typing import TYPE_CHECKING, Any, Literal, TypedDict, overload
 
 import jinja2
+from aiohttp import web
 
 from questionpy import AttemptModel, AttemptScoredModel, AttemptStartedModel, ScoreModel
 from questionpy_sdk.webserver.constants import DEFAULT_REQUEST_USER
@@ -175,3 +177,38 @@ class AttemptController(BaseController):
             )
 
         await self._state_manager.write_score(attempt_scored)
+
+    @overload
+    async def _get_attempt_state(self, *, allow_missing: Literal[False] = ...) -> str: ...
+    @overload
+    async def _get_attempt_state(self, *, allow_missing: Literal[True]) -> str | None: ...
+
+    async def _get_attempt_state(self, *, allow_missing: bool = False) -> str | None:
+        try:
+            return await self._state_manager.read_attempt_state()
+        except FileNotFoundError as err:
+            if allow_missing:
+                return None
+            raise web.HTTPConflict(text="No attempt state found") from err
+
+    async def _get_attempt_seed(self) -> int:
+        try:
+            seed = await self._state_manager.read_attempt_seed()
+        except FileNotFoundError:
+            seed = random.randint(0, 1000)
+            await self._state_manager.write_attempt_seed(seed)
+        return seed
+
+    async def _get_score(self) -> ScoreModel | None:
+        try:
+            return await self._state_manager.read_score()
+        except FileNotFoundError:
+            return None
+
+    async def _get_last_attempt_data(self, *, allow_missing: bool = False) -> Any:
+        try:
+            return await self._state_manager.read_last_attempt_data()
+        except FileNotFoundError as err:
+            if allow_missing:
+                return {}
+            raise web.HTTPConflict(text="Last attempt data not found") from err
