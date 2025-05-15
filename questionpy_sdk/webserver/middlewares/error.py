@@ -3,7 +3,7 @@
 #  (c) Technische Universität Berlin, innoCampus <info@isis.tu-berlin.de>
 
 import json
-import sys
+import logging
 import traceback
 
 from aiohttp import web
@@ -11,10 +11,11 @@ from aiohttp.typedefs import Handler
 from aiohttp.web_exceptions import HTTPBadRequest, HTTPInternalServerError
 from pydantic import ValidationError
 
+log = logging.getLogger("questionpy-sdk:web-server")
+
 
 def format_error(err: Exception) -> str:
-    tb = getattr(err, "__traceback__", sys.exc_info()[2])
-    return "".join(traceback.format_exception(type(err), err, tb))
+    return "".join(traceback.format_exception(err))
 
 
 @web.middleware
@@ -28,7 +29,7 @@ async def api_error_middleware(request: web.Request, handler: Handler) -> web.St
     try:
         return await handler(request)
     except ValidationError as err:
-        traceback.print_exc()
+        log.exception("Validation error")
         data = {"error": type(err).__name__, "details": err.errors()}
         raise HTTPBadRequest(text=json.dumps(data), content_type="application/json") from err
     except web.HTTPException as exc:
@@ -37,7 +38,7 @@ async def api_error_middleware(request: web.Request, handler: Handler) -> web.St
         exc.text = json.dumps({"error": exc.text})
         raise
     except Exception as err:
-        traceback.print_exc()
+        log.exception("Server error")
         data = {"error": type(err).__name__, "details": format_error(err)}
         raise HTTPInternalServerError(text=json.dumps(data), content_type="application/json") from err
 
@@ -51,5 +52,5 @@ async def error_middleware(request: web.Request, handler: Handler) -> web.Stream
         # Allow HTTPExceptions pass through
         raise
     except Exception as err:
-        traceback.print_exc()
+        log.exception("Server error")
         raise HTTPInternalServerError(text=f"Server error:\n{format_error(err)}") from err
