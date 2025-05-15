@@ -4,9 +4,8 @@
 
 from typing import TYPE_CHECKING, Literal, overload
 
-from aiohttp import web
-
 from questionpy_common.manifest import Manifest
+from questionpy_sdk.webserver.controllers.errors import MissingQuestionStateError
 from questionpy_sdk.webserver.state import StateManager
 from questionpy_server import WorkerPool
 
@@ -46,4 +45,4 @@ class BaseController:
         except FileNotFoundError as err:
             if allow_missing:
                 return None
-            raise web.HTTPConflict(text="No question state found") from err
+            raise MissingQuestionStateError from err

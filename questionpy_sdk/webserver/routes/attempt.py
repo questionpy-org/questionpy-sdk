@@ -11,6 +11,11 @@ from aiohttp import web
 from questionpy_sdk.webserver.controllers.attempt import AttemptController
 from questionpy_sdk.webserver.controllers.attempt.errors import RenderError, RenderErrorCollection
 from questionpy_sdk.webserver.controllers.attempt.question_ui import QuestionDisplayOptions
+from questionpy_sdk.webserver.controllers.errors import (
+    MissingAttemptDataError,
+    MissingAttemptStateError,
+    MissingQuestionStateError,
+)
 from questionpy_sdk.webserver.routes.base import BaseView
 
 routes = web.RouteTableDef()
@@ -43,10 +48,12 @@ class AttemptView(AttemptBaseView):
             roles=params.getall("roles", []),
         )
 
-        return web.json_response(
-            data=await self.controller.get_attempt(display_options),
-            dumps=lambda obj: json.dumps(obj, cls=CustomJSONEncoder),
-        )
+        try:
+            data = await self.controller.get_attempt(display_options)
+        except MissingQuestionStateError as err:
+            raise web.HTTPBadRequest(text=str(err)) from err
+
+        return web.json_response(data=data, dumps=lambda obj: json.dumps(obj, cls=CustomJSONEncoder))
 
     async def post(self) -> web.Response:
         """Saves the attempt form data."""
@@ -59,7 +66,10 @@ class AttemptView(AttemptBaseView):
 class AttemptScoreView(AttemptBaseView):
     async def post(self) -> web.Response:
         """Scores the saved attempt."""
-        await self.controller.score_attempt()
+        try:
+            await self.controller.score_attempt()
+        except (MissingQuestionStateError, MissingAttemptStateError, MissingAttemptDataError) as err:
+            raise web.HTTPBadRequest(text=str(err)) from err
         return web.Response()
 
 
