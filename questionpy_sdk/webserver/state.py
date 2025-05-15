@@ -6,9 +6,8 @@ import asyncio
 import json
 from enum import StrEnum
 from pathlib import Path
-from typing import Any
 
-from pydantic import TypeAdapter
+from pydantic import JsonValue, TypeAdapter
 
 from questionpy import ScoreModel
 
@@ -60,11 +59,11 @@ class StateManager:
         score_json = TypeAdapter(ScoreModel).dump_json(score).decode()
         await self._write_state_file(StateFilename.SCORE, score_json)
 
-    async def read_last_attempt_data(self) -> Any:
+    async def read_last_attempt_data(self) -> dict[str, JsonValue]:
         last_attempt_data_json = await self._read_state_file(StateFilename.LAST_ATTEMPT_DATA)
         return json.loads(last_attempt_data_json)
 
-    async def write_last_attempt_data(self, data: Any) -> None:
+    async def write_last_attempt_data(self, data: dict[str, JsonValue]) -> None:
         await self._write_state_file(StateFilename.LAST_ATTEMPT_DATA, json.dumps(data))
 
     async def delete_state(self) -> None:
