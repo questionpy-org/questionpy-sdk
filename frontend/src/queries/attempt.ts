@@ -24,7 +24,6 @@ const useAttemptData = defineQuery(() => {
                 rightAnswer: displayOptions.value.rightAnswer,
                 roles: Array.from(displayOptions.value.roles),
             }),
-        staleTime: 30000,
     })
 })
 

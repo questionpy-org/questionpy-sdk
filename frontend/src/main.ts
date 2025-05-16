@@ -24,6 +24,11 @@ app.use(createBootstrap())
 const pinia = createPinia()
 pinia.use(piniaPluginPersistedstate)
 app.use(pinia)
-app.use(PiniaColada)
+app.use(PiniaColada, {
+    refetchOnMount: false,
+    refetchOnReconnect: false,
+    refetchOnWindowFocus: false,
+    staleTime: 30_000,
+})
 app.use(router)
 app.mount('#app')
