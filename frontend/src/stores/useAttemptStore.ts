@@ -5,9 +5,10 @@
  */
 
 import { defineStore } from 'pinia'
-import { computed } from 'vue'
+import { computed, onUnmounted } from 'vue'
 
 import { useAttemptData, usePostAttempt, usePostAttemptRestart, usePostAttemptScore } from '@/queries/attempt'
+import { usePostOptionsFormData } from '@/queries/options'
 
 import useAppStateStore from './useAppStateStore'
 
@@ -17,8 +18,27 @@ const useAttemptStore = defineStore('attemptData', () => {
     const { asyncStatus: postAsyncStatus, mutateAsync: postAttempt } = usePostAttempt()
     const { asyncStatus: postRestartAsyncStatus, mutateAsync: postRestart } = usePostAttemptRestart()
     const { asyncStatus: postScoreAsyncStatus, mutateAsync: postScore } = usePostAttemptScore()
+    const { onSuccess: onPostOptionsFormDataSuccess } = usePostOptionsFormData()
 
     const { setError } = useAppStateStore()
+
+    /** Restarts the attempt. */
+    async function restart() {
+        try {
+            await postRestart()
+            await dataRefresh()
+        } catch (err) {
+            setError(err)
+        }
+    }
+
+    // Restart attempt when options form data change
+    const unsubscribe = onPostOptionsFormDataSuccess(() => {
+        restart()
+    })
+    onUnmounted(() => {
+        unsubscribe()
+    })
 
     const isScored = computed(() => typeof dataState.value.data?.scoring_code === 'string')
 
@@ -77,15 +97,7 @@ const useAttemptStore = defineStore('attemptData', () => {
             }
         },
 
-        /** Restarts the attempt. */
-        async restart() {
-            try {
-                await postRestart()
-                await dataRefresh()
-            } catch (err) {
-                setError(err)
-            }
-        },
+        restart,
     }
 })
 
