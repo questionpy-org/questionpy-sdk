@@ -6,6 +6,7 @@
 
 import { v4 as uuidv4 } from 'uuid'
 
+import { hasChildren } from '@/schema/options/elements'
 import { assertNever } from '@/utils'
 import type { FormElement, Options, OptionsFormData } from '@/schema/options/types'
 
@@ -148,7 +149,7 @@ function getFormData(options: Options, initialFormData: OptionsFormData): Option
 /**
  * Checks if two objects are identical.
  *
- * Compares two objects of type Record<string, string | boolean | string[]> to determine if they have the same keys
+ * Compares two objects of type `Record<string, string | boolean | string[]>` to determine if they have the same keys
  * and corresponding values. For values that are arrays, the order and content are compared.
  *
  * @param d1 The first object to compare.
@@ -188,4 +189,24 @@ function areFormDataObjIdentical(d1: OptionsFormData, d2: OptionsFormData): bool
     return true
 }
 
-export { areFormDataObjIdentical, createFormDataValues, getElementName, getErrorKey, getFormData }
+/**
+ * Determines if a form element array contains any editable elements.
+ *
+ * Recursively traverses form elements to check for at least one editable field.
+ *
+ * @param elements The array of form elements to check.
+ * @returns `true` if any editable element exists, `false` otherwise.
+ */
+function hasEditableElements(elements: FormElement[]): boolean {
+    for (const elem of elements) {
+        if (
+            (hasChildren(elem) && hasEditableElements(elem.elements)) ||
+            !['group', 'static_text', 'hidden', 'id'].includes(elem.kind)
+        ) {
+            return true
+        }
+    }
+    return false
+}
+
+export { areFormDataObjIdentical, createFormDataValues, getElementName, getErrorKey, getFormData, hasEditableElements }

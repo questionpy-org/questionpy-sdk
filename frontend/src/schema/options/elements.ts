@@ -7,6 +7,7 @@
 import { z } from 'zod'
 
 import { conditionSchema } from './conditions'
+import type { FormElement, GroupElement, RepetitionElement } from './types'
 
 const positiveIntSchema = z.number().int().min(0)
 
@@ -168,12 +169,17 @@ const repetitionElementSchema = baseElementSchema.extend({
     elements: z.array(formElementSchema),
 })
 
+function hasChildren(elem: FormElement): elem is GroupElement | RepetitionElement {
+    return ['group', 'repetition'].includes(elem.kind)
+}
+
 export type { canHaveConditionsSchema, canHaveHelpSchema }
 export {
     checkboxElementSchema,
     formElementSchema,
     generatedIdElementSchema,
     groupElementSchema,
+    hasChildren,
     hiddenElementSchema,
     radioGroupElementSchema,
     repetitionElementSchema,

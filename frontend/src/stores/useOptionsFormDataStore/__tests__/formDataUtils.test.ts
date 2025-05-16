@@ -14,9 +14,11 @@ import {
     getElementName,
     getErrorKey,
     getFormData,
+    hasEditableElements,
 } from '@/stores/useOptionsFormDataStore/formDataUtils'
 import type {
     CheckboxElement,
+    FormElement,
     GeneratedIdElement,
     GroupElement,
     HiddenElement,
@@ -381,4 +383,186 @@ test('areFormDataObjIdentical (different keys)', () => {
     const a = { a: '1' }
     const b = { b: '1' }
     expect(areFormDataObjIdentical(a, b)).toBe(false)
+})
+
+test('hasEditableElements (editable input)', () => {
+    const elements = [
+        {
+            kind: 'input',
+            name: 'input',
+            label: '',
+            required: false,
+            default: '',
+            placeholder: null,
+            disable_if: [],
+            hide_if: [],
+            help: null,
+        },
+    ] satisfies FormElement[]
+    expect(hasEditableElements(elements)).toBe(true)
+})
+
+test('hasEditableElements (non-editable static_text)', () => {
+    const elements = [
+        {
+            kind: 'static_text',
+            name: 'text',
+            label: '',
+            text: '',
+            disable_if: [],
+            hide_if: [],
+            help: null,
+        },
+    ] satisfies FormElement[]
+    expect(hasEditableElements(elements)).toBe(false)
+})
+
+test('hasEditableElements (group with editable)', () => {
+    const elements = [
+        {
+            kind: 'group',
+            name: 'group',
+            label: '',
+            elements: [
+                {
+                    kind: 'input',
+                    name: 'input',
+                    label: '',
+                    required: false,
+                    default: '',
+                    placeholder: null,
+                    disable_if: [],
+                    hide_if: [],
+                    help: null,
+                },
+            ],
+            disable_if: [],
+            hide_if: [],
+            help: null,
+        },
+    ] satisfies FormElement[]
+    expect(hasEditableElements(elements)).toBe(true)
+})
+
+test('hasEditableElements (group with non-editable)', () => {
+    const elements = [
+        {
+            kind: 'group',
+            name: 'group',
+            label: '',
+            elements: [
+                {
+                    kind: 'static_text',
+                    name: 'text',
+                    label: '',
+                    text: '',
+                    disable_if: [],
+                    hide_if: [],
+                    help: null,
+                },
+            ],
+            disable_if: [],
+            hide_if: [],
+            help: null,
+        },
+    ] satisfies FormElement[]
+    expect(hasEditableElements(elements)).toBe(false)
+})
+
+test('hasEditableElements (repetition with non-editable)', () => {
+    const elements = [
+        {
+            kind: 'repetition',
+            name: 'my_repetition',
+            initial_repetitions: 1,
+            minimum_repetitions: 1,
+            increment: 1,
+            button_label: null,
+            elements: [
+                {
+                    kind: 'static_text',
+                    name: 'text',
+                    label: '',
+                    text: '',
+                    disable_if: [],
+                    hide_if: [],
+                    help: null,
+                },
+            ],
+        },
+    ] satisfies FormElement[]
+    expect(hasEditableElements(elements)).toBe(true)
+})
+
+test('hasEditableElements (mix of elements)', () => {
+    const elements = [
+        {
+            kind: 'static_text',
+            name: 'text',
+            label: '',
+            text: '',
+            disable_if: [],
+            hide_if: [],
+            help: null,
+        },
+        {
+            kind: 'group',
+            name: 'group',
+            label: '',
+            elements: [
+                {
+                    kind: 'input',
+                    name: 'input',
+                    label: '',
+                    required: false,
+                    default: '',
+                    placeholder: null,
+                    disable_if: [],
+                    hide_if: [],
+                    help: null,
+                },
+            ],
+            disable_if: [],
+            hide_if: [],
+            help: null,
+        },
+        {
+            kind: 'hidden',
+            name: 'hidden',
+            value: 'foo',
+            disable_if: [],
+            hide_if: [],
+        },
+    ] satisfies FormElement[]
+    expect(hasEditableElements(elements)).toBe(true)
+})
+
+test('hasEditableElements (empty array)', () => {
+    expect(hasEditableElements([])).toBe(false)
+})
+
+test('hasEditableElements (all non-editable)', () => {
+    const elements = [
+        {
+            kind: 'hidden',
+            name: 'hidden',
+            value: 'foo',
+            disable_if: [],
+            hide_if: [],
+        },
+        {
+            kind: 'id',
+            name: 'id',
+        },
+        {
+            kind: 'static_text',
+            name: 'text',
+            label: '',
+            text: '',
+            disable_if: [],
+            hide_if: [],
+            help: null,
+        },
+    ] satisfies FormElement[]
+    expect(hasEditableElements(elements)).toBe(false)
 })

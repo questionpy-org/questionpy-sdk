@@ -7,6 +7,7 @@
 import { defineStore } from 'pinia'
 import { computed, ref, toRaw, watch } from 'vue'
 
+import { useAttemptData } from '@/queries/attempt'
 import { useOptionsFormData, useOptionsFormDefinition, usePostOptionsFormData } from '@/queries/options'
 import type { FormElement, OptionsFormData, OptionsFormDataValue, ServerValidationErrors } from '@/schema/options/types'
 
@@ -16,6 +17,7 @@ import {
     getElementName,
     getErrorKey,
     getFormData,
+    hasEditableElements,
 } from './formDataUtils'
 
 /** Provides options form definition and manages form data. */
@@ -23,10 +25,11 @@ const useOptionsFormDataStore = defineStore('optionsFormData', () => {
     const { asyncStatus: definitionAsyncStatus, state: definitionState } = useOptionsFormDefinition()
     const { asyncStatus: dataAsyncStatus, state: dataState, refresh: dataRefresh } = useOptionsFormData()
     const { asyncStatus: postDataAsyncStatus, mutateAsync: postData, state: mutationState } = usePostOptionsFormData()
+    const { state: attemptDataState } = useAttemptData()
 
-    const formData = ref({} as OptionsFormData)
-    const formDataClean = ref({} as OptionsFormData)
-    const formErrors = ref({} as ServerValidationErrors)
+    const formData = ref<OptionsFormData>({})
+    const formDataClean = ref<OptionsFormData>({})
+    const formErrors = ref<ServerValidationErrors>({})
 
     watch([() => definitionState.value.status, () => dataState.value.status], ([definitionStatus, dataStatus]) => {
         if (
@@ -61,13 +64,32 @@ const useOptionsFormDataStore = defineStore('optionsFormData', () => {
         return highest
     }
 
+    const hasAttemptState = computed(() => attemptDataState.value.data !== undefined)
+    const hasEditableFields = computed(
+        () =>
+            hasEditableElements(definitionState.value.data?.general ?? []) ||
+            (definitionState.value.data?.sections ?? []).some((section) => hasEditableElements(section.elements)),
+    )
+
+    const isClean = computed(() => areFormDataObjIdentical(formData.value, formDataClean.value))
+    const isSaving = computed(() => postDataAsyncStatus.value !== 'idle')
+
+    const isSaveDisabled = computed(() => isClean.value || isSaving.value)
+    const isPreviewDisabled = computed(
+        () => isSaving.value || (!hasAttemptState.value && isClean.value) || Object.keys(formErrors.value).length > 0,
+    )
+
     return {
         asyncStatus: computed(() =>
             definitionAsyncStatus.value === 'idle' && dataAsyncStatus.value === 'idle' ? 'idle' : 'loading',
         ),
         error: computed(() => definitionState.value.error ?? dataState.value.error ?? mutationState.value.error),
-        isSaving: computed(() => postDataAsyncStatus.value !== 'idle'),
-        isClean: computed(() => areFormDataObjIdentical(formData.value, formDataClean.value)),
+
+        hasEditableFields,
+        isClean,
+        isPreviewDisabled,
+        isSaveDisabled,
+        isSaving,
 
         formDefinition: computed(() => definitionState.value.data),
         formData,
@@ -79,18 +101,18 @@ const useOptionsFormDataStore = defineStore('optionsFormData', () => {
          * @returns `false` if form has validation errors, otherwise `true`.
          */
         async submit(): Promise<boolean> {
+            const rawFormData = toRaw(formData.value)
             try {
-                const rawFormData = toRaw(formData.value)
                 formErrors.value = await postData(rawFormData)
-                formDataClean.value = structuredClone(rawFormData)
-                mutationState.value.error = null
-                await dataRefresh()
             } catch (err) {
                 if (err instanceof Error) {
                     mutationState.value.error = err
                 }
                 throw err
             }
+            formDataClean.value = structuredClone(rawFormData)
+            mutationState.value.error = null
+            await dataRefresh()
             return Object.keys(formErrors.value).length === 0
         },
 
