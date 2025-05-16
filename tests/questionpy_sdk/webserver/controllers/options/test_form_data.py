@@ -64,5 +64,9 @@ def test_parse_form_data() -> None:
     assert parse_form_data(FORM_DATA) == PARSED_FORM_DATA
 
 
+def test_parse_form_data_empty_dict() -> None:
+    assert parse_form_data({}) == {}
+
+
 def test_flatten_form_data() -> None:
     assert flatten_form_data(PARSED_FORM_DATA, ["another_section"]) == FORM_DATA

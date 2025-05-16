@@ -46,7 +46,7 @@ def _convert_repetition_dict_to_list(dictionary: dict[str, Any]) -> dict[str, An
     for key, value in dictionary.items():
         dictionary[key] = _convert_repetition_dict_to_list(value)
 
-    if all(key.isnumeric() for key in dictionary):
+    if len(dictionary.keys()) > 0 and all(key.isnumeric() for key in dictionary):
         # Sort by key (i.e. the index) and put the sorted values into a list.
         return [value for key, value in sorted(dictionary.items(), key=operator.itemgetter(0))]
 
