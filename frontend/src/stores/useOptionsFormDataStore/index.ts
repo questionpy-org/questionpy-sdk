@@ -8,7 +8,6 @@ import { defineStore } from 'pinia'
 import { computed, ref, toRaw, watch } from 'vue'
 
 import { useOptionsFormData, useOptionsFormDefinition, usePostOptionsFormData } from '@/queries/options'
-import useAttemptStore from '@/stores/useAttemptStore'
 import type { FormElement, OptionsFormData, OptionsFormDataValue, ServerValidationErrors } from '@/schema/options/types'
 
 import {
@@ -24,7 +23,6 @@ const useOptionsFormDataStore = defineStore('optionsFormData', () => {
     const { asyncStatus: definitionAsyncStatus, state: definitionState } = useOptionsFormDefinition()
     const { asyncStatus: dataAsyncStatus, state: dataState, refresh: dataRefresh } = useOptionsFormData()
     const { asyncStatus: postDataAsyncStatus, mutateAsync: postData, state: mutationState } = usePostOptionsFormData()
-    const { restart: attemptRestart } = useAttemptStore()
 
     const formData = ref({} as OptionsFormData)
     const formDataClean = ref({} as OptionsFormData)
@@ -87,7 +85,6 @@ const useOptionsFormDataStore = defineStore('optionsFormData', () => {
                 formDataClean.value = structuredClone(rawFormData)
                 mutationState.value.error = null
                 await dataRefresh()
-                await attemptRestart()
             } catch (err) {
                 if (err instanceof Error) {
                     mutationState.value.error = err
