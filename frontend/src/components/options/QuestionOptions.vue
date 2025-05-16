@@ -18,19 +18,26 @@
         />
     </BForm>
     <ButtonGroup>
-        <IconButton :disabled="isSaving" :iconComponent="IMdiEye" @click="saveAndPreview" variant="secondary">{{
-            isClean ? 'Preview' : 'Save and preview'
-        }}</IconButton>
-        <IconButton :disabled="saveDisabled" :iconComponent="IMdiContentSave" @click="submit" variant="primary"
-            >Save</IconButton
-        >
-        <IconButton
-            :disabled="saveDisabled"
-            :iconComponent="IMdiContentSaveMove"
-            @click="saveAndReturn"
-            variant="secondary"
-            >Save and return</IconButton
-        >
+        <template v-if="hasEditableFields">
+            <IconButton
+                :disabled="isPreviewDisabled"
+                :iconComponent="IMdiEye"
+                @click="saveAndPreview"
+                variant="secondary"
+                >{{ isClean ? 'Preview' : 'Save and preview' }}</IconButton
+            >
+            <IconButton :disabled="isSaveDisabled" :iconComponent="IMdiContentSave" @click="submit" variant="primary"
+                >Save</IconButton
+            >
+            <IconButton
+                :disabled="isSaveDisabled"
+                :iconComponent="IMdiContentSaveMove"
+                @click="saveAndReturn"
+                variant="secondary"
+                >Save and return</IconButton
+            >
+        </template>
+        <IconButton v-else :iconComponent="IMdiEye" @click="preview" variant="secondary">Preview</IconButton>
         <IconButton :disabled="isSaving" :iconComponent="IMdiCancel" to="/" variant="danger">Cancel</IconButton>
     </ButtonGroup>
 </template>
@@ -42,7 +49,6 @@ import IMdiContentSaveMove from '~icons/mdi/content-save-move'
 import IMdiEye from '~icons/mdi/eye'
 import { useModalController } from 'bootstrap-vue-next'
 import { storeToRefs } from 'pinia'
-import { computed } from 'vue'
 import { onBeforeRouteLeave, useRouter } from 'vue-router'
 import type { ModalOrchestratorShowParam } from 'bootstrap-vue-next'
 
@@ -52,8 +58,8 @@ const router = useRouter()
 const { confirm: confirmModal } = useModalController()
 const store = useOptionsFormDataStore()
 const { reset, submit } = store
-const { asyncStatus, error, formDefinition, isClean, isSaving } = storeToRefs(store)
-const saveDisabled = computed(() => isClean.value || isSaving.value)
+const { asyncStatus, error, formDefinition, hasEditableFields, isClean, isPreviewDisabled, isSaveDisabled, isSaving } =
+    storeToRefs(store)
 
 const modalOptions = {
     props: {
@@ -86,6 +92,13 @@ async function saveAndPreview() {
         await router.push('/attempt')
     }
 }
+
+async function preview() {
+    if (await submit()) {
+        await router.push('/attempt')
+    }
+}
+
 async function saveAndReturn() {
     if (await submit()) {
         await router.push('/')
