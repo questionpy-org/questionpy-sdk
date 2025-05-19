@@ -76,7 +76,7 @@ class AttemptController(BaseController):
         return data
 
     async def _get_or_start_attempt(
-        self, attempt_state: str | None, last_attempt_data: dict[str, JsonValue], score: ScoreModel | None
+        self, attempt_state: str | None, last_attempt_data: dict[str, JsonValue] | None, score: ScoreModel | None
     ) -> tuple[AttemptModel, str]:
         question_state = await self._get_question_state()
         worker: Worker
@@ -108,7 +108,7 @@ class AttemptController(BaseController):
         self,
         attempt: AttemptModel,
         display_options: QuestionDisplayOptions,
-        last_attempt_data: dict[str, JsonValue],
+        last_attempt_data: dict[str, JsonValue] | None,
         score: ScoreModel | None,
     ) -> tuple[AttemptTemplateContext, RenderErrorCollections]:
         # Force display options if not scored
@@ -206,10 +206,15 @@ class AttemptController(BaseController):
         except FileNotFoundError:
             return None
 
-    async def _get_last_attempt_data(self, *, allow_missing: bool = False) -> dict[str, JsonValue]:
+    @overload
+    async def _get_last_attempt_data(self, *, allow_missing: Literal[False] = ...) -> dict[str, JsonValue]: ...
+    @overload
+    async def _get_last_attempt_data(self, *, allow_missing: Literal[True]) -> dict[str, JsonValue] | None: ...
+
+    async def _get_last_attempt_data(self, *, allow_missing: bool = False) -> dict[str, JsonValue] | None:
         try:
             return await self._state_manager.read_last_attempt_data()
         except FileNotFoundError as err:
             if allow_missing:
-                return {}
+                return None
             raise MissingAttemptDataError from err
