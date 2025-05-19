@@ -23,7 +23,7 @@ const optionsSchema = z
     })
     .strict()
 
-const optionsFormDataValueSchema = z.union([z.string(), z.boolean(), z.array(z.string())])
+const optionsFormDataValueSchema = z.union([z.string(), z.boolean(), z.array(z.string()), z.number(), z.null()])
 const optionsFormDataSchema = z.record(optionsFormDataValueSchema)
 
 const serverValidationErrorsSchema = z.record(z.string())
