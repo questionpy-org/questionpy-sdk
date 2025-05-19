@@ -52,7 +52,7 @@
 </template>
 
 <script lang="ts" setup>
-import useManifest from '@/queries/useManifest'
+import useManifest from '@/queries/manifest'
 
 const { asyncStatus, manifest, state } = useManifest()
 </script>
