@@ -17,20 +17,20 @@ from tests.questionpy_sdk.commands.conftest import assert_webserver_is_up, long_
 def test_run_no_arguments(runner: CliRunner) -> None:
     result = runner.invoke(run)
     assert result.exit_code != 0
-    assert "Error: Missing argument 'PACKAGE'." in result.stdout
+    assert "Error: Missing argument 'PACKAGE'." in result.output
 
 
 def test_run_with_not_existing_package(runner: CliRunner) -> None:
     result = runner.invoke(run, ["package.qpy"])
     assert result.exit_code != 0
-    assert "'package.qpy' doesn't look like a QPy package file, source directory, or dist directory." in result.stdout
+    assert "'package.qpy' doesn't look like a QPy package file, source directory, or dist directory." in result.output
 
 
 def test_run_non_zip_file(runner: CliRunner, cwd: Path) -> None:
     (cwd / "README.md").write_text("Foo bar")
     result = runner.invoke(run, ["README.md"])
     assert result.exit_code != 0
-    assert "'README.md' doesn't look like a QPy package file, source directory, or dist directory." in result.stdout
+    assert "'README.md' doesn't look like a QPy package file, source directory, or dist directory." in result.output
 
 
 async def test_run_source_dir_builds_package(source_path: Path, client_session: ClientSession, port: int) -> None:
