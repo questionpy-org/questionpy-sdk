@@ -16,13 +16,13 @@ from .conftest import assert_same_structure, create_package
 def test_structure_no_arguments_raises_error(runner: CliRunner) -> None:
     result = runner.invoke(structure)
     assert result.exit_code != 0
-    assert "Error: Missing argument 'ROOT'." in result.stdout
+    assert "Error: Missing argument 'ROOT'." in result.output
 
 
 def test_structure_with_not_existing_root_path_raises_error(runner: CliRunner) -> None:
     result = runner.invoke(structure, ["root"])
     assert result.exit_code != 0
-    assert "Error: Invalid value for 'ROOT': Directory 'root' does not exist." in result.stdout
+    assert "Error: Invalid value for 'ROOT': Directory 'root' does not exist." in result.output
 
 
 def test_structure_with_file_as_root_path_raises_error(runner: CliRunner, cwd: Path) -> None:
@@ -31,7 +31,7 @@ def test_structure_with_file_as_root_path_raises_error(runner: CliRunner, cwd: P
     result = runner.invoke(structure, ["root"])
 
     assert result.exit_code != 0
-    assert "Error: Invalid value for 'ROOT': Directory 'root' is a file." in result.stdout
+    assert "Error: Invalid value for 'ROOT': Directory 'root' is a file." in result.output
 
 
 def test_structure_with_missing_out_path_raises_error(runner: CliRunner, cwd: Path) -> None:
@@ -40,7 +40,7 @@ def test_structure_with_missing_out_path_raises_error(runner: CliRunner, cwd: Pa
     result = runner.invoke(structure, ["root"])
 
     assert result.exit_code != 0
-    assert "Error: Missing argument 'OUT_PATH'" in result.stdout
+    assert "Error: Missing argument 'OUT_PATH'" in result.output
 
 
 def test_structure_with_existing_out_path_raises_error(runner: CliRunner, cwd: Path) -> None:
@@ -50,7 +50,7 @@ def test_structure_with_existing_out_path_raises_error(runner: CliRunner, cwd: P
     result = runner.invoke(structure, ["root", "out"])
 
     assert result.exit_code != 0
-    assert "Error: Invalid value for 'OUT_PATH': Path 'out' is a directory." in result.stdout
+    assert "Error: Invalid value for 'OUT_PATH': Path 'out' is a directory." in result.output
 
 
 def test_structure_with_empty_folder(runner: CliRunner, cwd: Path) -> None:

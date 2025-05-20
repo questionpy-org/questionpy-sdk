@@ -47,21 +47,21 @@ def test_package_with_example_package(runner: CliRunner, cwd: Path) -> None:
     result = runner.invoke(package, [str(cwd)])
 
     assert result.exit_code == 0
-    assert "Successfully created " in result.stdout
+    assert "Successfully created " in result.output
 
 
 def test_package_no_arguments_raises_error(runner: CliRunner) -> None:
     result = runner.invoke(package)
 
     assert result.exit_code != 0
-    assert "Error: Missing argument 'SOURCE'." in result.stdout
+    assert "Error: Missing argument 'SOURCE'." in result.output
 
 
 def test_package_with_not_existing_source_path_raises_error(runner: CliRunner) -> None:
     result = runner.invoke(package, ["source"])
 
     assert result.exit_code != 0
-    assert "Error: Invalid value for 'SOURCE': Directory 'source' does not exist." in result.stdout
+    assert "Error: Invalid value for 'SOURCE': Directory 'source' does not exist." in result.output
 
 
 def test_package_with_file_as_source_path_raises_error(runner: CliRunner, cwd: Path) -> None:
@@ -70,7 +70,7 @@ def test_package_with_file_as_source_path_raises_error(runner: CliRunner, cwd: P
     result = runner.invoke(package, ["source"])
 
     assert result.exit_code != 0
-    assert "Error: Invalid value for 'SOURCE': Directory 'source' is a file." in result.stdout
+    assert "Error: Invalid value for 'SOURCE': Directory 'source' is a file." in result.output
 
 
 def test_package_with_missing_config_raises_error(runner: CliRunner, cwd: Path) -> None:
@@ -79,7 +79,7 @@ def test_package_with_missing_config_raises_error(runner: CliRunner, cwd: Path) 
     result = runner.invoke(package, ["source"])
 
     assert result.exit_code != 0
-    assert f"Error: The config 'source/{PACKAGE_CONFIG_FILENAME}' does not exist." in result.stdout
+    assert f"Error: The config 'source/{PACKAGE_CONFIG_FILENAME}' does not exist." in result.output
 
 
 def test_package_with_invalid_out_path_raises_error(runner: CliRunner, cwd: Path) -> None:
@@ -88,7 +88,7 @@ def test_package_with_invalid_out_path_raises_error(runner: CliRunner, cwd: Path
     result = runner.invoke(package, ["source", "--out", "out"])
 
     assert result.exit_code != 0
-    assert "Error: Invalid value for '--out' / '-o': Packages need the extension '.qpy'." in result.stdout
+    assert "Error: Invalid value for '--out' / '-o': Packages need the extension '.qpy'." in result.output
 
 
 def test_package_with_only_source(runner: CliRunner, cwd: Path) -> None:
@@ -129,7 +129,7 @@ def test_package_with_not_existing_config_raises_error(runner: CliRunner, cwd: P
     result = runner.invoke(package, ["source"])
 
     assert result.exit_code != 0
-    assert f"Error: The config 'source/{PACKAGE_CONFIG_FILENAME}' does not exist." in result.stdout
+    assert f"Error: The config 'source/{PACKAGE_CONFIG_FILENAME}' does not exist." in result.output
 
 
 @pytest.mark.parametrize("prompt_input", ["n", "N", "\n", "not_y"])
@@ -139,8 +139,8 @@ def test_package_with_existing_file_and_not_overwriting(prompt_input: str, runne
 
     result = runner.invoke(package, ["source", "--out", "source.qpy"], input=prompt_input)
 
-    assert "The path 'source.qpy' already exists. Do you want to overwrite it?" in result.stdout
-    assert "Aborted!" in result.stdout
+    assert "The path 'source.qpy' already exists. Do you want to overwrite it?" in result.output
+    assert "Aborted!" in result.output
     assert result.exit_code != 0
 
 
@@ -151,8 +151,8 @@ def test_package_with_existing_file_and_overwriting(prompt_input: str, runner: C
 
     result = runner.invoke(package, ["source", "--out", "source.qpy"], input=prompt_input)
 
-    assert "The path 'source.qpy' already exists. Do you want to overwrite it?" in result.stdout
-    assert "Successfully created 'source.qpy'." in result.stdout
+    assert "The path 'source.qpy' already exists. Do you want to overwrite it?" in result.output
+    assert "Successfully created 'source.qpy'." in result.output
     assert result.exit_code == 0
 
 
@@ -162,7 +162,7 @@ def test_package_with_no_interaction_and_existing_file_raises(runner: CliRunner,
 
     result = runner.invoke(package, ["source", "--out", "source.qpy"], obj={"no_interaction": True})
 
-    assert "Output file 'source.qpy' exists" in result.stdout
+    assert "Output file 'source.qpy' exists" in result.output
     assert result.exit_code != 0
 
 
@@ -172,7 +172,7 @@ def test_package_with_force_and_existing_file(runner: CliRunner, cwd: Path) -> N
 
     result = runner.invoke(package, ["source", "--out", "source.qpy", "--force"])
 
-    assert "Successfully created 'source.qpy'." in result.stdout
+    assert "Successfully created 'source.qpy'." in result.output
     assert result.exit_code == 0
 
 
@@ -209,7 +209,7 @@ def test_mutually_exclusive_options(params: tuple[str], expected_msg: str, runne
     create_source_directory(cwd, "source")
     result = runner.invoke(package, [*params, "source"])
 
-    assert expected_msg in result.stdout
+    assert expected_msg in result.output
     assert result.exit_code != 0
 
 
@@ -232,4 +232,4 @@ def test_installing_requirement_fails(runner: CliRunner, cwd: Path, monkeypatch:
         result = runner.invoke(package, [str(cwd)])
 
     assert result.exit_code != 0
-    assert "Error: Failed to build package: Failed to install requirements: some pip error" in result.stdout
+    assert "Error: Failed to build package: Failed to install requirements: some pip error" in result.output
