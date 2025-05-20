@@ -2,9 +2,8 @@
 #  The QuestionPy SDK is free software released under terms of the MIT license. See LICENSE.md.
 #  (c) Technische Universität Berlin, innoCampus <info@isis.tu-berlin.de>
 
-import asyncio
 from pathlib import Path
-from typing import cast
+from typing import TYPE_CHECKING, cast
 
 import pytest
 from watchdog.events import (
@@ -24,6 +23,9 @@ from watchdog.events import (
 from questionpy_common.constants import DIST_DIR
 from questionpy_sdk.watcher import _EventHandler
 
+if TYPE_CHECKING:
+    import asyncio
+
 some_path = Path("/", "path", "to")
 
 
@@ -32,7 +34,7 @@ def event_handler() -> _EventHandler:
     async def notify() -> None:
         pass
 
-    mock_loop = cast(asyncio.AbstractEventLoop, None)
+    mock_loop = cast("asyncio.AbstractEventLoop", None)
     return _EventHandler(mock_loop, notify, some_path)
 
 

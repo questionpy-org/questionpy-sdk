@@ -45,7 +45,7 @@ def cached_class_property(getter: Callable[[_TypeT], _T]) -> _T:
 
     Like [functools.cached_property][], the descriptor replaces itself with the computed value after the first lookup.
     """
-    return cast(_T, _CachedClassProperty(getter))
+    return cast("_T", _CachedClassProperty(getter))
 
 
 def reify_type_hint(attr_name: str, bound: _TypeT) -> _TypeT:
@@ -82,7 +82,7 @@ def get_mro_type_hint(klass: type, attr_name: str, bound: _TypeT) -> _TypeT:
                 break
 
     if not issubclass(hint, bound):
-        msg = f"Expected '{klass.__name__}.{attr_name}' to be a subclass of '{bound.__name__}', but was " f"'{hint}'"
+        msg = f"Expected '{klass.__name__}.{attr_name}' to be a subclass of '{bound.__name__}', but was '{hint}'"
         raise TypeError(msg)
     return hint
 

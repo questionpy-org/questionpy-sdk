@@ -14,7 +14,7 @@ if TYPE_CHECKING:
     from questionpy_server.worker.runtime.package_location import PackageLocation
 
 
-class BaseController:
+class BaseController:  # noqa: B903 ("Class could be dataclass or namedtuple", that doesn't mean it should.)
     def __init__(self, webserver: "WebServer") -> None:
         self._webserver = webserver
 
@@ -36,6 +36,7 @@ class BaseController:
 
     @overload
     async def _get_question_state(self, *, allow_missing: Literal[False] = ...) -> str: ...
+
     @overload
     async def _get_question_state(self, *, allow_missing: Literal[True]) -> str | None: ...
 

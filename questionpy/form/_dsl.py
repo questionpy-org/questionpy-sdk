@@ -2,7 +2,7 @@
 #  The QuestionPy SDK is free software released under terms of the MIT license. See LICENSE.md.
 #  (c) Technische Universität Berlin, innoCampus <info@isis.tu-berlin.de>
 from collections.abc import Collection
-from typing import Any, Literal, Optional, TypeAlias, TypeVar, cast, overload
+from typing import Any, Literal, TypeAlias, TypeVar, cast, overload
 
 from pydantic import BeforeValidator
 from pydantic.fields import FieldInfo
@@ -52,11 +52,11 @@ def _wrap_in(coll_type: type[set] | type[list], value: _T | Collection[_T] | Non
     if value is None:
         return coll_type()
     if isinstance(value, coll_type):
-        return cast(Collection[_T], value)
+        return cast("Collection[_T]", value)
     if isinstance(value, Collection) and not isinstance(value, str):  # (str is a subclass of Collection)
         return coll_type(value)
 
-    return coll_type((cast(_T, value),))  # MyPy gets confused here without the cast.
+    return coll_type((cast("_T", value),))  # MyPy gets confused here without the cast.
 
 
 @overload
@@ -278,7 +278,7 @@ def static_text(
         The element.
     """
     return cast(
-        StaticTextElement,
+        "StaticTextElement",
         _StaticElementInfo(
             lambda name: StaticTextElement(
                 name=name,
@@ -655,9 +655,9 @@ def hidden(value: _S, *, disable_if: _ZeroOrMoreConditions = None, hide_if: _Zer
         An internal object containing metadata about the field.
     """
     return cast(
-        _S,
+        "_S",
         _FieldInfo(
-            type=Optional[Literal[value]] if disable_if or hide_if else Literal[value],  # noqa: UP007
+            type=Literal[value] | None if disable_if or hide_if else Literal[value],
             build=lambda name: HiddenElement(
                 name=name, value=value, disable_if=_wrap_in(list, disable_if), hide_if=_wrap_in(list, hide_if)
             ),
@@ -692,7 +692,7 @@ def section(header: str | TranslatableString, model: type[_F]) -> _F:
         ...     feedback = section("Combined feedback", FeedbackSection)
     """
     # We pretend to return an instance of the model so the type of the section field can be inferred.
-    return cast(_F, _SectionInfo(header, model))
+    return cast("_F", _SectionInfo(header, model))
 
 
 def group(
@@ -731,7 +731,7 @@ def group(
     """
     # We pretend to return an instance of the model so the type of the section field can be inferred.
     return cast(
-        _F,
+        "_F",
         _FieldInfo(
             type=model,
             build=lambda name: GroupElement(
@@ -791,7 +791,7 @@ def repeat(
         ...     choices = repeat(Choice, initial=3, increment=3, button_label="Add 3 more choices")
     """
     return cast(
-        list[_F],
+        "list[_F]",
         _FieldInfo(
             type=list[model],  # type: ignore[valid-type]
             build=lambda name: RepetitionElement(
@@ -814,7 +814,7 @@ def generated_id() -> str:
     repetitions are removed.
     """
     return cast(
-        str,
+        "str",
         _FieldInfo(
             type=str, build=lambda name: GeneratedIdElement(name=name), pydantic_field_info=FieldInfo(frozen=True)
         ),
