@@ -2,7 +2,7 @@
 #  The QuestionPy SDK is free software released under terms of the MIT license. See LICENSE.md.
 #  (c) Technische Universität Berlin, innoCampus <info@isis.tu-berlin.de>
 from collections.abc import Collection
-from typing import Any, Literal, TypeAlias, TypeVar, cast, overload
+from typing import Any, Literal, cast, overload
 
 from pydantic import BeforeValidator
 from pydantic.fields import FieldInfo
@@ -29,34 +29,27 @@ from ._model import FormModel, OptionEnum, _FieldInfo, _OptionInfo, _SectionInfo
 # TODO: - Add support for numeric inputs (and maybe others?)
 #       - Make labels optional
 
-
-_S = TypeVar("_S", bound=str)
-_F = TypeVar("_F", bound=FormModel)
-_E = TypeVar("_E", bound=OptionEnum)
-
-_OneOrMoreConditions: TypeAlias = Condition | list[Condition]
-_ZeroOrMoreConditions: TypeAlias = _OneOrMoreConditions | None
-
-_T = TypeVar("_T")
+type _OneOrMoreConditions = Condition | list[Condition]
+type _ZeroOrMoreConditions = _OneOrMoreConditions | None
 
 
 @overload
-def _wrap_in(coll_type: type[set], value: _T | Collection[_T] | None) -> set[_T]: ...
+def _wrap_in[T](coll_type: type[set], value: T | Collection[T] | None) -> set[T]: ...
 
 
 @overload
-def _wrap_in(coll_type: type[list], value: _T | Collection[_T] | None) -> list[_T]: ...
+def _wrap_in[T](coll_type: type[list], value: T | Collection[T] | None) -> list[T]: ...
 
 
-def _wrap_in(coll_type: type[set] | type[list], value: _T | Collection[_T] | None) -> Collection[_T]:
+def _wrap_in[T](coll_type: type[set] | type[list], value: T | Collection[T] | None) -> Collection[T]:
     if value is None:
         return coll_type()
     if isinstance(value, coll_type):
-        return cast("Collection[_T]", value)
+        return cast("Collection[T]", value)
     if isinstance(value, Collection) and not isinstance(value, str):  # (str is a subclass of Collection)
         return coll_type(value)
 
-    return coll_type((cast("_T", value),))  # MyPy gets confused here without the cast.
+    return coll_type((cast("T", value),))  # MyPy gets confused here without the cast.
 
 
 @overload
@@ -389,60 +382,60 @@ def checkbox(
 
 
 @overload
-def radio_group(
+def radio_group[E: OptionEnum](
     label: str | TranslatableString,
-    enum: type[_E],
+    enum: type[E],
     *,
     required: Literal[False] = False,
     help: str | TranslatableString | None = None,
     disable_if: _ZeroOrMoreConditions = None,
     hide_if: _ZeroOrMoreConditions = None,
-) -> _E | None:
+) -> E | None:
     pass
 
 
 @overload
-def radio_group(
+def radio_group[E: OptionEnum](
     label: str | TranslatableString,
-    enum: type[_E],
+    enum: type[E],
     *,
     required: Literal[True],
     help: str | TranslatableString | None = None,
     disable_if: _OneOrMoreConditions,
     hide_if: _ZeroOrMoreConditions = None,
-) -> _E | None:
+) -> E | None:
     pass
 
 
 @overload
-def radio_group(
+def radio_group[E: OptionEnum](
     label: str | TranslatableString,
-    enum: type[_E],
+    enum: type[E],
     *,
     required: Literal[True],
     help: str | TranslatableString | None = None,
     disable_if: _ZeroOrMoreConditions = None,
     hide_if: _OneOrMoreConditions,
-) -> _E | None:
+) -> E | None:
     pass
 
 
 @overload
-def radio_group(
+def radio_group[E: OptionEnum](
     label: str | TranslatableString,
-    enum: type[_E],
+    enum: type[E],
     *,
     required: Literal[True],
     help: str | TranslatableString | None = None,
     disable_if: None = None,
     hide_if: None = None,
-) -> _E:
+) -> E:
     pass
 
 
-def radio_group(
+def radio_group[E: OptionEnum](
     label: str | TranslatableString,
-    enum: type[_E],
+    enum: type[E],
     *,
     required: bool = False,
     help: str | TranslatableString | None = None,
@@ -480,78 +473,78 @@ def radio_group(
 
 
 @overload
-def select(
+def select[E: OptionEnum](
     label: str | TranslatableString,
-    enum: type[_E],
+    enum: type[E],
     *,
     required: Literal[False] = False,
     multiple: Literal[False] = False,
     help: str | TranslatableString | None = None,
     disable_if: _ZeroOrMoreConditions = None,
     hide_if: _ZeroOrMoreConditions = None,
-) -> _E | None:
+) -> E | None:
     pass
 
 
 @overload
-def select(
+def select[E: OptionEnum](
     label: str | TranslatableString,
-    enum: type[_E],
+    enum: type[E],
     *,
     required: Literal[True],
     multiple: Literal[False] = False,
     help: str | TranslatableString | None = None,
     disable_if: _OneOrMoreConditions,
     hide_if: _ZeroOrMoreConditions = None,
-) -> _E | None:
+) -> E | None:
     pass
 
 
 @overload
-def select(
+def select[E: OptionEnum](
     label: str | TranslatableString,
-    enum: type[_E],
+    enum: type[E],
     *,
     required: Literal[True],
     multiple: Literal[False] = False,
     help: str | TranslatableString | None = None,
     disable_if: _ZeroOrMoreConditions = None,
     hide_if: _OneOrMoreConditions,
-) -> _E | None:
+) -> E | None:
     pass
 
 
 @overload
-def select(
+def select[E: OptionEnum](
     label: str | TranslatableString,
-    enum: type[_E],
+    enum: type[E],
     *,
     required: Literal[True],
     multiple: Literal[False] = False,
     help: str | TranslatableString | None = None,
     disable_if: None = None,
     hide_if: None = None,
-) -> _E:
+) -> E:
     pass
 
 
 @overload
-def select(
+def select[E: OptionEnum](
     label: str | TranslatableString,
-    enum: type[_E],
+    enum: type[E],
     *,
     required: bool = False,
     multiple: Literal[True],
     help: str | TranslatableString | None = None,
     disable_if: _ZeroOrMoreConditions = None,
     hide_if: _ZeroOrMoreConditions = None,
-) -> set[_E]:
+) -> set[E]:
     pass
 
 
-def select(
+def select[E: OptionEnum](
     label: str | TranslatableString,
-    enum: type[_E],
+    enum: type[E],
     *,
     required: bool = False,
     multiple: bool = False,
@@ -629,21 +622,21 @@ def option(label: str | TranslatableString, *, selected: bool = False, value: st
 
 
 @overload
-def hidden(value: _S, *, disable_if: None = None, hide_if: None = None) -> _S:
+def hidden[S: str](value: S, *, disable_if: None = None, hide_if: None = None) -> S:
     pass
 
 
 @overload
-def hidden(value: _S, *, disable_if: _OneOrMoreConditions, hide_if: _ZeroOrMoreConditions = None) -> _S | None:
+def hidden[S: str](value: S, *, disable_if: _OneOrMoreConditions, hide_if: _ZeroOrMoreConditions = None) -> S | None:
     pass
 
 
 @overload
-def hidden(value: _S, *, disable_if: _ZeroOrMoreConditions = None, hide_if: _OneOrMoreConditions) -> _S | None:
+def hidden[S: str](value: S, *, disable_if: _ZeroOrMoreConditions = None, hide_if: _OneOrMoreConditions) -> S | None:
     pass
 
 
-def hidden(value: _S, *, disable_if: _ZeroOrMoreConditions = None, hide_if: _ZeroOrMoreConditions = None) -> Any:
+def hidden[S: str](value: S, *, disable_if: _ZeroOrMoreConditions = None, hide_if: _ZeroOrMoreConditions = None) -> Any:
     """Adds a hidden element with a fixed value.
 
     Args:
@@ -655,7 +648,7 @@ def hidden(value: _S, *, disable_if: _ZeroOrMoreConditions = None, hide_if: _Zer
         An internal object containing metadata about the field.
     """
     return cast(
-        "_S",
+        "S",
         _FieldInfo(
             type=Literal[value] | None if disable_if or hide_if else Literal[value],
             build=lambda name: HiddenElement(
@@ -666,7 +659,7 @@ def hidden(value: _S, *, disable_if: _ZeroOrMoreConditions = None, hide_if: _Zer
     )
 
 
-def section(header: str | TranslatableString, model: type[_F]) -> _F:
+def section[F: FormModel](header: str | TranslatableString, model: type[F]) -> F:
     """Adds a form section that can be expanded and collapsed.
 
     Args:
@@ -692,17 +685,17 @@ def section(header: str | TranslatableString, model: type[_F]) -> _F:
         ...     feedback = section("Combined feedback", FeedbackSection)
     """
     # We pretend to return an instance of the model so the type of the section field can be inferred.
-    return cast("_F", _SectionInfo(header, model))
+    return cast("F", _SectionInfo(header, model))
 
 
-def group(
+def group[F: FormModel](
     label: str | TranslatableString,
-    model: type[_F],
+    model: type[F],
     *,
     help: str | TranslatableString | None = None,
     disable_if: _ZeroOrMoreConditions = None,
     hide_if: _ZeroOrMoreConditions = None,
-) -> _F:
+) -> F:
     """Groups multiple elements horizontally with a common label.
 
     Args:
@@ -731,7 +724,7 @@ def group(
     """
     # We pretend to return an instance of the model so the type of the section field can be inferred.
     return cast(
-        "_F",
+        "F",
         _FieldInfo(
             type=model,
             build=lambda name: GroupElement(
@@ -753,14 +746,14 @@ def group(
     )
 
 
-def repeat(
-    model: type[_F],
+def repeat[F: FormModel](
+    model: type[F],
     *,
     initial: int = 1,
     minimum: int = 1,
     increment: int = 1,
     button_label: str | TranslatableString | None = None,
-) -> list[_F]:
+) -> list[F]:
     """Repeats a sub-model, allowing the user to add new repetitions with the click of a button.
 
     Be aware that the index of repetitions may change when earlier ones are removed. In order to distinguish
@@ -791,7 +784,7 @@ def repeat(
         ...     choices = repeat(Choice, initial=3, increment=3, button_label="Add 3 more choices")
     """
     return cast(
-        "list[_F]",
+        "list[F]",
         _FieldInfo(
             type=list[model],  # type: ignore[valid-type]
             build=lambda name: RepetitionElement(

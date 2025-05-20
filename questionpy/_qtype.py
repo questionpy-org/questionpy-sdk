@@ -2,7 +2,7 @@
 #  The QuestionPy SDK is free software released under terms of the MIT license. See LICENSE.md.
 #  (c) Technische Universität Berlin, innoCampus <info@isis.tu-berlin.de>
 from abc import ABC
-from typing import ClassVar, Generic, Self, TypeVar, cast
+from typing import ClassVar, Self, cast
 
 from pydantic import BaseModel, JsonValue, ValidationError
 
@@ -14,15 +14,12 @@ from ._attempt import Attempt, AttemptProtocol, AttemptScoredProtocol, AttemptSt
 from ._util import cached_class_property, reify_type_hint
 from .form import FormModel, OptionsFormDefinition
 
-_F = TypeVar("_F", bound=FormModel)
-_S = TypeVar("_S", bound="BaseQuestionState")
 
-
-class QuestionStateWithVersion(BaseModel, Generic[_F, _S]):
+class QuestionStateWithVersion[F: FormModel, S: "BaseQuestionState"](BaseModel):
     package_name: str
     package_version: str
-    options: _F
-    state: _S
+    options: F
+    state: S
 
 
 class BaseQuestionState(BaseModel):

@@ -3,7 +3,7 @@
 #  (c) Technische Universität Berlin, innoCampus <info@isis.tu-berlin.de>
 
 from re import Pattern, sub
-from typing import Annotated, Any, TypeAlias
+from typing import Annotated, Any
 from uuid import uuid4
 
 from pydantic import BaseModel, Field, computed_field
@@ -196,7 +196,7 @@ class CxdGeneratedIdElement(GeneratedIdElement, _CxdFormElement):
             self.cxd_value = str(uuid4())
 
 
-CxdFormElement: TypeAlias = Annotated[
+type CxdFormElement = Annotated[
     CxdStaticTextElement
     | CxdTextInputElement
     | CxdTextAreaElement

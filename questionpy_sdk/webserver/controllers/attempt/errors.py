@@ -9,7 +9,6 @@ from bisect import insort
 from collections.abc import Collection, Iterable, Iterator, Mapping, Sized
 from dataclasses import dataclass, field
 from operator import attrgetter
-from typing import TypeAlias
 
 from lxml import etree
 
@@ -299,7 +298,7 @@ class RenderErrorCollection(Iterable, Sized):
         return f"{self.__class__.__name__}({self._errors})"
 
 
-RenderErrorCollections: TypeAlias = dict[str, RenderErrorCollection]
+type RenderErrorCollections = dict[str, RenderErrorCollection]
 """Section to RenderErrorCollection map."""
 
 

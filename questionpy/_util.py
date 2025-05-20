@@ -1,25 +1,23 @@
 from collections.abc import Callable
 from types import UnionType
-from typing import TYPE_CHECKING, Generic, TypeVar, cast, get_args, get_type_hints
+from typing import TYPE_CHECKING, cast, get_args, get_type_hints
 
 from questionpy_common.environment import Package, PackageNamespaceAndShortName, get_qpy_environment
 
 if TYPE_CHECKING:
     from questionpy import Attempt
 
-_TypeT = TypeVar("_TypeT", bound=type)
-_T = TypeVar("_T")
 _UNSET = object()
 
 
-class _CachedClassProperty(Generic[_TypeT, _T]):
+class _CachedClassProperty[ReceiverT: type, ValueT]:
     """See [cached_class_property][]."""
 
-    def __init__(self, getter: Callable[[_TypeT], _T]) -> None:
+    def __init__(self, getter: Callable[[ReceiverT], ValueT]) -> None:
         self._getter = getter
         self._name: str | None = None
 
-    def __get__(self, instance: None, owner: _TypeT) -> _T:
+    def __get__(self, instance: None, owner: ReceiverT) -> ValueT:
         if not self._name:
             # __set_name__ wasn't called. The property is probably not defined in the class body, or wrapped by
             # something.
@@ -36,24 +34,24 @@ class _CachedClassProperty(Generic[_TypeT, _T]):
 
         return cached_value
 
-    def __set_name__(self, owner: _TypeT, name: str) -> None:
+    def __set_name__(self, owner: ReceiverT, name: str) -> None:
         self._name = name
 
 
-def cached_class_property(getter: Callable[[_TypeT], _T]) -> _T:
+def cached_class_property[ReceiverT: type, ValueT](getter: Callable[[ReceiverT], ValueT]) -> ValueT:
     """Similar to [functools.cached_property][], but for class properties.
 
     Like [functools.cached_property][], the descriptor replaces itself with the computed value after the first lookup.
     """
-    return cast("_T", _CachedClassProperty(getter))
+    return cast("ValueT", _CachedClassProperty(getter))
 
 
-def reify_type_hint(attr_name: str, bound: _TypeT) -> _TypeT:
+def reify_type_hint[ReceiverT: type](attr_name: str, bound: ReceiverT) -> ReceiverT:
     """Creates a [cached_class_property][] which returns the type hint of the given attribute."""
     return cached_class_property(lambda cls: get_mro_type_hint(cls, attr_name, bound))
 
 
-def get_mro_type_hint(klass: type, attr_name: str, bound: _TypeT) -> _TypeT:
+def get_mro_type_hint[BoundT: type](klass: type, attr_name: str, bound: BoundT) -> BoundT:
     """Returns the first type hint in `klass`'s MRO for the attribute `attr_name` and checks that it subclasses `bound`.
 
     For unions (esp. nullable attributes), the union is checked for a member which subclasses `bound` and that is
