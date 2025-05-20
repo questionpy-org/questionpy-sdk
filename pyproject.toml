@@ -7,7 +7,7 @@ name = "questionpy-sdk"
 description = "Library and toolset for the development of QuestionPy packages"
 license = "MIT"
 urls = { homepage = "https://questionpy.org" }
-version = "0.4.1"
+version = "0.5.0"
 authors = [
     { name = "TU Berlin innoCampus" },
     { email = "info@isis.tu-berlin.de" }
@@ -18,7 +18,7 @@ dependencies = [
     "aiohttp >=3.11.18, <4.0.0",
     "pydantic >=2.11.4, <3.0.0",
     "PyYAML >=6.0.2, <7.0.0",
-    "questionpy-server @ git+https://github.com/questionpy-org/questionpy-server.git@0ee6eb242bc703d5a0e36846360671a8b50fda44",
+    "questionpy-server @ git+https://github.com/questionpy-org/questionpy-server.git@8e50698e6a291216f660f41d6456bfc80093e434",
     "jinja2 >=3.1.6, <4.0.0",
     "aiohttp-jinja2 >=1.6, <2.0",
     "lxml[html-clean] >=5.4.0, <5.5.0",
