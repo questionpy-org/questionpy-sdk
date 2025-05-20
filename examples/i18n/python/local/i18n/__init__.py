@@ -61,11 +61,11 @@ class I18NAttempt(Attempt):
 
     @property
     def general_feedback(self) -> str | TranslatableString | None:
-        return "<div>" + __("Programmatic translation!", defer=False) + "</div>"
+        return "<div>" + __("Programmatic translation!") + "</div>"
 
     @property
     def specific_feedback(self) -> str | TranslatableString | None:
-        return "<div>" + __(dynamic_message, defer=False) + "</div>"
+        return "<div>" + __(dynamic_message) + "</div>"
 
 
 class I18NQuestion(Question):

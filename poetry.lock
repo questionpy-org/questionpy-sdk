@@ -1696,7 +1696,7 @@ files = [
 
 [[package]]
 name = "questionpy-server"
-version = "0.6.1"
+version = "0.7.0"
 description = "QuestionPy application server"
 optional = false
 python-versions = ">=3.12,<4.0"
@@ -1716,8 +1716,8 @@ watchdog = ">=6.0.0,<7.0.0"
 [package.source]
 type = "git"
 url = "https://github.com/questionpy-org/questionpy-server.git"
-reference = "0ee6eb242bc703d5a0e36846360671a8b50fda44"
-resolved_reference = "0ee6eb242bc703d5a0e36846360671a8b50fda44"
+reference = "8e50698e6a291216f660f41d6456bfc80093e434"
+resolved_reference = "8e50698e6a291216f660f41d6456bfc80093e434"
 
 [[package]]
 name = "requests"
@@ -2015,4 +2015,4 @@ propcache = ">=0.2.1"
 [metadata]
 lock-version = "2.1"
 python-versions = ">=3.12, <4.0"
-content-hash = "c1db38e06c06ec69f1421dcbbd020d5302d3e269eceffb0bd1fd5b1f5f592557"
+content-hash = "170d331edccc0bf6c5ebeae9c1b6dd7dd37361583e9316573081eed4bc42bea2"

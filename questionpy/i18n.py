@@ -19,8 +19,9 @@ Deferred Translation:
     Since QuestionPy workers (and by extension, QuestionPy packages) are loaded and initialized to potentially handle
     multiple requests, the languages preferred by the user are not known yet when the Python code making up the package
     is imported. For this reason, translation may be deferred by [`gettext`][questionpy.i18n.Gettext]. The returned
-    object will transparently translate the message when it is needed. For now, the only other operations available on
-    deferred messages are [`format`][str.format] and [`format_map`][str.format_map].
+    object will transparently translate the message when it is needed. A number of `str` methods (most usefully
+    [`format`][str.format]) are supported by the deferred message and will be applied lazily to the message when
+    translated.
 """
 
 import logging
@@ -29,7 +30,7 @@ from contextvars import ContextVar
 from dataclasses import dataclass
 from gettext import GNUTranslations, NullTranslations
 from importlib.resources.abc import Traversable
-from typing import Literal, NewType, overload
+from typing import Literal, NewType, Self, overload
 
 from questionpy_common import TranslatableString
 from questionpy_common.environment import (
@@ -43,6 +44,7 @@ from questionpy_common.manifest import Bcp47LanguageTag, SourceManifest
 
 __all__ = [
     "DEFAULT_CATEGORY",
+    "DeferredMessage",
     "GettextDomain",
     "TranslatableString",
     "dgettext",
@@ -76,6 +78,105 @@ class _DomainState:
     request_state: _RequestState | None = None
 
 
+class DeferredMessage(TranslatableString):
+    """A message whose translations will be loaded lazily when it is needed.
+
+    Where not otherwise documented, all public methods cause their `str` counterparts to be applied lazily on the
+    translated string.
+    """
+
+    def __init__(
+        self,
+        domain_state: _DomainState,
+        default_message: str,
+        getter: Callable[[NullTranslations], str],
+        transformations_on_result: Iterable[Callable[[str], str]] = (),
+    ) -> None:
+        self._domain_state = domain_state
+        self._default_message = default_message
+        self._getter = getter
+
+        self._transformations_on_result = transformations_on_result
+
+    def __str__(self) -> str:
+        if self._domain_state.request_state:
+            result = self._getter(self._domain_state.request_state.translations)
+        else:
+            self._domain_state.logger.warning(
+                "Deferred message '%s' not translated because domain is not initialized for request.",
+                self._default_message,
+            )
+            result = self._default_message
+
+        for transformation in self._transformations_on_result:
+            result = transformation(result)
+
+        return result
+
+    def __add__(self, other: object) -> Self:
+        if isinstance(other, (str, TranslatableString)):
+            return self._with_transform(lambda s: s + str(other))
+        return NotImplemented
+
+    def __radd__(self, other: object) -> Self:
+        if isinstance(other, (str, TranslatableString)):
+            return self._with_transform(lambda s: str(other) + s)
+        return NotImplemented
+
+    def __mul__(self, other: object) -> Self:
+        if isinstance(other, int):
+            return self._with_transform(lambda s: s * other)
+        return NotImplemented
+
+    def __rmul__(self, other: object) -> Self:
+        if isinstance(other, int):
+            return self._with_transform(lambda s: other * s)
+        return NotImplemented
+
+    def format(self, *args: object, **kwargs: object) -> Self:
+        """Perform the same formatting as [`str.format`][], possibly lazily."""
+        return self._with_transform(lambda s: s.format(*args, **kwargs))
+
+    def format_map(self, mapping: Mapping[str, object]) -> Self:
+        """Perform the same formatting as [`str.format_map`][], possibly lazily."""
+        return self._with_transform(lambda s: s.format_map(mapping))
+
+    def ljust(self, width: int, fillchar: str = " ") -> Self:
+        return self._with_transform(lambda s: s.ljust(width, fillchar))
+
+    def center(self, width: int, fillchar: str = " ") -> Self:
+        return self._with_transform(lambda s: s.center(width, fillchar))
+
+    def rjust(self, width: int, fillchar: str = " ") -> Self:
+        return self._with_transform(lambda s: s.rjust(width, fillchar))
+
+    def expandtabs(self, tabsize: int = 8) -> Self:
+        return self._with_transform(lambda s: s.expandtabs(tabsize))
+
+    def join(self, iterable: Iterable[str | TranslatableString], /) -> Self:
+        return self._with_transform(lambda s: s.join(map(str, iterable)))
+
+    def replace(self, old: str, new: str, count: int = -1) -> Self:
+        return self._with_transform(lambda s: s.replace(old, new, count))
+
+    def lstrip(self, chars: str | None = None) -> Self:
+        return self._with_transform(lambda s: s.lstrip(chars))
+
+    def rstrip(self, chars: str | None = None) -> Self:
+        return self._with_transform(lambda s: s.rstrip(chars))
+
+    def strip(self, chars: str | None = None) -> Self:
+        return self._with_transform(lambda s: s.strip(chars))
+
+    def _with_transform(self, transform: Callable[[str], str]) -> Self:
+        return type(self)(
+            self._domain_state,
+            self._default_message,
+            self._getter,
+            (*self._transformations_on_result, transform),
+        )
+
+
 class Gettext:
     """Container for gettext-family functions. Usually called `__`. See [i18n.get_for][questionpy.i18n.get_for]."""
 
@@ -85,15 +186,15 @@ class Gettext:
         self._domain_state = domain_state
 
     @overload
-    def __call__(self, message: str, /, *, defer: None = None) -> str | TranslatableString: ...
+    def __call__(self, message: str, /, *, defer: None = None) -> str | DeferredMessage: ...
 
     @overload
-    def __call__(self, message: str, /, *, defer: Literal[True]) -> TranslatableString: ...
+    def __call__(self, message: str, /, *, defer: Literal[True]) -> DeferredMessage: ...
 
     @overload
     def __call__(self, message: str, /, *, defer: Literal[False]) -> str: ...
 
-    def __call__(self, message: str, /, *, defer: bool | None = None) -> str | TranslatableString:
+    def __call__(self, message: str, /, *, defer: bool | None = None) -> str | DeferredMessage:
         """Translate the given message.
 
         Args:
@@ -105,20 +206,20 @@ class Gettext:
 
         Returns:
             (str): If available: The translated message.
-            (questionpy_common.TranslatableString): A deferred [questionpy.TranslatableString][]
+            (DeferredMessage): If translations are not loaded and deferral is allowed.
         """
         return self._maybe_defer(message, lambda trans: trans.gettext(message), defer=defer)
 
     @overload
-    def ngettext(self, singular: str, plural: str, n: int, /, *, defer: None = None) -> str | TranslatableString: ...
+    def ngettext(self, singular: str, plural: str, n: int, /, *, defer: None = None) -> str | DeferredMessage: ...
 
     @overload
-    def ngettext(self, singular: str, plural: str, n: int, /, *, defer: Literal[True]) -> TranslatableString: ...
+    def ngettext(self, singular: str, plural: str, n: int, /, *, defer: Literal[True]) -> DeferredMessage: ...
 
     @overload
     def ngettext(self, singular: str, plural: str, n: int, /, *, defer: Literal[False]) -> str: ...
 
-    def ngettext(self, singular: str, plural: str, n: int, /, *, defer: bool | None = None) -> str | TranslatableString:
+    def ngettext(self, singular: str, plural: str, n: int, /, *, defer: bool | None = None) -> str | DeferredMessage:
         """Translate the given message, accounting for plural forms.
 
         Args:
@@ -134,15 +235,15 @@ class Gettext:
         return self._maybe_defer(default_message, lambda trans: trans.ngettext(singular, plural, n), defer=defer)
 
     @overload
-    def pgettext(self, context: str, message: str, /, *, defer: None = None) -> str | TranslatableString: ...
+    def pgettext(self, context: str, message: str, /, *, defer: None = None) -> str | DeferredMessage: ...
 
     @overload
-    def pgettext(self, context: str, message: str, /, *, defer: Literal[True]) -> TranslatableString: ...
+    def pgettext(self, context: str, message: str, /, *, defer: Literal[True]) -> DeferredMessage: ...
 
     @overload
     def pgettext(self, context: str, message: str, /, *, defer: Literal[False]) -> str: ...
 
-    def pgettext(self, context: str, message: str, /, *, defer: bool | None = None) -> str | TranslatableString:
+    def pgettext(self, context: str, message: str, /, *, defer: bool | None = None) -> str | DeferredMessage:
         """Translate the given message in the given context.
 
         The context allows solving ambiguities where the same message may require different translations depending on
@@ -162,19 +263,19 @@ class Gettext:
     @overload
     def npgettext(
         self, context: str, singular: str, plural: str, n: int, /, *, defer: None = None
-    ) -> str | TranslatableString: ...
+    ) -> str | DeferredMessage: ...
 
     @overload
     def npgettext(
         self, context: str, singular: str, plural: str, n: int, /, *, defer: Literal[True]
-    ) -> TranslatableString: ...
+    ) -> DeferredMessage: ...
 
     @overload
     def npgettext(self, context: str, singular: str, plural: str, n: int, /, *, defer: Literal[False]) -> str: ...
 
     def npgettext(
         self, context: str, singular: str, plural: str, n: int, /, *, defer: bool | None = None
-    ) -> str | TranslatableString:
+    ) -> str | DeferredMessage:
         """Translate the given message in the given context, accounting for plural forms.
 
         The context allows solving ambiguities where the same message may require different translations depending on
@@ -227,13 +328,13 @@ class Gettext:
 
     def _maybe_defer(
         self, default_message: str, getter: Callable[[NullTranslations], str], *, defer: bool | None
-    ) -> str | TranslatableString:
+    ) -> str | DeferredMessage:
         if defer is None:
             defer = self._domain_state.request_state is None
 
         if defer:
             self._domain_state.logger.debug("Deferring translation of message '%s'.", default_message)
-            return _DeferredTranslatedMessage(self._domain_state, default_message, getter)
+            return DeferredMessage(self._domain_state, default_message, getter)
 
         request_state = _require_request_state(self._domain, self._domain_state)
         return getter(request_state.translations)
@@ -426,49 +527,3 @@ def _ensure_initialized(domain: GettextDomain, package: Package, env: Environmen
     env.register_on_request_callback(initialize_for_request)
 
     return domain_state
-
-
-class _DeferredTranslatedMessage(TranslatableString):
-    def __init__(
-        self,
-        domain_state: _DomainState,
-        default_message: str,
-        getter: Callable[[NullTranslations], str],
-        transformations_on_result: Iterable[Callable[[str], str]] = (),
-    ) -> None:
-        self._domain_state = domain_state
-        self._default_message = default_message
-        self._getter = getter
-
-        self._transformations_on_result = transformations_on_result
-
-    def __str__(self) -> str:
-        if self._domain_state.request_state:
-            result = self._getter(self._domain_state.request_state.translations)
-        else:
-            self._domain_state.logger.warning(
-                "Deferred message '%s' not translated because domain is not initialized for request.",
-                self._default_message,
-            )
-            result = self._default_message
-
-        for transformation in self._transformations_on_result:
-            result = transformation(result)
-
-        return result
-
-    def format(self, *args: object, **kwargs: object) -> TranslatableString:
-        return _DeferredTranslatedMessage(
-            self._domain_state,
-            self._default_message,
-            self._getter,
-            (*self._transformations_on_result, (lambda s: s.format(*args, **kwargs))),
-        )
-
-    def format_map(self, mapping: Mapping[str, object]) -> TranslatableString:
-        return _DeferredTranslatedMessage(
-            self._domain_state,
-            self._default_message,
-            self._getter,
-            (*self._transformations_on_result, (lambda s: s.format_map(mapping))),
-        )
