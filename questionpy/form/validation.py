@@ -14,7 +14,6 @@ form elements. A reference is a path from the referrer to the referent along tha
 
 from collections.abc import Sequence
 from itertools import chain
-from typing import TypeAlias
 
 from questionpy_common.conditions import DoesNotEqual, Equals, In, IsChecked, IsNotChecked
 from questionpy_common.elements import (
@@ -31,7 +30,7 @@ from questionpy_common.elements import (
     TextInputElement,
 )
 
-_FormNode: TypeAlias = OptionsFormDefinition | FormSection | FormElement
+type _FormNode = OptionsFormDefinition | FormSection | FormElement
 
 
 class FormError(Exception):
