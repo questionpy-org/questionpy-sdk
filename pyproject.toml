@@ -96,6 +96,10 @@ asyncio_default_fixture_loop_scope = "module"
 [tool.coverage.run]
 branch = true
 source = ["questionpy", "questionpy_sdk"]
+omit = ["questionpy_sdk/webserver/middlewares/vite_dev.py"]
+
+[tool.coverage.report]
+exclude_lines = ["pragma: no cover", "if TYPE_CHECKING:"]
 
 [tool.mypy]
 plugins = "pydantic.mypy"
