@@ -2,7 +2,7 @@
 #  The QuestionPy SDK is free software released under terms of the MIT license. See LICENSE.md.
 #  (c) Technische Universität Berlin, innoCampus <info@isis.tu-berlin.de>
 
-from typing import Any, Literal, Optional
+from typing import Any, Literal
 
 import pytest
 from pydantic import TypeAdapter, ValidationError
@@ -190,7 +190,7 @@ def test_should_render_correct_form(initializer: object, expected_elements: list
         # hidden
         (str, form.hidden("value"), "value", "value"),
         (Literal["value"], form.hidden("value"), "value", "value"),
-        (Optional[Literal["value"]], form.hidden("value", disable_if=form.is_checked("field")), ..., None),  # noqa: UP007
+        (Literal["value"] | None, form.hidden("value", disable_if=form.is_checked("field")), ..., None),
         # generated_id
         (str, form.generated_id(), "f65a9e2f-5fba-4170-93c0-7f37552d891d", "f65a9e2f-5fba-4170-93c0-7f37552d891d"),
         # group

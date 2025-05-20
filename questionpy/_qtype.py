@@ -154,9 +154,9 @@ class Question(ABC):
         try_scoring_with_countback: bool,
         try_giving_hint: bool,
     ) -> AttemptScoredProtocol:
-        attempt = cast(Attempt, self.get_attempt(attempt_state, scoring_state, response))
+        attempt = cast("Attempt", self.get_attempt(attempt_state, scoring_state, response))
         attempt.score_response(try_scoring_with_countback=try_scoring_with_countback, try_giving_hint=try_giving_hint)
-        return cast(AttemptScoredProtocol, attempt)
+        return cast("AttemptScoredProtocol", attempt)
 
     def __init_subclass__(cls, *args: object, **kwargs: object) -> None:
         super().__init_subclass__(*args, **kwargs)

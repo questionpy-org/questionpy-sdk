@@ -25,7 +25,7 @@ STATIC_FILES = {
 @pytest.fixture
 def package() -> ImportablePackage:
     return cast(
-        ImportablePackage,
+        "ImportablePackage",
         SimpleNamespace(
             manifest=Manifest(
                 namespace="test_ns",

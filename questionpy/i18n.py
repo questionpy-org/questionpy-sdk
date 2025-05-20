@@ -76,7 +76,7 @@ class _DomainState:
     request_state: _RequestState | None = None
 
 
-class Gettext:  # noqa: PLR0904 (ruff seems to count each overload separately)
+class Gettext:
     """Container for gettext-family functions. Usually called `__`. See [i18n.get_for][questionpy.i18n.get_for]."""
 
     def __init__(self, package: Package, domain: GettextDomain, domain_state: _DomainState) -> None:
