@@ -65,3 +65,23 @@ The SDK also executes question packages and provides their runtime.
 ```shell
 $ questionpy-sdk run example.qpy
 ```
+
+## E2E Tests
+
+Run a specific test inside Playwright inspector.
+
+```sh
+$ PWDEBUG=1 ./run_e2e_tests.sh -k test_smoke
+```
+
+Generate tests with the Playwright Inspector.
+
+```sh
+$ playwright codegen http://127.0.0.1:8080
+```
+
+Replay a trace, e.g. from a failed CI run artifact.
+
+```sh
+$ playwright show-trace /path/to/trace.zip
+```
