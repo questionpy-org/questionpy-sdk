@@ -18,7 +18,7 @@ import { optionsFormDataSchema, optionsSchema } from '@/schema/options'
 import type { Options, OptionsFormData, ServerValidationErrors } from '@/schema/options/types'
 
 /** Get options form data query. */
-const useOptionsFormData = defineQuery(() =>
+const useOptionsFormDataQuery = defineQuery(() =>
     useQuery({
         key: ['options', 'data'],
         query: () => get('options/state', optionsFormDataSchema),
@@ -65,4 +65,4 @@ const usePostOptionsFormData = defineMutation(() => {
     return { ...mutation, onSuccess }
 })
 
-export { useOptionsFormData, useOptionsFormDefinition, usePostOptionsFormData }
+export { useOptionsFormDataQuery, useOptionsFormDefinition, usePostOptionsFormData }

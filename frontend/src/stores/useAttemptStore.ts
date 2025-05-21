@@ -7,17 +7,22 @@
 import { defineStore } from 'pinia'
 import { computed, onUnmounted } from 'vue'
 
-import { useAttemptData, usePostAttempt, usePostAttemptRestart, usePostAttemptScore } from '@/queries/attempt'
+import {
+    useAttemptDataQuery,
+    usePostAttemptQuery,
+    usePostAttemptRestartQuery,
+    usePostAttemptScoreQuery,
+} from '@/queries/attempt'
 import { usePostOptionsFormData } from '@/queries/options'
 
 import useAppStateStore from './useAppStateStore'
 
 /** Provides attempt data. */
 const useAttemptStore = defineStore('attemptData', () => {
-    const { asyncStatus: dataAsyncStatus, state: dataState, refresh: dataRefresh } = useAttemptData()
-    const { asyncStatus: postAsyncStatus, mutateAsync: postAttempt } = usePostAttempt()
-    const { asyncStatus: postRestartAsyncStatus, mutateAsync: postRestart } = usePostAttemptRestart()
-    const { asyncStatus: postScoreAsyncStatus, mutateAsync: postScore } = usePostAttemptScore()
+    const { asyncStatus: dataAsyncStatus, state: dataState, refresh: dataRefresh } = useAttemptDataQuery()
+    const { asyncStatus: postAsyncStatus, mutateAsync: postAttempt } = usePostAttemptQuery()
+    const { asyncStatus: postRestartAsyncStatus, mutateAsync: postRestart } = usePostAttemptRestartQuery()
+    const { asyncStatus: postScoreAsyncStatus, mutateAsync: postScore } = usePostAttemptScoreQuery()
     const { onSuccess: onPostOptionsFormDataSuccess } = usePostOptionsFormData()
 
     const { setError } = useAppStateStore()
