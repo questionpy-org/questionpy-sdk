@@ -12,7 +12,7 @@ import { manifestSchema } from '@/schema/manifest'
 import { get } from './fetch'
 
 /** Package manifest query. */
-const useManifest = defineQuery(() => {
+const useManifestQuery = defineQuery(() => {
     const query = useQuery({
         key: ['manifest'],
         query: () => get('manifest', manifestSchema),
@@ -36,4 +36,4 @@ const useManifest = defineQuery(() => {
     return { manifest, ...query }
 })
 
-export default useManifest
+export default useManifestQuery

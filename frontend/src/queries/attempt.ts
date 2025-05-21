@@ -12,7 +12,7 @@ import { attemptDataSchema } from '@/schema/attempt'
 import useDisplayOptionsStore from '@/stores/useDisplayOptionsStore'
 
 /** Get attempt data query. */
-const useAttemptData = defineQuery(() => {
+const useAttemptDataQuery = defineQuery(() => {
     const { cacheKey, displayOptions } = storeToRefs(useDisplayOptionsStore())
 
     return useQuery({
@@ -28,7 +28,7 @@ const useAttemptData = defineQuery(() => {
 })
 
 /** Save attempt query. */
-const usePostAttempt = defineMutation(() => {
+const usePostAttemptQuery = defineMutation(() => {
     const queryCache = useQueryCache()
     return useMutation({
         mutation: (formData: Record<string, unknown>) => post('attempt', JSON.stringify(formData)),
@@ -37,7 +37,7 @@ const usePostAttempt = defineMutation(() => {
 })
 
 /** Restart attempt query. */
-const usePostAttemptRestart = defineMutation(() => {
+const usePostAttemptRestartQuery = defineMutation(() => {
     const queryCache = useQueryCache()
     return useMutation({
         mutation: () => post('attempt/restart'),
@@ -46,7 +46,7 @@ const usePostAttemptRestart = defineMutation(() => {
 })
 
 /** Score attempt query. */
-const usePostAttemptScore = defineMutation(() => {
+const usePostAttemptScoreQuery = defineMutation(() => {
     const queryCache = useQueryCache()
     return useMutation({
         mutation: () => post('attempt/score'),
@@ -54,4 +54,4 @@ const usePostAttemptScore = defineMutation(() => {
     })
 })
 
-export { useAttemptData, usePostAttempt, usePostAttemptRestart, usePostAttemptScore }
+export { useAttemptDataQuery, usePostAttemptQuery, usePostAttemptRestartQuery, usePostAttemptScoreQuery }
