@@ -288,14 +288,14 @@ def test_should_disable_inputs(renderer: QuestionUIRenderer) -> None:
 def test_should_soften_validations(renderer: QuestionUIRenderer) -> None:
     expected = """
         <div xmlns="http://www.w3.org/1999/xhtml">
-            <input data-qpy_required="true" aria-required="true"/>
-            <input data-qpy_pattern="^[a-z]+$"/>
-            <input data-qpy_minlength="5"/>
-            <input data-qpy_minlength="10"/>
-            <input data-qpy_min="17" aria-valuemin="17"/>
-            <input data-qpy_max="42" aria-valuemax="42"/>
-            <input data-qpy_pattern="^[a-z]+$" data-qpy_required="true" aria-required="true"
-                data-qpy_minlength="5" data-qpy_maxlength="10" data-qpy_min="17"
+            <input class="form-control qpy-input" data-qpy_required="true" aria-required="true"/>
+            <input class="form-control qpy-input" data-qpy_pattern="^[a-z]+$"/>
+            <input class="form-control qpy-input" data-qpy_minlength="5"/>
+            <input class="form-control qpy-input" data-qpy_minlength="10"/>
+            <input class="form-control qpy-input" data-qpy_min="17" aria-valuemin="17"/>
+            <input class="form-control qpy-input" data-qpy_max="42" aria-valuemax="42"/>
+            <input class="form-control qpy-input" data-qpy_pattern="^[a-z]+$" data-qpy_required="true"
+                aria-required="true" data-qpy_minlength="5" data-qpy_maxlength="10" data-qpy_min="17"
                 aria-valuemin="17" data-qpy_max="42" aria-valuemax="42"/>
         </div>
     """

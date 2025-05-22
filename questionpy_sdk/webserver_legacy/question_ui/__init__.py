@@ -448,8 +448,8 @@ class QuestionUIRenderer:
         # First group: input (not checkbox, radio, button, submit, reset), select, textarea
         for element in _assert_element_list(
             self._xpath("""
-                //xhtml:input[@type != 'checkbox' and @type != 'radio' and
-                              @type != 'button' and @type != 'submit' and @type != 'reset']
+                //xhtml:input[not(@type) or (@type != 'checkbox' and @type != 'radio' and
+                              @type != 'button' and @type != 'submit' and @type != 'reset')]
                 | //xhtml:select | //xhtml:textarea
                 """)
         ):
