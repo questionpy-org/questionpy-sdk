@@ -249,7 +249,6 @@ class QuestionUIRenderer:
 
             # Modify standard HTML.
             self._set_input_values_and_readonly()
-            self._soften_validation()
             self._defuse_buttons()
 
             self._add_styles()
@@ -257,8 +256,6 @@ class QuestionUIRenderer:
             # We don't want to support QPy elements (and attributes, etc.) in placeholder expansions, so we resolve
             # them after replacing QPy elements.
             self._resolve_placeholders()
-
-            # TODO: mangle_ids_and_names
 
             self._html = etree.tostring(self._xml, pretty_print=True, method="html").decode()
             self._error_collector.collect()
@@ -362,42 +359,6 @@ class QuestionUIRenderer:
             last_value = self._attempt.get(name)
             if last_value is not None:
                 _set_element_value(element, last_value)
-
-    def _soften_validation(self) -> None:
-        """Replaces HTML attributes so that submission is not prevented.
-
-        Removes attributes `pattern`, `required`, `minlength`, `maxlength`, `min`, `max` from elements, so form
-        submission is not affected. The standard attributes are replaced with `data-qpy_X`, which are then evaluated in
-        JavaScript.
-        """
-
-        def handle_attribute(
-            elements: list[str], attribute: str, data_attribute: str, aria_attribute: str | None = None
-        ) -> None:
-            xhtml_elems = " | ".join(f".//xhtml:{elem}" for elem in elements)
-            element_list = _assert_element_list(self._xpath(f"({xhtml_elems})[@{attribute}]"))
-            for element in element_list:
-                value = element.get(attribute)
-                element.attrib.pop(attribute)
-                if value:
-                    value = "true" if value == attribute else value
-                    element.set(data_attribute, value)
-                    if aria_attribute:
-                        element.set(aria_attribute, value)
-
-        # 'pattern' attribute for <input> elements
-        handle_attribute(["input"], "pattern", "data-qpy_pattern")
-
-        # 'required' attribute for <input>, <select>, <textarea> elements
-        handle_attribute(["input", "select", "textarea"], "required", "data-qpy_required", "aria-required")
-
-        # 'minlength'/'maxlength' attribute for <input>, <textarea> elements
-        handle_attribute(["input", "textarea"], "minlength", "data-qpy_minlength")
-        handle_attribute(["input", "textarea"], "maxlength", "data-qpy_maxlength")
-
-        # 'min'/'max' attributes for <input> elements
-        handle_attribute(["input"], "min", "data-qpy_min", "aria-valuemin")
-        handle_attribute(["input"], "max", "data-qpy_max", "aria-valuemax")
 
     def _defuse_buttons(self) -> None:
         """Turns submit and reset buttons into simple buttons without a default action."""

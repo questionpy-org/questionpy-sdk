@@ -6,7 +6,17 @@
     <style>
         :root {
             color-scheme: light dark;
+            --invalid-input-color: red;
+
+            &[data-theme="dark"] {
+                --text-color: white;
+            }
+
+            &[data-theme="light"] {
+                --text-color: black;
+            }
         }
+
         body {
             height: auto; /* Make iframe body grow and shrink with page content. */
             display: flow-root; /* Prevent margin-collapse across bottom boundary. */
@@ -15,11 +25,9 @@
             margin: 0;
             color: var(--text-color);
         }
-        :root[data-theme="dark"] {
-            --text-color: white;
-        }
-        :root[data-theme="light"] {
-            --text-color: black;
+
+        :is(input, select, textarea):invalid {
+            border-color: var(--invalid-input-color);
         }
     </style>
 {% endblock %}
