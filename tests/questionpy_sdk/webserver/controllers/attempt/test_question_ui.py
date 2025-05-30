@@ -8,14 +8,7 @@ from typing import Any
 import pytest
 from lxml import etree
 
-from questionpy_sdk.webserver_legacy.question_ui import (
-    DisplayRole,
-    QuestionDisplayOptions,
-    QuestionFormulationUIRenderer,
-    QuestionMetadata,
-    QuestionUIRenderer,
-)
-from questionpy_sdk.webserver_legacy.question_ui.errors import (
+from questionpy_sdk.webserver.controllers.attempt.errors import (
     ConversionError,
     DuplicateNameError,
     ExpectedAncestorError,
@@ -27,6 +20,13 @@ from questionpy_sdk.webserver_legacy.question_ui.errors import (
     UnknownAttributeError,
     UnknownElementError,
     XMLSyntaxError,
+)
+from questionpy_sdk.webserver.controllers.attempt.question_ui import (
+    DisplayRole,
+    QuestionDisplayOptions,
+    QuestionFormulationUIRenderer,
+    QuestionMetadata,
+    QuestionUIRenderer,
 )
 
 
