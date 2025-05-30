@@ -2,59 +2,46 @@
 #  The QuestionPy SDK is free software released under terms of the MIT license. See LICENSE.md.
 #  (c) Technische Universität Berlin, innoCampus <info@isis.tu-berlin.de>
 
+import asyncio
+from collections.abc import AsyncIterable, Iterable
+from itertools import product
 from pathlib import Path
-from typing import TYPE_CHECKING, cast
+from typing import NamedTuple, cast
+from unittest.mock import AsyncMock, MagicMock, Mock
 
 import pytest
-from watchdog.events import (
-    DirCreatedEvent,
-    DirDeletedEvent,
-    DirModifiedEvent,
-    DirMovedEvent,
-    FileClosedEvent,
-    FileCreatedEvent,
-    FileDeletedEvent,
-    FileModifiedEvent,
-    FileMovedEvent,
-    FileOpenedEvent,
-    FileSystemEvent,
-)
+from watchdog import events as we
 
-from questionpy_common.constants import DIST_DIR
-from questionpy_sdk.watcher import _EventHandler
-
-if TYPE_CHECKING:
-    import asyncio
+from questionpy_sdk.package.errors import PackageBuildError
+from questionpy_sdk.watcher import Watcher, _EventHandler
+from questionpy_server.worker.runtime.messages import WorkerUnknownError
 
 some_path = Path("/", "path", "to")
 
 
 @pytest.fixture
 def event_handler() -> _EventHandler:
-    async def notify() -> None:
-        pass
-
     mock_loop = cast("asyncio.AbstractEventLoop", None)
-    return _EventHandler(mock_loop, notify, some_path)
+
+    def ignore_path(path: Path) -> bool:
+        return bool(path.parts and path.parts[0] == "ignopath")
+
+    return _EventHandler(mock_loop, lambda: None, some_path, ignore_path)
 
 
 @pytest.mark.parametrize(
     "event",
     [
-        DirCreatedEvent(src_path=str(some_path / "foo")),
-        DirDeletedEvent(src_path=str(some_path / "foo")),
-        DirModifiedEvent(src_path=str(some_path / "foo")),
-        DirMovedEvent(src_path=str(some_path / DIST_DIR / "foo"), dest_path=str(some_path / "foo")),
-        FileCreatedEvent(src_path=str(some_path / "foo")),
-        FileCreatedEvent(src_path=str(some_path / "python" / "foo" / "bar" / "module.py")),
-        FileDeletedEvent(src_path=str(some_path / "foo")),
-        FileDeletedEvent(src_path=str(some_path / "python" / "foo" / "bar" / "module.py")),
-        FileModifiedEvent(src_path=str(some_path)),
-        FileModifiedEvent(src_path=str(some_path / "python" / "foo" / "bar" / "module.py")),
-        FileMovedEvent(src_path=str(some_path / DIST_DIR / "foo"), dest_path=str(some_path / "foo")),
+        we.FileCreatedEvent(src_path=str(some_path / "foo")),
+        we.FileCreatedEvent(src_path=str(some_path / "python" / "foo" / "bar" / "module.py")),
+        we.FileDeletedEvent(src_path=str(some_path / "foo")),
+        we.FileDeletedEvent(src_path=str(some_path / "python" / "foo" / "bar" / "module.py")),
+        we.FileModifiedEvent(src_path=str(some_path)),
+        we.FileModifiedEvent(src_path=str(some_path / "python" / "foo" / "bar" / "module.py")),
+        we.FileMovedEvent(src_path=str(some_path / "ignopath" / "foo"), dest_path=str(some_path / "foo")),
     ],
 )
-def test_should_not_ignore_events(event: FileSystemEvent, event_handler: _EventHandler) -> None:
+def test_event_handler_should_not_ignore(event: we.FileSystemEvent, event_handler: _EventHandler) -> None:
     assert not event_handler._ignore_event(event)
 
 
@@ -62,17 +49,107 @@ def test_should_not_ignore_events(event: FileSystemEvent, event_handler: _EventH
 @pytest.mark.parametrize(
     "event",
     [
-        DirCreatedEvent(src_path=str(some_path / DIST_DIR / "foo")),
-        DirDeletedEvent(src_path=str(some_path / DIST_DIR / "foo")),
-        DirModifiedEvent(src_path=str(some_path / DIST_DIR / "foo")),
-        FileClosedEvent(src_path=str(some_path / "foo")),
-        DirMovedEvent(src_path=str(some_path / "foo"), dest_path=str(some_path / DIST_DIR / "foo")),
-        FileCreatedEvent(src_path=str(some_path / DIST_DIR / "foo")),
-        FileDeletedEvent(src_path=str(some_path / DIST_DIR / "foo")),
-        FileModifiedEvent(src_path=str(some_path / DIST_DIR)),
-        FileMovedEvent(src_path=str(some_path / "foo"), dest_path=str(some_path / DIST_DIR / "foo")),
-        FileOpenedEvent(src_path=str(some_path / "foo")),
+        we.FileClosedEvent(src_path=str(some_path / "foo")),
+        we.FileCreatedEvent(src_path=str(some_path / "ignopath" / "foo")),
+        we.FileDeletedEvent(src_path=str(some_path / "ignopath" / "foo")),
+        we.FileModifiedEvent(src_path=str(some_path / "ignopath")),
+        we.FileMovedEvent(src_path=str(some_path / "foo"), dest_path=str(some_path / "ignopath" / "foo")),
+        we.FileOpenedEvent(src_path=str(some_path / "foo")),
     ],
 )
-def test_should_ignore_events(event: FileSystemEvent, event_handler: _EventHandler) -> None:
+def test_event_handler_should_ignore(event: we.FileSystemEvent, event_handler: _EventHandler) -> None:
     assert event_handler._ignore_event(event)
+
+
+@pytest.mark.parametrize(
+    "event",
+    [
+        we.DirCreatedEvent(src_path=str(some_path / "foo")),
+        we.DirDeletedEvent(src_path=str(some_path / "foo")),
+        we.DirModifiedEvent(src_path=str(some_path / "foo")),
+        we.DirMovedEvent(src_path=str(some_path / "ignopath" / "foo"), dest_path=str(some_path / "foo")),
+    ],
+)
+def test_event_handler_should_ignore_dirs(event: we.FileSystemEvent, event_handler: _EventHandler) -> None:
+    assert event_handler._ignore_event(event)
+
+
+class WatchMockSetup(NamedTuple):
+    observer_mock: Mock
+    event_handler_mock: Mock
+    webserver_mock: AsyncMock
+    package_builder_mock: MagicMock
+
+
+@pytest.fixture
+def watcher_mock_setup(monkeypatch: pytest.MonkeyPatch) -> Iterable[WatchMockSetup]:
+    with monkeypatch.context() as mp:
+        observer_mock = Mock()
+        event_handler_mock = Mock()
+        webserver_mock = AsyncMock()
+        package_source_mock = Mock()
+        ignore_mock = MagicMock()
+        ignore_mock.iter.return_value = iter([])
+        package_source_mock.config.ignore = ignore_mock
+        package_builder_mock = MagicMock()
+        mp.setattr("questionpy_sdk.watcher.Observer", Mock(return_value=observer_mock))
+        mp.setattr("questionpy_sdk.watcher._EventHandler", Mock(return_value=event_handler_mock))
+        mp.setattr("questionpy_sdk.watcher.WebServer", Mock(return_value=webserver_mock))
+        mp.setattr("questionpy_sdk.watcher.PackageSource", Mock(return_value=package_source_mock))
+        mp.setattr("questionpy_sdk.watcher.DirPackageBuilder", Mock(return_value=package_builder_mock))
+
+        yield WatchMockSetup(observer_mock, event_handler_mock, webserver_mock, package_builder_mock)
+
+
+@pytest.fixture
+async def watcher(watcher_mock_setup: WatchMockSetup) -> AsyncIterable[Watcher]:
+    async with Watcher(Path("source"), Mock(), Path("storage"), "localhost", 1234) as watcher:
+        try:
+            task = asyncio.create_task(watcher.run_forever())
+            await asyncio.sleep(0)
+            yield watcher
+        finally:
+            if not task.done():
+                task.cancel()
+                with pytest.raises(asyncio.CancelledError):
+                    await task
+
+
+async def test_watcher_lifecycle(watcher_mock_setup: WatchMockSetup) -> None:
+    observer_mock, event_handler_mock, _, _ = watcher_mock_setup
+
+    async with Watcher(Path("source"), Mock(), Path("storage"), "localhost", 1234):
+        observer_mock.start.assert_called_once()
+        event_handler_mock.start.assert_called_once()
+
+    observer_mock.stop.assert_called_once()
+    event_handler_mock.stop.assert_called_once()
+
+
+@pytest.mark.parametrize(
+    ("server_crash", "build_error"),
+    # Combinations of boolean value pairs
+    product((False, True), repeat=2),
+)
+async def test_watcher_run_loop(
+    server_crash: bool, build_error: bool, watcher_mock_setup: WatchMockSetup, watcher: Watcher
+) -> None:
+    _, _, webserver_mock, package_builder_mock = watcher_mock_setup
+
+    if server_crash:
+        webserver_mock.__aenter__.side_effect = WorkerUnknownError(worker_name="mock")
+    if build_error:
+        package_builder_mock.__enter__.side_effect = PackageBuildError()
+
+    webserver_runs = 1
+    for build_runs in range(3):
+        assert webserver_mock.__aenter__.call_count == webserver_runs
+        assert package_builder_mock.__enter__.call_count == build_runs
+
+        # Web server doesn't restart when the package build errors
+        if not build_error:
+            webserver_runs += 1
+
+        # Simulate file change
+        watcher._file_change.set()
+        await asyncio.sleep(0)

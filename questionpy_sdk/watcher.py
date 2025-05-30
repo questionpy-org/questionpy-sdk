@@ -4,15 +4,17 @@
 
 import asyncio
 import logging
-from collections.abc import Callable, Coroutine
+from collections.abc import Callable
 from contextlib import AbstractAsyncContextManager
 from pathlib import Path
 from types import TracebackType
-from typing import TYPE_CHECKING, Any, Self
+from typing import TYPE_CHECKING, Self
 
 from watchdog.events import (
-    FileClosedEvent,
-    FileOpenedEvent,
+    FileCreatedEvent,
+    FileDeletedEvent,
+    FileModifiedEvent,
+    FileMovedEvent,
     FileSystemEvent,
     FileSystemEventHandler,
     FileSystemMovedEvent,
@@ -20,11 +22,12 @@ from watchdog.events import (
 from watchdog.observers import Observer
 from watchdog.utils.event_debouncer import EventDebouncer
 
-from questionpy_common.constants import DIST_DIR
+from questionpy_sdk.package._helper import create_ignore_file_callable
 from questionpy_sdk.package.builder import DirPackageBuilder
-from questionpy_sdk.package.errors import PackageBuildError, PackageSourceValidationError
+from questionpy_sdk.package.errors import PackageError
 from questionpy_sdk.package.source import PackageSource
 from questionpy_sdk.webserver import WebServer
+from questionpy_server.worker.runtime.messages import BaseWorkerError
 from questionpy_server.worker.runtime.package_location import DirPackageLocation
 
 if TYPE_CHECKING:
@@ -36,17 +39,19 @@ _DEBOUNCE_INTERVAL = 1  # seconds
 
 
 class _EventHandler(FileSystemEventHandler):
-    """Debounces events for watchdog file monitoring, ignoring events in the `dist` directory."""
+    """Handles filesystem events with debouncing and ignores paths based on a provided filter."""
 
     def __init__(
         self,
         loop: asyncio.AbstractEventLoop,
-        notify_callback: Callable[[], Coroutine[Any, Any, None]],
+        notify_callback: Callable[[], None],
         watch_path: Path,
+        ignore_path: Callable[[Path], bool],
     ) -> None:
         self._loop = loop
         self._notify_callback = notify_callback
         self._watch_path = watch_path
+        self._ignore_path = ignore_path
 
         self._event_debouncer = EventDebouncer(_DEBOUNCE_INTERVAL, self._on_file_changes)
 
@@ -65,7 +70,7 @@ class _EventHandler(FileSystemEventHandler):
 
     def _on_file_changes(self, events: list[FileSystemEvent]) -> None:
         # skip synchronization hassle by delegating this to the event loop in the main thread
-        asyncio.run_coroutine_threadsafe(self._notify_callback(), self._loop)
+        self._loop.call_soon_threadsafe(self._notify_callback)
 
     def _ignore_event(self, event: FileSystemEvent) -> bool:
         """Ignores events that should not trigger a rebuild.
@@ -76,18 +81,15 @@ class _EventHandler(FileSystemEventHandler):
         Returns:
             `True` if event should be ignored, otherwise `False`.
         """
-        if isinstance(event, FileOpenedEvent | FileClosedEvent):
+        # only consider file modification events
+        if not isinstance(event, FileDeletedEvent | FileModifiedEvent | FileCreatedEvent | FileMovedEvent):
             return True
 
-        # ignore events events in `dist` dir
-        relevant_path = event.dest_path if isinstance(event, FileSystemMovedEvent) else event.src_path
-        if isinstance(relevant_path, bytes):
-            relevant_path = relevant_path.decode()
+        # for move events we want to look at dest_path
+        path_str_or_bytes = event.dest_path if isinstance(event, FileSystemMovedEvent) else event.src_path
+        path_str = path_str_or_bytes.decode() if isinstance(path_str_or_bytes, bytes) else path_str_or_bytes
 
-        try:
-            return Path(relevant_path).relative_to(self._watch_path).parts[0] == DIST_DIR
-        except IndexError:
-            return False
+        return self._ignore_path(Path(path_str).relative_to(self._watch_path))
 
 
 class Watcher(AbstractAsyncContextManager):
@@ -98,14 +100,18 @@ class Watcher(AbstractAsyncContextManager):
     ) -> None:
         self._source_path = source_path
         self._pkg_location = pkg_location
+        self._state_storage_path = state_storage_path
         self._host = host
         self._port = port
 
-        self._event_handler = _EventHandler(asyncio.get_running_loop(), self._notify, self._source_path)
+        self._file_change = asyncio.Event()
         self._observer = Observer()
-        self._webserver = WebServer(self._pkg_location, state_storage_path, self._host, self._port)
-        self._on_change_event = asyncio.Event()
         self._watch: ObservedWatch | None = None
+
+        additional_ignores = [*PackageSource(source_path).config.ignore, ".gitignore"]
+        ignore_file = create_ignore_file_callable(source_path, additional_ignores)
+        loop = asyncio.get_running_loop()
+        self._event_handler = _EventHandler(loop, self._file_change.set, self._source_path, ignore_file)
 
     async def __aenter__(self) -> Self:
         self._event_handler.start()
@@ -120,11 +126,11 @@ class Watcher(AbstractAsyncContextManager):
         if self._observer.is_alive():
             self._observer.stop()
         self._event_handler.stop()
-        await self._webserver.__aexit__(exc_type, exc_value, traceback)
 
     def _schedule(self) -> None:
         if self._watch is None:
             log.debug("Starting file watching...")
+            self._file_change.clear()
             self._watch = self._observer.schedule(self._event_handler, str(self._source_path), recursive=True)
 
     def _unschedule(self) -> None:
@@ -133,50 +139,32 @@ class Watcher(AbstractAsyncContextManager):
             self._observer.unschedule(self._watch)
             self._watch = None
 
-    async def _notify(self) -> None:
-        self._on_change_event.set()
-
     async def run_forever(self) -> None:
-        try:
-            await self._webserver.__aenter__()  # noqa: PLC2801
-        except Exception:
-            log.exception("Failed to start webserver. The exception was:")
-            # When user messed up the their package on initial run, we just bail out.
-            return
-
-        self._schedule()
+        async def wait_for_changes() -> None:
+            log.info("Waiting for file change before attempting to rebuild...")
+            self._schedule()
+            await self._file_change.wait()
 
         while True:
-            await self._on_change_event.wait()
-
-            # Try to rebuild package and restart web server which might fail.
-            self._unschedule()
-            await self._rebuild_and_restart()
+            # Run web server
             self._schedule()
+            try:
+                async with WebServer(self._pkg_location, self._state_storage_path, self._host, self._port):
+                    await self._file_change.wait()
+            except BaseWorkerError:
+                log.exception("Failed to start web server.")
+                await wait_for_changes()
 
-            self._on_change_event.clear()
-
-    async def _rebuild_and_restart(self) -> None:
-        log.info("File changes detected. Rebuilding package...")
-
-        # Stop webserver.
-        try:
-            await self._webserver.__aexit__(None, None, None)
-        except Exception:
-            log.exception("Failed to stop web server. The exception was:")
-            raise  # Should not happen, thus we're propagating.
-
-        # Build package.
-        try:
-            package_source = PackageSource(self._source_path)
-            with DirPackageBuilder(package_source) as builder:
-                builder.write_package()
-        except (PackageBuildError, PackageSourceValidationError):
-            log.exception("Failed to build package. The exception was:")
-            return
-
-        # Start server.
-        try:
-            await self._webserver.__aenter__()  # noqa: PLC2801
-        except Exception:
-            log.exception("Failed to start web server. The exception was:")
+            # Rebuild package
+            while True:
+                self._unschedule()
+                log.info("File change detected. Rebuilding package...")
+                try:
+                    package_source = PackageSource(self._source_path)
+                    with DirPackageBuilder(package_source) as builder:
+                        builder.write_package()
+                except PackageError:
+                    log.exception("Failed to build package.")
+                    await wait_for_changes()
+                else:
+                    break
