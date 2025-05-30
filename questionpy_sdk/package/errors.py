@@ -3,9 +3,13 @@
 #  (c) Technische Universität Berlin, innoCampus <info@isis.tu-berlin.de>
 
 
-class PackageSourceValidationError(Exception):
-    pass
+class PackageError(Exception):
+    """Base class for errors related to packaging."""
 
 
-class PackageBuildError(Exception):
-    pass
+class PackageSourceValidationError(PackageError):
+    """Raised when package source files are invalid or fail validation."""
+
+
+class PackageBuildError(PackageError):
+    """Raised when a package fails to build correctly."""
