@@ -21,10 +21,10 @@ from watchdog.observers import Observer
 from watchdog.utils.event_debouncer import EventDebouncer
 
 from questionpy_common.constants import DIST_DIR
-from questionpy_sdk.get_webserver import get_webserver
 from questionpy_sdk.package.builder import DirPackageBuilder
 from questionpy_sdk.package.errors import PackageBuildError, PackageSourceValidationError
 from questionpy_sdk.package.source import PackageSource
+from questionpy_sdk.webserver import WebServer
 from questionpy_server.worker.runtime.package_location import DirPackageLocation
 
 if TYPE_CHECKING:
@@ -94,14 +94,7 @@ class Watcher(AbstractAsyncContextManager):
     """Watch a package source path and rebuild package/restart server on file changes."""
 
     def __init__(
-        self,
-        source_path: Path,
-        pkg_location: DirPackageLocation,
-        state_storage_path: Path,
-        host: str,
-        port: int,
-        *,
-        legacy_frontend: bool,
+        self, source_path: Path, pkg_location: DirPackageLocation, state_storage_path: Path, host: str, port: int
     ) -> None:
         self._source_path = source_path
         self._pkg_location = pkg_location
@@ -110,9 +103,7 @@ class Watcher(AbstractAsyncContextManager):
 
         self._event_handler = _EventHandler(asyncio.get_running_loop(), self._notify, self._source_path)
         self._observer = Observer()
-        self._webserver = get_webserver(
-            self._pkg_location, state_storage_path, self._host, self._port, legacy_frontend=legacy_frontend
-        )
+        self._webserver = WebServer(self._pkg_location, state_storage_path, self._host, self._port)
         self._on_change_event = asyncio.Event()
         self._watch: ObservedWatch | None = None
 

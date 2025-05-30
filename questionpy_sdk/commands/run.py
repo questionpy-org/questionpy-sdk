@@ -10,8 +10,8 @@ import click
 
 from questionpy_sdk.commands._helper import get_package_location
 from questionpy_sdk.constants import DEFAULT_STATE_STORAGE_PATH
-from questionpy_sdk.get_webserver import get_webserver
 from questionpy_sdk.watcher import Watcher
+from questionpy_sdk.webserver import WebServer
 from questionpy_server.worker.runtime.package_location import DirPackageLocation, PackageLocation
 
 if TYPE_CHECKING:
@@ -19,24 +19,14 @@ if TYPE_CHECKING:
 
 
 async def run_watcher(
-    pkg_path: Path,
-    pkg_location: DirPackageLocation,
-    state_storage_path: Path,
-    host: str,
-    port: int,
-    *,
-    legacy_frontend: bool,
+    pkg_path: Path, pkg_location: DirPackageLocation, state_storage_path: Path, host: str, port: int
 ) -> None:
-    async with Watcher(
-        pkg_path, pkg_location, state_storage_path, host, port, legacy_frontend=legacy_frontend
-    ) as watcher:
+    async with Watcher(pkg_path, pkg_location, state_storage_path, host, port) as watcher:
         await watcher.run_forever()
 
 
-async def async_run(
-    pkg_location: PackageLocation, state_storage_path: Path, host: str, port: int, *, legacy_frontend: bool
-) -> None:
-    async with get_webserver(pkg_location, state_storage_path, host, port, legacy_frontend=legacy_frontend):
+async def async_run(pkg_location: PackageLocation, state_storage_path: Path, host: str, port: int) -> None:
+    async with WebServer(pkg_location, state_storage_path, host, port):
         await asyncio.Event().wait()  # Run forever
 
 
@@ -57,15 +47,7 @@ async def async_run(
     "--port", "-p", "port", default=8080, show_default=True, type=click.IntRange(1024, 65535), help="Port to bind to."
 )
 @click.option("--watch", "-w", "watch", is_flag=True, help="Watch source directory and rebuild on changes.")
-@click.option(
-    "--legacy-frontend",
-    "-l",
-    "legacy_frontend",
-    is_flag=True,
-    help="Use legacy frontend. "
-    "(This is a temporary option that is going to be removed once the new frontend is finalized.)",
-)
-def run(package: str, state_storage_path: Path, host: str, port: int, *, watch: bool, legacy_frontend: bool) -> None:
+def run(package: str, state_storage_path: Path, host: str, port: int, *, watch: bool) -> None:
     """Run a package.
 
     \b
@@ -82,8 +64,8 @@ def run(package: str, state_storage_path: Path, host: str, port: int, *, watch: 
         if not isinstance(pkg_location, DirPackageLocation) or pkg_path == pkg_location.path:
             msg = "The --watch option only works with source directories."
             raise click.BadParameter(msg)
-        coro = run_watcher(pkg_path, pkg_location, state_storage_path, host, port, legacy_frontend=legacy_frontend)
+        coro = run_watcher(pkg_path, pkg_location, state_storage_path, host, port)
     else:
-        coro = async_run(pkg_location, state_storage_path, host, port, legacy_frontend=legacy_frontend)
+        coro = async_run(pkg_location, state_storage_path, host, port)
 
     asyncio.run(coro)

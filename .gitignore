@@ -18,5 +18,4 @@ __pycache__
 
 /example.qpy
 /questionpy_sdk/resources/minimal_example.zip
-/questionpy_sdk/webserver_legacy/question_state_storage/
 /questionpy_sdk/webserver/static/
