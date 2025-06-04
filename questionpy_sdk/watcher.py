@@ -4,11 +4,11 @@
 
 import asyncio
 import logging
-from collections.abc import Awaitable, Callable
+from collections.abc import Callable, Coroutine
 from contextlib import AbstractAsyncContextManager
 from pathlib import Path
 from types import TracebackType
-from typing import TYPE_CHECKING, Self
+from typing import TYPE_CHECKING, Any, Self
 
 from watchdog.events import (
     FileClosedEvent,
@@ -39,7 +39,10 @@ class _EventHandler(FileSystemEventHandler):
     """Debounces events for watchdog file monitoring, ignoring events in the `dist` directory."""
 
     def __init__(
-        self, loop: asyncio.AbstractEventLoop, notify_callback: Callable[[], Awaitable[None]], watch_path: Path
+        self,
+        loop: asyncio.AbstractEventLoop,
+        notify_callback: Callable[[], Coroutine[Any, Any, None]],
+        watch_path: Path,
     ) -> None:
         self._loop = loop
         self._notify_callback = notify_callback
