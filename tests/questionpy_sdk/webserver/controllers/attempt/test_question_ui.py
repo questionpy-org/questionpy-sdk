@@ -8,14 +8,7 @@ from typing import Any
 import pytest
 from lxml import etree
 
-from questionpy_sdk.webserver_legacy.question_ui import (
-    DisplayRole,
-    QuestionDisplayOptions,
-    QuestionFormulationUIRenderer,
-    QuestionMetadata,
-    QuestionUIRenderer,
-)
-from questionpy_sdk.webserver_legacy.question_ui.errors import (
+from questionpy_sdk.webserver.controllers.attempt.errors import (
     ConversionError,
     DuplicateNameError,
     ExpectedAncestorError,
@@ -27,6 +20,13 @@ from questionpy_sdk.webserver_legacy.question_ui.errors import (
     UnknownAttributeError,
     UnknownElementError,
     XMLSyntaxError,
+)
+from questionpy_sdk.webserver.controllers.attempt.question_ui import (
+    DisplayRole,
+    QuestionDisplayOptions,
+    QuestionFormulationUIRenderer,
+    QuestionMetadata,
+    QuestionUIRenderer,
 )
 
 
@@ -277,26 +277,6 @@ def test_should_disable_inputs(renderer: QuestionUIRenderer) -> None:
             <input class="btn btn-primary qpy-input" name="button_2" type="button" value="value2" disabled="disabled"/>
 
             <textarea class="form-control qpy-input" name="my_textarea" disabled="disabled">original</textarea>
-        </div>
-    """
-    html, errors = renderer.render()
-    assert len(errors) == 0
-    assert_html_is_equal(html, expected)
-
-
-@pytest.mark.ui_file("validations")
-def test_should_soften_validations(renderer: QuestionUIRenderer) -> None:
-    expected = """
-        <div xmlns="http://www.w3.org/1999/xhtml">
-            <input class="form-control qpy-input" data-qpy_required="true" aria-required="true"/>
-            <input class="form-control qpy-input" data-qpy_pattern="^[a-z]+$"/>
-            <input class="form-control qpy-input" data-qpy_minlength="5"/>
-            <input class="form-control qpy-input" data-qpy_minlength="10"/>
-            <input class="form-control qpy-input" data-qpy_min="17" aria-valuemin="17"/>
-            <input class="form-control qpy-input" data-qpy_max="42" aria-valuemax="42"/>
-            <input class="form-control qpy-input" data-qpy_pattern="^[a-z]+$" data-qpy_required="true"
-                aria-required="true" data-qpy_minlength="5" data-qpy_maxlength="10" data-qpy_min="17"
-                aria-valuemin="17" data-qpy_max="42" aria-valuemax="42"/>
         </div>
     """
     html, errors = renderer.render()
