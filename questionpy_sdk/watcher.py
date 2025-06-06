@@ -85,11 +85,14 @@ class _EventHandler(FileSystemEventHandler):
         if not isinstance(event, FileDeletedEvent | FileModifiedEvent | FileCreatedEvent | FileMovedEvent):
             return True
 
-        # for move events we want to look at dest_path
-        path_str_or_bytes = event.dest_path if isinstance(event, FileSystemMovedEvent) else event.src_path
-        path_str = path_str_or_bytes.decode() if isinstance(path_str_or_bytes, bytes) else path_str_or_bytes
+        # for move events we need to consider both, `src_path` and `dest_path`
+        check_paths = {event.src_path, event.dest_path} if isinstance(event, FileSystemMovedEvent) else {event.src_path}
 
-        return self._ignore_path(Path(path_str).relative_to(self._watch_path))
+        return all(self._ignore_path(self._get_rel_path(path)) for path in check_paths)
+
+    def _get_rel_path(self, path: bytes | str) -> Path:
+        path_str = path.decode() if isinstance(path, bytes) else path
+        return Path(path_str).relative_to(self._watch_path)
 
 
 class Watcher(AbstractAsyncContextManager):

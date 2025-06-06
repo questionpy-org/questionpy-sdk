@@ -39,13 +39,14 @@ def event_handler() -> _EventHandler:
         we.FileModifiedEvent(src_path=str(some_path)),
         we.FileModifiedEvent(src_path=str(some_path / "python" / "foo" / "bar" / "module.py")),
         we.FileMovedEvent(src_path=str(some_path / "ignopath" / "foo"), dest_path=str(some_path / "foo")),
+        we.FileMovedEvent(src_path=str(some_path / "foo"), dest_path=str(some_path / "ignopath" / "foo")),
+        we.FileMovedEvent(src_path=str(some_path / "foo"), dest_path=str(some_path / "bar")),
     ],
 )
 def test_event_handler_should_not_ignore(event: we.FileSystemEvent, event_handler: _EventHandler) -> None:
     assert not event_handler._ignore_event(event)
 
 
-# test that the watcher is ignoring certain events, like moving a file into the `dist` folder
 @pytest.mark.parametrize(
     "event",
     [
@@ -53,8 +54,8 @@ def test_event_handler_should_not_ignore(event: we.FileSystemEvent, event_handle
         we.FileCreatedEvent(src_path=str(some_path / "ignopath" / "foo")),
         we.FileDeletedEvent(src_path=str(some_path / "ignopath" / "foo")),
         we.FileModifiedEvent(src_path=str(some_path / "ignopath")),
-        we.FileMovedEvent(src_path=str(some_path / "foo"), dest_path=str(some_path / "ignopath" / "foo")),
         we.FileOpenedEvent(src_path=str(some_path / "foo")),
+        we.FileMovedEvent(src_path=str(some_path / "ignopath" / "foo"), dest_path=str(some_path / "ignopath" / "bar")),
     ],
 )
 def test_event_handler_should_ignore(event: we.FileSystemEvent, event_handler: _EventHandler) -> None:
