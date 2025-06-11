@@ -14,22 +14,6 @@ routes = web.RouteTableDef()
 class ManifestView(BaseView["ManifestController"]):
     controller_class = ManifestController
 
-    MANIFEST_API_FIELDS = {
-        "short_name",
-        "namespace",
-        "version",
-        "api_version",
-        "author",
-        "name",
-        "url",
-        "languages",
-        "description",
-        "icon",
-        "type",
-        "license",
-        "tags",
-    }
-
     async def get(self) -> web.Response:
         """Gets the manifest data."""
-        return self.json_model_response(self.controller.get_manifest(), include=self.MANIFEST_API_FIELDS)
+        return self.json_model_response(self.controller.get_manifest())

@@ -32,9 +32,9 @@ async def test_get_attempt_started(
     data = await controller.get_attempt(display_opts)
 
     mock_jinja2_template.render_async.assert_called_once()
-    assert data["attempt_html"] == "<html>Attempt</html>"
-    assert data["attempt_status"] == AttemptStatus.STARTED
-    assert data["score"] is None
+    assert data.attempt_html == "<html>Attempt</html>"
+    assert data.attempt_status == AttemptStatus.STARTED
+    assert data.score is None
     mock_state_manager.write_attempt_state.assert_called_once_with("attempt_state")
     mock_state_manager.write_attempt_seed.assert_called_once()
 
@@ -48,9 +48,9 @@ async def test_get_attempt_scored(
     data = await controller.get_attempt(display_opts)
 
     mock_jinja2_template.render_async.assert_called_once()
-    assert data["attempt_html"] == "<html>Attempt</html>"
-    assert data["attempt_status"] == AttemptStatus.SCORED
-    assert data["score"] == 1.0
+    assert data.attempt_html == "<html>Attempt</html>"
+    assert data.attempt_status == AttemptStatus.SCORED
+    assert data.score == 1.0
 
 
 async def test_get_attempt_in_progress(
@@ -64,9 +64,9 @@ async def test_get_attempt_in_progress(
     data = await controller.get_attempt(display_opts)
 
     mock_jinja2_template.render_async.assert_called_once()
-    assert data["attempt_html"] == "<html>Attempt</html>"
-    assert data["attempt_status"] == AttemptStatus.IN_PROGRESS
-    assert data["score"] is None
+    assert data.attempt_html == "<html>Attempt</html>"
+    assert data.attempt_status == AttemptStatus.IN_PROGRESS
+    assert data.score is None
 
 
 async def test_get_attempt_render_errors(

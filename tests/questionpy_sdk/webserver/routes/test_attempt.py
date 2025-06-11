@@ -9,19 +9,24 @@ from aiohttp.test_utils import TestClient
 from aiohttp.web_exceptions import HTTPOk
 
 from questionpy import DisplayRole
+from questionpy_sdk.webserver.controllers.attempt.controller import AttemptRenderData, AttemptStatus
+from questionpy_sdk.webserver.controllers.attempt.errors import SectionErrorMap
 from questionpy_sdk.webserver.controllers.attempt.question_ui import QuestionDisplayOptions
 from questionpy_sdk.webserver.routes import attempt
 
 
 @pytest.mark.app_routes(attempt.routes)
 async def test_get_attempt(client: TestClient, mock_controller: AsyncMock) -> None:
-    mock_controller.get_attempt.return_value = {
-        "attempt_html": "<html>Test</html>",
-        "attempt_status": "STARTED",
-    }
+    mock_controller.get_attempt.return_value = AttemptRenderData(
+        attempt_html="<html>Test</html>",
+        attempt_status=AttemptStatus.STARTED,
+        attempt_state="some_state",
+        render_errors=SectionErrorMap(),
+        variant=0,
+    )
 
     params = (
-        ("generalFeedback", "false"),
+        ("general_feedback", "false"),
         ("roles", "PROCTOR"),
         ("roles", "DEVELOPER"),
     )
@@ -31,11 +36,15 @@ async def test_get_attempt(client: TestClient, mock_controller: AsyncMock) -> No
         data = await resp.json()
         assert data["attempt_html"] == "<html>Test</html>"
         assert data["attempt_status"] == "STARTED"
+        assert data["attempt_state"] == "some_state"
+        assert data["render_errors"] == {}
+        assert data["variant"] == 0
 
         args, _ = mock_controller.get_attempt.call_args
         display_options = args[0]
         assert isinstance(display_options, QuestionDisplayOptions)
         assert display_options.general_feedback is False
+        assert display_options.specific_feedback is True
         assert len(display_options.roles) == 2
         assert DisplayRole.PROCTOR in display_options.roles
         assert DisplayRole.DEVELOPER in display_options.roles
