@@ -570,7 +570,7 @@ class _RenderErrorCollector:
         for p_instruction in _assert_element_list(self._xpath("//processing-instruction('p')")):
             if not p_instruction.text:
                 reference_error = PlaceholderReferenceError(
-                    element=p_instruction, placeholder=None, available=self._placeholders
+                    element=p_instruction, placeholder=None, available=list(self._placeholders)
                 )
                 self.errors.insert(reference_error)
                 return
@@ -585,7 +585,7 @@ class _RenderErrorCollector:
 
             if key not in self._placeholders:
                 reference_error = PlaceholderReferenceError(
-                    element=p_instruction, placeholder=key, available=self._placeholders
+                    element=p_instruction, placeholder=key, available=list(self._placeholders)
                 )
                 self.errors.insert(reference_error)
 

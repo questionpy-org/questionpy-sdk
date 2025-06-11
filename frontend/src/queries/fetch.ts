@@ -4,6 +4,9 @@
  * (c) Technische Universität Berlin, innoCampus <info@isis.tu-berlin.de>
  */
 
+import { isDetailedServerError } from '@/types'
+import type { DetailedServerError } from '@/types'
+
 /**
  * Represents an error that occurs during a fetch operation.
  * Extends the built-in `Error` class to include HTTP status information.
@@ -13,8 +16,8 @@ class FetchError extends Error {
     status: number
     /** The status text corresponding to the HTTP status code. */
     statusText: string
-    /** An optional detailed description of the error. */
-    details?: string
+    /** Optional detailed error information, which may include a stack trace or validation errors. */
+    details: DetailedServerError['details']
 
     /**
      * Creates a new `FetchError` instance.
@@ -24,7 +27,7 @@ class FetchError extends Error {
      * @param message A human-readable error message.
      * @param details An optional detailed description of the error.
      */
-    constructor(status: number, statusText: string, message: string, details?: string) {
+    constructor(status: number, statusText: string, message: string, details: DetailedServerError['details']) {
         super(message)
         this.status = status
         this.statusText = statusText
@@ -40,8 +43,14 @@ class FetchError extends Error {
      * @returns A Promise resolving to a FetchError instance.
      */
     static async fromResponse(response: Response): Promise<FetchError> {
-        const message = `${response.status} ${response.statusText}`
-        const details: DetailedServerError['details'] = null
+        let message = `${response.status} ${response.statusText}`
+        let details: DetailedServerError['details'] = null
+
+        const serverError = await response.json()
+        if (isDetailedServerError(serverError)) {
+            message = serverError.error
+            details = serverError.details
+        }
 
         return new FetchError(response.status, response.statusText, message, details)
     }

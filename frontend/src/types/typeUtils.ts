@@ -4,7 +4,7 @@
  * (c) Technische Universität Berlin, innoCampus <info@isis.tu-berlin.de>
  */
 
-import type { EditableElement, FormElement, HasElements } from '.'
+import type { DetailedServerError, EditableElement, FormElement, HasElements } from '.'
 
 /** Utility function to be used as exhaustion check. */
 // eslint-disable-next-line @typescript-eslint/no-unused-vars
@@ -27,4 +27,13 @@ function isObject(value: unknown): value is Record<string, unknown> {
     return typeof value === 'object' && value !== null && !Array.isArray(value)
 }
 
-export { assertNever, hasElements, isEditableElement, isObject }
+/** Type guard for `DetailedServerError`. */
+function isDetailedServerError(value: unknown): value is DetailedServerError {
+    return (
+        isObject(value) &&
+        typeof value.error === 'string' &&
+        (typeof value.details === 'string' || Array.isArray(value.details) || value.detail === null)
+    )
+}
+
+export { assertNever, hasElements, isDetailedServerError, isEditableElement, isObject }

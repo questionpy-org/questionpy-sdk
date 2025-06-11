@@ -5,10 +5,13 @@
 -->
 
 <template>
-    <CollapseCard expanded variant="danger" v-if="typedEntries.length > 0">
+    <CollapseCard expanded variant="danger" v-if="renderErrorsEntries.length > 0">
         <template #button-title>Render errors</template>
-        <template v-for="[key, errors] in typedEntries" :key="key">
-            <h4>{{ categoryTitle(key) }}</h4>
+        <div v-for="[key, errors] in renderErrorsEntries" :key="key" class="table-wrapper">
+            <h5>
+                {{ errors.length }} error{{ errors.length > 1 ? 's' : '' }} occurred while rendering
+                {{ categoryTitle(key as ErrorSectionKey) }}
+            </h5>
             <BTableSimple class="mb-0 table-bg">
                 <BThead>
                     <BTr>
@@ -20,12 +23,14 @@
                 <BTbody>
                     <BTr v-for="(error, index) in errors" :key="index">
                         <BTd>{{ error.line }}</BTd>
-                        <BTd>{{ error.type }}</BTd>
-                        <BTd>{{ error.message }}</BTd>
+                        <BTd
+                            ><samp>{{ error.type }}</samp></BTd
+                        >
+                        <BTd><ErrorTemplate :template="error.template" :values="error.template_kwargs" /></BTd>
                     </BTr>
                 </BTbody>
             </BTableSimple>
-        </template>
+        </div>
     </CollapseCard>
 </template>
 
@@ -34,14 +39,13 @@ import { storeToRefs } from 'pinia'
 import { computed } from 'vue'
 
 import useAttemptStore from '@/stores/useAttemptStore'
-import { assertNever } from '@/utils'
-import type { RenderError, RenderErrorCategory } from '@/schema/attempt'
+import { assertNever, type ErrorSectionKey } from '@/types'
 
 const { renderErrors } = storeToRefs(useAttemptStore())
 
-const typedEntries = computed(() => Object.entries(renderErrors.value) as [RenderErrorCategory, RenderError[]][])
+const renderErrorsEntries = computed(() => Object.entries(renderErrors.value))
 
-function categoryTitle(key: RenderErrorCategory): string {
+function categoryTitle(key: ErrorSectionKey): string {
     switch (key) {
         case 'formulation':
             return 'Formulation'
@@ -68,6 +72,14 @@ function categoryTitle(key: RenderErrorCategory): string {
     .table-bg {
         --bs-table-bg: rgba(255, 255, 255, 0.4);
         --bs-table-border-color: rgba(0, 0, 0, 0.1);
+    }
+}
+
+.table-wrapper {
+    margin-bottom: $spacer * 1.5;
+
+    &:last-of-type {
+        margin-bottom: 0;
     }
 }
 </style>
