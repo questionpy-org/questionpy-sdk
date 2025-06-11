@@ -3,13 +3,15 @@
 #  (c) Technische Universität Berlin, innoCampus <info@isis.tu-berlin.de>
 
 import random
-from enum import StrEnum, auto
+from enum import StrEnum
 from typing import TYPE_CHECKING, Any, Literal, TypedDict, overload
 
 import jinja2
 from pydantic import JsonValue
+from pydantic.dataclasses import dataclass
 
 from questionpy import AttemptModel, AttemptScoredModel, AttemptStartedModel, ScoreModel
+from questionpy_common.api.attempt import ScoringCode
 from questionpy_sdk.webserver.constants import DEFAULT_REQUEST_USER
 from questionpy_sdk.webserver.controllers.base import BaseController
 from questionpy_sdk.webserver.controllers.errors import MissingAttemptDataError, MissingAttemptStateError
@@ -22,9 +24,17 @@ if TYPE_CHECKING:
 
 
 class AttemptStatus(StrEnum):
-    STARTED = auto()
-    IN_PROGRESS = auto()
-    SCORED = auto()
+    STARTED = "STARTED"
+    IN_PROGRESS = "IN_PROGRESS"
+    SCORED = "SCORED"
+
+    @classmethod
+    def from_attempt(cls, attempt: AttemptModel) -> "AttemptStatus":
+        if isinstance(attempt, AttemptStartedModel):
+            return cls.STARTED
+        if isinstance(attempt, AttemptScoredModel):
+            return cls.SCORED
+        return cls.IN_PROGRESS
 
 
 class AttemptTemplateContext(TypedDict):
@@ -34,15 +44,18 @@ class AttemptTemplateContext(TypedDict):
     right_answer: str | None
 
 
-class AttemptRenderData(TypedDict):
+@dataclass
+class AttemptRenderData:
+    """Represents the API response data for rendering an attempt in the frontend."""
+
     attempt_html: str
     attempt_status: AttemptStatus
     attempt_state: str
     render_errors: RenderErrorCollections
     variant: int
-    scoring_state: str | None
-    scoring_code: str | None
-    score: float | None
+    scoring_state: str | None = None
+    scoring_code: ScoringCode | None = None
+    score: float | None = None
 
 
 class AttemptController(BaseController):
@@ -57,21 +70,21 @@ class AttemptController(BaseController):
 
         log_render_errors(render_errors)
 
-        data: AttemptRenderData = {
-            "attempt_html": await self._attempt_template.render_async(template_context),
-            "attempt_status": self._attempt_to_status(attempt),
-            "attempt_state": attempt_state,
-            "render_errors": render_errors,
-            "variant": attempt.variant,
-            "scoring_state": None,
-            "scoring_code": None,
-            "score": None,
-        }
+        data = AttemptRenderData(
+            attempt_html=await self._attempt_template.render_async(template_context),
+            attempt_status=AttemptStatus.from_attempt(attempt),
+            attempt_state=attempt_state,
+            render_errors=render_errors,
+            variant=attempt.variant,
+            scoring_state=None,
+            scoring_code=None,
+            score=None,
+        )
 
         if isinstance(attempt, AttemptScoredModel):
-            data["scoring_state"] = attempt.scoring_state
-            data["scoring_code"] = attempt.scoring_code.value
-            data["score"] = attempt.score
+            data.scoring_state = attempt.scoring_state
+            data.scoring_code = attempt.scoring_code
+            data.score = attempt.score
 
         return data
 
@@ -145,15 +158,6 @@ class AttemptController(BaseController):
         loader = jinja2.PackageLoader("questionpy_sdk.webserver")
         jinja2_env = jinja2.Environment(loader=loader, autoescape=True, enable_async=True)
         return jinja2_env.get_template("attempt.html.jinja2")
-
-    def _attempt_to_status(self, attempt: AttemptModel) -> AttemptStatus:
-        return (
-            AttemptStatus.STARTED
-            if isinstance(attempt, AttemptStartedModel)
-            else AttemptStatus.SCORED
-            if isinstance(attempt, AttemptScoredModel)
-            else AttemptStatus.IN_PROGRESS
-        )
 
     async def save_attempt(self, data: Any) -> None:
         """Saves the attempt data."""

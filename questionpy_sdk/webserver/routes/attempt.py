@@ -2,11 +2,12 @@
 #  The QuestionPy SDK is free software released under terms of the MIT license. See LICENSE.md.
 #  (c) Technische Universität Berlin, innoCampus <info@isis.tu-berlin.de>
 
-import json
+import contextlib
 from json import JSONEncoder
 from typing import Any
 
 from aiohttp import web
+from pydantic import RootModel
 
 from questionpy_sdk.webserver.controllers.attempt import AttemptController
 from questionpy_sdk.webserver.controllers.attempt.errors import RenderError, RenderErrorCollection
@@ -40,20 +41,17 @@ class CustomJSONEncoder(JSONEncoder):
 class AttemptView(AttemptBaseView):
     async def get(self) -> web.Response:
         """Gets the attempt data."""
-        params = self.request.query
-        display_options = QuestionDisplayOptions(
-            general_feedback=params.get("generalFeedback", "true").lower() == "true",
-            specific_feedback=params.get("specificFeedback", "true").lower() == "true",
-            right_answer=params.get("rightAnswer", "true").lower() == "true",
-            roles=params.getall("roles", []),
-        )
+        display_options_kwargs: dict[str, str | list[str]] = dict(self.request.query)
+        with contextlib.suppress(KeyError):
+            display_options_kwargs["roles"] = self.request.query.getall("roles")
+        display_options = QuestionDisplayOptions(**display_options_kwargs)
 
         try:
             data = await self.controller.get_attempt(display_options)
         except MissingQuestionStateError as err:
             raise web.HTTPBadRequest(text=str(err)) from err
 
-        return web.json_response(data=data, dumps=lambda obj: json.dumps(obj, cls=CustomJSONEncoder))
+        return self.json_model_response(RootModel(data))
 
     async def post(self) -> web.Response:
         """Saves the attempt form data."""

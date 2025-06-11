@@ -1,6 +1,6 @@
 {
     "extends": "@tsconfig/node22/tsconfig.json",
-    "include": ["vite.config.*", "vitest.config.*", "vitest-setup.ts"],
+    "include": ["vite.config.*", "vitest.config.*", "vitest-setup.ts", "json-schema-to-types.ts"],
     "compilerOptions": {
         "composite": true,
         "noEmit": true,
