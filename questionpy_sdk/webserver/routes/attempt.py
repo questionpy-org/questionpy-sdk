@@ -3,14 +3,11 @@
 #  (c) Technische Universität Berlin, innoCampus <info@isis.tu-berlin.de>
 
 import contextlib
-from json import JSONEncoder
-from typing import Any
 
 from aiohttp import web
 from pydantic import RootModel
 
 from questionpy_sdk.webserver.controllers.attempt import AttemptController
-from questionpy_sdk.webserver.controllers.attempt.errors import RenderError, RenderErrorCollection
 from questionpy_sdk.webserver.controllers.attempt.question_ui import QuestionDisplayOptions
 from questionpy_sdk.webserver.controllers.errors import (
     MissingAttemptDataError,
@@ -24,17 +21,6 @@ routes = web.RouteTableDef()
 
 class AttemptBaseView(BaseView["AttemptController"]):
     controller_class = AttemptController
-
-
-class CustomJSONEncoder(JSONEncoder):
-    """A JSON encoder that can handle render error objects."""
-
-    def default(self, obj: Any) -> Any:
-        if isinstance(obj, RenderError):
-            return obj.to_json()
-        if isinstance(obj, RenderErrorCollection):
-            return list(obj)
-        return super().default(obj)
 
 
 @routes.view("/attempt")

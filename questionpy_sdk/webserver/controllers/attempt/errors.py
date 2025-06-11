@@ -2,49 +2,80 @@
 #  The QuestionPy SDK is free software released under terms of the MIT license. See LICENSE.md.
 #  (c) Technische Universität Berlin, innoCampus <info@isis.tu-berlin.de>
 
-import html
 import logging
 from abc import ABC, abstractmethod
 from bisect import insort
-from collections.abc import Collection, Iterable, Iterator, Mapping, Sized
-from dataclasses import dataclass, field
+from collections.abc import Collection, Iterator, MutableMapping, Sequence
 from operator import attrgetter
+from typing import Annotated, Literal
 
 from lxml import etree
+from pydantic import BaseModel, ConfigDict, Field, RootModel, computed_field
 
 _log = logging.getLogger(__name__)
 
-
-def _format_human_readable_list(values: Collection[str], opening: str, closing: str) -> str:
-    if not values:
-        return ""
-
-    *values, last_value = values
-    last_value = f"{opening}{last_value}{closing}"
-    if not values:
-        return last_value
-
-    return opening + f"{closing}, {opening}".join(values) + f"{closing} and {last_value}"
+type TemplateKwargs = Annotated[
+    MutableMapping[str, str | Sequence[str]],
+    Field(
+        description="A mapping of placeholder keys to values for a template.",
+        json_schema_extra={"default": {}},
+    ),
+]
 
 
-def _element_representation(element: etree._Element) -> str:
-    # Return the whole element if it is a PI.
-    if isinstance(element, etree._ProcessingInstruction):
-        return str(element)
-
-    # Create the prefix of an element. We do not want to keep 'html' as a prefix.
-    prefix = f"{element.prefix}:" if element.prefix and element.prefix != "html" else ""
-    return prefix + etree.QName(element).localname
+type ErrorSectionKey = Annotated[
+    Literal["formulation", "general_feedback", "specific_feedback", "right_answer"], Field(title="ErrorSectionKey")
+]
 
 
-@dataclass(frozen=True)
-class RenderError(ABC):
+type SectionErrorMap = Annotated[
+    MutableMapping[ErrorSectionKey, RenderErrorCollection],
+    Field(
+        description="A mapping of sections to their associated render errors.",
+        json_schema_extra={"default": {}},
+    ),
+]
+
+
+type RenderError = Annotated[
+    InvalidAttributeValueError
+    | ConversionError
+    | PlaceholderReferenceError
+    | InvalidCleanOptionError
+    | InvalidContentError
+    | ExpectedAncestorError
+    | UnknownElementError
+    | UnknownAttributeError
+    | DuplicateNameError
+    | XMLSyntaxError,
+    Field(discriminator="kind"),
+]
+
+
+class BaseRenderError(BaseModel, ABC):
     """Represents a generic error which occurred during rendering."""
 
+    model_config = ConfigDict(frozen=True)
+
+    template: str
+    """A template string that defines the structure of the error message.
+
+    It can contain placeholders corresponding to the keys in `template_kwargs`.
+    These placeholders are identified by braces (`{` and `}`), similar to `str.format`.
+    """
+
+    template_kwargs: TemplateKwargs = {}
+    """A mapping containing the values of the placeholders in `template`.
+
+    If a value is of type `Sequence[str]`, it will be formatted as a human-readable list.
+    """
+
+    @computed_field  # type: ignore[prop-decorator]
     @property
     def type(self) -> str:
         return self.__class__.__name__
 
+    @computed_field  # type: ignore[prop-decorator]
     @property
     @abstractmethod
     def line(self) -> int | None:
@@ -56,71 +87,69 @@ class RenderError(ABC):
         return self.line or 0
 
     @property
-    @abstractmethod
     def message(self) -> str:
-        pass
-
-    def to_json(self) -> dict:
-        return {
-            "type": self.type,
-            "line": self.line,
-            "message": self.message,
-        }
-
-
-@dataclass(frozen=True)
-class RenderElementError(RenderError, ABC):
-    """A generic element error which occurred during rendering.
-
-    Attributes:
-        element: The element where the error occurred.
-        template: A template string that defines the structure of the error message.
-            It can contain placeholders corresponding to the keys in `template_kwargs`.
-            These placeholders are identified by braces ('{' and '}'), similar to `str.format`.
-            The '{element}' placeholder is predefined and resolves to a human-readable representation of `element`.
-            Providing a value with the key 'element' in `template_kwargs` will overwrite this behaviour.
-        template_kwargs: A mapping containing the values of the placeholders in `template`.
-            If a value is of type `Collection[str]`, it will be formatted as a human-readable list.
-    """
-
-    element: etree._Element
-    template: str
-    template_kwargs: Mapping[str, str | Collection[str]] = field(default_factory=dict)
-
-    def _message(self, *, as_html: bool) -> str:
-        (opening, closing) = ("<code>", "</code>") if as_html else ("'", "'")
-        template_kwargs = {"element": f"{opening}{_element_representation(self.element)}{closing}"}
-
+        """A human-readable, formatted description of the error."""
+        template_kwargs = {}
         for key, values in self.template_kwargs.items():
-            collection = {values} if isinstance(values, str) else values
-            template_kwargs[key] = _format_human_readable_list(collection, opening, closing)
+            collection = (values,) if isinstance(values, str) else values
+            template_kwargs[key] = self._format_human_readable_list(collection)
 
         return self.template.format_map(template_kwargs)
 
-    @property
-    def message(self) -> str:
-        return self._message(as_html=False)
+    @staticmethod
+    def _format_human_readable_list(values: Sequence[str]) -> str:
+        if not values:
+            return ""
 
-    @property
-    def html_message(self) -> str:
-        return self._message(as_html=True)
+        *values, last_value = values
+        last_value = f"'{last_value}'"
+        if not values:
+            return last_value
+
+        joined_values = "', '".join(values)
+        return f"'{joined_values}' and {last_value}"
+
+
+class RenderElementError(BaseRenderError, ABC):
+    """A generic element error which occurred during rendering."""
+
+    _element: etree._Element
+    """The element where the error occurred."""
+
+    def __init__(self, element: etree._Element, template: str, template_kwargs: TemplateKwargs | None = None):
+        template_kwargs = template_kwargs or {}
+        template_kwargs["element"] = self._element_representation(element)
+        super().__init__(template=template, template_kwargs=template_kwargs)
+        self._element = element
 
     @property
     def line(self) -> int | None:
         """Original line number as found by the parser or None if unknown."""
-        return self.element.sourceline  # type: ignore[return-value]
+        return self._element.sourceline  # type: ignore[return-value]
+
+    @staticmethod
+    def _element_representation(element: etree._Element) -> str:
+        """Generate a human-readable string representation of an XML element."""
+        # Return the whole element if it is a PI.
+        if isinstance(element, etree._ProcessingInstruction):
+            return str(element)
+
+        # Create the prefix of an element. We do not want to keep 'html' as a prefix.
+        prefix = f"{element.prefix}:" if element.prefix and element.prefix != "html" else ""
+        return f"{prefix}{etree.QName(element).localname}"
 
 
-@dataclass(frozen=True)
 class InvalidAttributeValueError(RenderElementError):
     """Invalid attribute value(s)."""
+
+    kind: Literal["invalid_attribute_value"] = "invalid_attribute_value"
 
     def __init__(
         self,
         element: etree._Element,
         attribute: str,
-        value: str | Collection[str],
-        expected: Collection[str] | None = None,
+        value: str | Sequence[str],
+        expected: Sequence[str] | None = None,
     ):
         template_kwargs = {"value": value, "attribute": attribute}
         expected_str = ""
@@ -129,34 +158,37 @@ class InvalidAttributeValueError(RenderElementError):
             expected_str = " Expected values are {expected}."
 
         super().__init__(
-            element=element,
-            template=f"Invalid value {{value}} for attribute {{attribute}} on element {{element}}.{expected_str}",
-            template_kwargs=template_kwargs,
+            element,
+            f"Invalid value {{value}} for attribute {{attribute}} on element {{element}}.{expected_str}",
+            template_kwargs,
         )
 
 
-@dataclass(frozen=True)
 class ConversionError(RenderElementError):
     """Could not convert a value to another type."""
 
+    kind: Literal["conversion"] = "conversion"
+
     def __init__(self, element: etree._Element, value: str, to_type: type, attribute: str | None = None):
-        template_kwargs = {"value": value, "type": to_type.__name__}
+        template_kwargs: TemplateKwargs = {"value": value, "type": to_type.__name__}
 
         in_attribute = ""
         if attribute:
             template_kwargs["attribute"] = attribute
             in_attribute = " in attribute {attribute}"
-
         template = f"Unable to convert {{value}} to {{type}}{in_attribute} at element {{element}}."
-        super().__init__(element=element, template=template, template_kwargs=template_kwargs)
+
+        super().__init__(element, template, template_kwargs)
 
 
-@dataclass(frozen=True)
 class PlaceholderReferenceError(RenderElementError):
     """An unknown or no placeholder was referenced."""
 
-    def __init__(self, element: etree._Element, placeholder: str | None, available: Collection[str]):
-        template_kwargs: dict[str, str | Collection[str]] = {}
+    kind: Literal["placeholder_reference"] = "placeholder_reference"
+
+    def __init__(self, element: etree._Element, placeholder: str | None, available: Sequence[str]):
+        template_kwargs: TemplateKwargs = {}
+
         if placeholder is None:
             template = "No placeholder was referenced."
         else:
@@ -169,141 +201,133 @@ class PlaceholderReferenceError(RenderElementError):
                 template += " These are the provided placeholders: {available}."
                 template_kwargs["available"] = available
 
-        super().__init__(
-            element=element,
-            template=template,
-            template_kwargs=template_kwargs,
-        )
+        super().__init__(element, template, template_kwargs)
 
 
-@dataclass(frozen=True)
 class InvalidCleanOptionError(RenderElementError):
     """Invalid clean option."""
 
-    def __init__(self, element: etree._Element, option: str, expected: Collection[str]):
+    kind: Literal["invalid_clean_option"] = "invalid_clean_option"
+
+    def __init__(self, element: etree._Element, option: str, expected: Sequence[str]):
         super().__init__(
-            element=element,
-            template="Invalid cleaning option {option}. Available options are {expected}.",
-            template_kwargs={"option": option, "expected": expected},
+            element,
+            "Invalid cleaning option {option}. Available options are {expected}.",
+            {"option": option, "expected": expected},
         )
 
 
-@dataclass(frozen=True)
 class InvalidContentError(RenderElementError):
     """Invalid content placement."""
 
+    kind: Literal["invalid_content"] = "invalid_content"
+
     def __init__(self, element: etree._Element, attribute: str):
         super().__init__(
-            element=element,
-            template="Avoid placing text or processing instructions directly inside {element} with the {attribute} "
+            element,
+            "Avoid placing text or processing instructions directly inside {element} with the {attribute} "
             "attribute. Wrap the content in an element instead.",
-            template_kwargs={"attribute": attribute},
+            {"attribute": attribute},
         )
 
 
-@dataclass(frozen=True)
 class ExpectedAncestorError(RenderElementError):
     """Invalid element placement."""
 
+    kind: Literal["expected_ancestor"] = "expected_ancestor"
+
     def __init__(self, element: etree._Element, expected_ancestor_attribute: str):
         super().__init__(
-            element=element,
-            template="{element} must be placed inside an element with the {expected_ancestor_attribute} attribute.",
-            template_kwargs={"expected_ancestor_attribute": expected_ancestor_attribute},
+            element,
+            "{element} must be placed inside an element with the {expected_ancestor_attribute} attribute.",
+            {"expected_ancestor_attribute": expected_ancestor_attribute},
         )
 
 
-@dataclass(frozen=True)
 class UnknownElementError(RenderElementError):
     """Unknown element with qpy-namespace."""
 
+    kind: Literal["unknown_element"] = "unknown_element"
+
     def __init__(self, element: etree._Element):
-        super().__init__(
-            element=element,
-            template="Unknown element {element}.",
-        )
+        super().__init__(element, "Unknown element {element}.")
 
 
-@dataclass(frozen=True)
 class UnknownAttributeError(RenderElementError):
     """Unknown attribute with qpy-namespace."""
 
-    def __init__(self, element: etree._Element, attributes: Collection[str]):
+    kind: Literal["unknown_attribute"] = "unknown_attribute"
+
+    def __init__(self, element: etree._Element, attributes: Sequence[str]):
         s = "" if len(attributes) == 1 else "s"
         super().__init__(
-            element=element,
-            template=f"Unknown attribute{s} {{attributes}} on element {{element}}.",
-            template_kwargs={"attributes": attributes},
+            element,
+            f"Unknown attribute{s} {{attributes}} on element {{element}}.",
+            {"attributes": attributes},
         )
 
 
-@dataclass(frozen=True)
 class DuplicateNameError(RenderElementError):
     """Invalid duplicate input name."""
 
+    kind: Literal["duplicate_name"] = "duplicate_name"
+
     def __init__(self, element: etree._Element, name: str, other_element: etree._Element):
         super().__init__(
-            element=element,
-            template="{element} should not have the same name ({name}) like {other_element} at line {line}.",
-            template_kwargs={
+            element,
+            "{element} should not have the same name ({name}) like {other_element} at line {line}.",
+            {
                 "name": name,
-                "other_element": _element_representation(other_element),
+                "other_element": self._element_representation(other_element),
                 "line": str(other_element.sourceline or "?"),
             },
         )
 
 
-@dataclass(frozen=True)
-class XMLSyntaxError(RenderError):
+class XMLSyntaxError(BaseRenderError):
     """Syntax error while parsing the XML."""
 
-    error: etree.XMLSyntaxError
+    kind: Literal["xml_syntax"] = "xml_syntax"
+
+    _error: etree.XMLSyntaxError
+
+    def __init__(self, error: etree.XMLSyntaxError):
+        super().__init__(template=error.msg)
+        self._error = error
 
     @property
     def line(self) -> int | None:
-        return self.error.lineno
+        return self._error.lineno
 
     @property
     def order(self) -> int:
         # Syntax errors can lead to a multitude of other errors therefore we want them to be the first in order.
         return -1
 
-    @property
-    def message(self) -> str:
-        return f"{self.error.msg}"
 
-    @property
-    def html_message(self) -> str:
-        return f"<samp>{html.escape(self.error.msg)}</samp>"
-
-
-class RenderErrorCollection(Iterable, Sized):
+class RenderErrorCollection(RootModel[list[RenderError]], Collection[RenderError]):
     """Collects render errors and provides a sorted iterator."""
 
-    _errors: list[RenderError]
-
-    def __init__(self) -> None:
-        self._errors = []
+    root: list[RenderError] = []
 
     def insert(self, error: RenderError) -> None:
-        insort(self._errors, error, key=attrgetter("order"))
+        insort(self.root, error, key=attrgetter("order"))
 
-    def __iter__(self) -> Iterator[RenderError]:
-        return iter(self._errors)
+    def __contains__(self, value: object) -> bool:
+        return value in self.root
+
+    def __iter__(self) -> Iterator[BaseRenderError]:  # type: ignore[override]
+        return iter(self.root)
 
     def __len__(self) -> int:
-        return len(self._errors)
+        return len(self.root)
 
     def __repr__(self) -> str:
-        return f"{self.__class__.__name__}({self._errors})"
+        return f"{self.__class__.__name__}({self.root})"
 
 
-type RenderErrorCollections = dict[str, RenderErrorCollection]
-"""Section to RenderErrorCollection map."""
-
-
-def log_render_errors(render_errors: RenderErrorCollections) -> None:
-    for section, errors in render_errors.items():
+def log_render_errors(error_map: SectionErrorMap) -> None:
+    for section, errors in error_map.items():
         errors_string = ""
         for error in errors:
             line = f"Line {error.line}: " if error.line else ""

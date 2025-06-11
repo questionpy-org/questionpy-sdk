@@ -9,6 +9,7 @@ import pytest
 from lxml import etree
 
 from questionpy_sdk.webserver.controllers.attempt.errors import (
+    BaseRenderError,
     ConversionError,
     DuplicateNameError,
     ExpectedAncestorError,
@@ -16,7 +17,6 @@ from questionpy_sdk.webserver.controllers.attempt.errors import (
     InvalidCleanOptionError,
     InvalidContentError,
     PlaceholderReferenceError,
-    RenderError,
     UnknownAttributeError,
     UnknownElementError,
     XMLSyntaxError,
@@ -407,7 +407,7 @@ def test_errors_should_be_collected(renderer: QuestionUIRenderer) -> None:
     """  # noqa: E501
     html, errors = renderer.render()
 
-    expected_errors: list[tuple[type[RenderError], int]] = [
+    expected_errors: list[tuple[type[BaseRenderError], int]] = [
         # Even though the syntax error occurs after all the other errors, it should be listed first.
         (XMLSyntaxError, 19),
         (InvalidAttributeValueError, 2),

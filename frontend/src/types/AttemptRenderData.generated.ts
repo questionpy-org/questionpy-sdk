@@ -8,10 +8,7 @@
 // DO NOT MODIFY IT BY HAND. Instead, modify the source Pydantic models, and regenerate this file.
 
 export type AttemptStatus = 'STARTED' | 'IN_PROGRESS' | 'SCORED'
-/**
- * Collects render errors and provides a sorted iterator.
- */
-export type RenderErrorCollection = (
+export type RenderError =
     | InvalidAttributeValueError
     | ConversionError
     | PlaceholderReferenceError
@@ -22,7 +19,10 @@ export type RenderErrorCollection = (
     | UnknownAttributeError
     | DuplicateNameError
     | XMLSyntaxError
-)[]
+/**
+ * Collects render errors and provides a sorted iterator.
+ */
+export type RenderErrorCollection = RenderError[]
 export type ScoringCode = 'AUTOMATICALLY_SCORED' | 'NEEDS_MANUAL_SCORING' | 'RESPONSE_NOT_SCORABLE' | 'INVALID_RESPONSE'
 
 /**

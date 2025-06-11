@@ -72,7 +72,7 @@ const useAttemptStore = defineStore('attemptData', () => {
         }),
         error: computed(() => dataState.value.error),
         iframeSrcDoc: computed(() => dataState.value.data?.attempt_html),
-        renderErrors: computed(() => dataState.value.data?.render_errors ?? []),
+        renderErrors: computed(() => dataState.value.data?.render_errors ?? {}),
         rescoreDisabled: computed(() => dataState.value.data?.attempt_status !== 'SCORED'),
         restartDisabled: computed(() => dataState.value.data?.attempt_status === 'STARTED'),
         variant: computed(() => dataState.value.data?.variant),

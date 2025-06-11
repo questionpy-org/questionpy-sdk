@@ -65,8 +65,10 @@ type OptionsFormData = Record<string, OptionsFormValue>
 
 export type { AttemptRenderData } from './AttemptRenderData.generated'
 export type { ClientQuestionDisplayOptions, DisplayRole } from './ClientQuestionDisplayOptions.generated'
+export type { DetailedServerError, ErrorDetails } from './DetailedServerError.generated'
+export type { ErrorSectionKey } from './ErrorSectionKey.generated'
 export type { Manifest } from './Manifest.generated'
-export { assertNever, hasElements, isEditableElement, isObject } from './typeUtils'
+export { assertNever, hasElements, isDetailedServerError, isEditableElement, isObject } from './typeUtils'
 export type {
     CanHaveConditions,
     CanHaveHelp,

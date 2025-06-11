@@ -16,7 +16,7 @@ from questionpy_sdk.webserver.constants import DEFAULT_REQUEST_USER
 from questionpy_sdk.webserver.controllers.base import BaseController
 from questionpy_sdk.webserver.controllers.errors import MissingAttemptDataError, MissingAttemptStateError
 
-from .errors import RenderErrorCollections, log_render_errors
+from .errors import SectionErrorMap, log_render_errors
 from .question_ui import QuestionDisplayOptions, QuestionFormulationUIRenderer, QuestionUIRenderer
 
 if TYPE_CHECKING:
@@ -51,7 +51,7 @@ class AttemptRenderData:
     attempt_html: str
     attempt_status: AttemptStatus
     attempt_state: str
-    render_errors: RenderErrorCollections
+    render_errors: SectionErrorMap
     variant: int
     scoring_state: str | None = None
     scoring_code: ScoringCode | None = None
@@ -123,7 +123,7 @@ class AttemptController(BaseController):
         display_options: QuestionDisplayOptions,
         last_attempt_data: dict[str, JsonValue] | None,
         score: ScoreModel | None,
-    ) -> tuple[AttemptTemplateContext, RenderErrorCollections]:
+    ) -> tuple[AttemptTemplateContext, SectionErrorMap]:
         # Force display options if not scored
         if not score:
             display_options.readonly = False
@@ -140,7 +140,7 @@ class AttemptController(BaseController):
             "right_answer": None,
         }
 
-        render_errors: RenderErrorCollections = {}
+        render_errors: SectionErrorMap = {}
         if errors:
             render_errors["formulation"] = errors
         for key in ("general_feedback", "specific_feedback", "right_answer"):

@@ -2,13 +2,14 @@
 #  The QuestionPy SDK is free software released under terms of the MIT license. See LICENSE.md.
 #  (c) Technische Universität Berlin, innoCampus <info@isis.tu-berlin.de>
 
+import logging
 from unittest.mock import AsyncMock, Mock
 
 import pytest
 
 from questionpy import AttemptModel, AttemptScoredModel, AttemptStartedModel, AttemptUi, ScoringCode
 from questionpy_sdk.webserver.controllers.attempt import AttemptController, AttemptStatus
-from questionpy_sdk.webserver.controllers.attempt.errors import RenderError
+from questionpy_sdk.webserver.controllers.attempt.errors import InvalidAttributeValueError
 from questionpy_sdk.webserver.controllers.attempt.question_ui import QuestionDisplayOptions, RenderErrorCollection
 
 
@@ -74,30 +75,30 @@ async def test_get_attempt_render_errors(
     mock_formulation_renderer: Mock,
     mock_worker: AsyncMock,
     monkeypatch: pytest.MonkeyPatch,
+    caplog: pytest.LogCaptureFixture,
 ) -> None:
     mock_worker.get_attempt.return_value = AttemptModel(variant=1, lang="en", ui=AttemptUi(formulation=""))
 
-    class SomeError(RenderError):
-        @property
-        def line(self) -> int | None:
-            return 10
-
-        @property
-        def message(self) -> str:
-            return ""
-
     with monkeypatch.context() as mp:
-        mock_log_errors = Mock()
-        mp.setattr("questionpy_sdk.webserver.controllers.attempt.controller.log_render_errors", mock_log_errors)
-
-        formulation_errors = RenderErrorCollection()
-        formulation_errors.insert(SomeError())
+        mp.setattr(
+            "questionpy_sdk.webserver.controllers.attempt.errors.etree.QName",
+            Mock(return_value=Mock(localname="some_elem")),
+        )
+        elem_mock = Mock(sourceline=10, prefix="some_prefix")
+        error = InvalidAttributeValueError(elem_mock, "some_attr", "some_value")
+        formulation_errors = RenderErrorCollection([error])
         mock_formulation_renderer.render = Mock(return_value=("<html>Formulation</html>", formulation_errors))
 
-        data = await controller.get_attempt(QuestionDisplayOptions())
+        with caplog.at_level(logging.INFO):
+            data = await controller.get_attempt(QuestionDisplayOptions())
 
-        assert data["render_errors"]["formulation"] == formulation_errors
-        mock_log_errors.assert_called_once_with(data["render_errors"])
+            assert data.render_errors["formulation"] == formulation_errors
+            assert "1 error occurred while rendering" in caplog.text
+            assert "Line 10" in caplog.text
+            assert "InvalidAttributeValueError" in caplog.text
+            assert (
+                "Invalid value 'some_value' for attribute 'some_attr' on element 'some_prefix:some_elem'" in caplog.text
+            )
 
 
 async def test_save_attempt(controller: AttemptController, mock_state_manager: AsyncMock) -> None:

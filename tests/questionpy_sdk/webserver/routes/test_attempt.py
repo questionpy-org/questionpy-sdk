@@ -10,7 +10,6 @@ from aiohttp.web_exceptions import HTTPOk
 
 from questionpy import DisplayRole
 from questionpy_sdk.webserver.controllers.attempt.controller import AttemptRenderData, AttemptStatus
-from questionpy_sdk.webserver.controllers.attempt.errors import SectionErrorMap
 from questionpy_sdk.webserver.controllers.attempt.question_ui import QuestionDisplayOptions
 from questionpy_sdk.webserver.routes import attempt
 
@@ -21,7 +20,7 @@ async def test_get_attempt(client: TestClient, mock_controller: AsyncMock) -> No
         attempt_html="<html>Test</html>",
         attempt_status=AttemptStatus.STARTED,
         attempt_state="some_state",
-        render_errors=SectionErrorMap(),
+        render_errors={},
         variant=0,
     )
 
