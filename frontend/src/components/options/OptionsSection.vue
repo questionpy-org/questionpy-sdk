@@ -16,7 +16,7 @@
 </template>
 
 <script lang="ts" setup>
-import type { FormElement } from '@/schema/options/types'
+import type { FormElement } from '@/types'
 
 defineProps<{
     elements: FormElement[]

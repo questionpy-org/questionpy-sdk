@@ -43,7 +43,7 @@ import IMdiDelete from '~icons/mdi/delete'
 import { computed } from 'vue'
 
 import useOptionsFormDataStore from '@/stores/useOptionsFormDataStore'
-import type { RepetitionElement } from '@/schema/options/types'
+import type { RepetitionElement } from '@/types'
 
 import { useCommon, useIsDisabled } from './composables'
 

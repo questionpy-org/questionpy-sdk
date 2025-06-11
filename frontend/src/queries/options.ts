@@ -14,36 +14,34 @@ import {
 } from '@pinia/colada'
 
 import { get, post } from '@/queries/fetch'
-import { optionsFormDataSchema, optionsSchema } from '@/schema/options'
-import type { Options, OptionsFormData, ServerValidationErrors } from '@/schema/options/types'
+import type { OptionsFormData, OptionsFormDefinition, ServerValidationErrors } from '@/types'
 
 /** Get options form data query. */
 const useOptionsFormDataQuery = defineQuery(() =>
     useQuery({
         key: ['options', 'data'],
-        query: () => get('options/state', optionsFormDataSchema),
+        query: () => get<OptionsFormData>('options/state'),
     }),
 )
 
 /** Get options form definition query. */
-const useOptionsFormDefinition = defineQuery(() =>
+const useOptionsFormDefinitionQuery = defineQuery(() =>
     useQuery({
         key: ['options', 'definition'],
-        // Explicitly override generic argument as zod is not able to infer the type automatically.
-        // See `formElementSchema` for details.
-        query: () => get<Options>('options', optionsSchema),
+        query: () => get<OptionsFormDefinition>('options'),
     }),
 )
 
 type SubscribeCallback = NonNullable<UseMutationOptions<ServerValidationErrors, OptionsFormData>['onSuccess']>
 
 /** Post options form data query. */
-const usePostOptionsFormData = defineMutation(() => {
+const usePostOptionsFormDataQuery = defineMutation(() => {
     const queryCache = useQueryCache()
     const onSuccessSubscribers = new Set<SubscribeCallback>()
 
     const mutation = useMutation({
-        mutation: async (formData: OptionsFormData) => (await post('options/state', JSON.stringify(formData))) ?? {},
+        mutation: async (formData: OptionsFormData) =>
+            (await post<ServerValidationErrors>('options/state', JSON.stringify(formData))) ?? {},
         onSettled: () => {
             queryCache.invalidateQueries({ key: ['options', 'data'] })
             queryCache.invalidateQueries({ key: ['attempt-data'] })
@@ -65,4 +63,4 @@ const usePostOptionsFormData = defineMutation(() => {
     return { ...mutation, onSuccess }
 })
 
-export { useOptionsFormDataQuery, useOptionsFormDefinition, usePostOptionsFormData }
+export { useOptionsFormDataQuery, useOptionsFormDefinitionQuery, usePostOptionsFormDataQuery }

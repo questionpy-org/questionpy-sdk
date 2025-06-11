@@ -13,7 +13,7 @@ import {
     usePostAttemptRestartQuery,
     usePostAttemptScoreQuery,
 } from '@/queries/attempt'
-import { usePostOptionsFormData } from '@/queries/options'
+import { usePostOptionsFormDataQuery } from '@/queries/options'
 
 import useAppStateStore from './useAppStateStore'
 
@@ -23,7 +23,7 @@ const useAttemptStore = defineStore('attemptData', () => {
     const { asyncStatus: postAsyncStatus, mutateAsync: postAttempt } = usePostAttemptQuery()
     const { asyncStatus: postRestartAsyncStatus, mutateAsync: postRestart } = usePostAttemptRestartQuery()
     const { asyncStatus: postScoreAsyncStatus, mutateAsync: postScore } = usePostAttemptScoreQuery()
-    const { onSuccess: onPostOptionsFormDataSuccess } = usePostOptionsFormData()
+    const { onSuccess: onPostOptionsFormDataSuccess } = usePostOptionsFormDataQuery()
 
     const { setError } = useAppStateStore()
 
@@ -60,11 +60,11 @@ const useAttemptStore = defineStore('attemptData', () => {
         attemptState: computed(() => dataState.value.data?.attempt_state),
         displayStatus: computed(() => {
             switch (dataState.value.data?.attempt_status) {
-                case 'in_progress':
+                case 'IN_PROGRESS':
                     return 'In progress'
-                case 'scored':
+                case 'SCORED':
                     return 'Scored'
-                case 'started':
+                case 'STARTED':
                     return 'Started'
                 default:
                     return ''
@@ -73,8 +73,8 @@ const useAttemptStore = defineStore('attemptData', () => {
         error: computed(() => dataState.value.error),
         iframeSrcDoc: computed(() => dataState.value.data?.attempt_html),
         renderErrors: computed(() => dataState.value.data?.render_errors ?? []),
-        rescoreDisabled: computed(() => dataState.value.data?.attempt_status !== 'scored'),
-        restartDisabled: computed(() => dataState.value.data?.attempt_status === 'started'),
+        rescoreDisabled: computed(() => dataState.value.data?.attempt_status !== 'SCORED'),
+        restartDisabled: computed(() => dataState.value.data?.attempt_status === 'STARTED'),
         variant: computed(() => dataState.value.data?.variant),
 
         // ScoreModel

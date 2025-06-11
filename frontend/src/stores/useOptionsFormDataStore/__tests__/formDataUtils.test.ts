@@ -4,10 +4,6 @@
  * (c) Technische Universität Berlin, innoCampus <info@isis.tu-berlin.de>
  */
 
-import { readFile } from 'node:fs/promises'
-import path from 'node:path'
-
-import { optionsSchema } from '@/schema/options'
 import {
     areFormDataObjIdentical,
     createFormDataValues,
@@ -26,10 +22,9 @@ import type {
     RepetitionElement,
     SelectElement,
     TextInputElement,
-} from '@/schema/options/types'
+} from '@/types'
 
-const data = await readFile(path.join(import.meta.dirname, 'options.json'))
-const options = optionsSchema.parse(JSON.parse(data.toString()))
+import options from './options'
 
 test('getElementName', () => {
     expect(getElementName(['general', 'foo', 'bar'])).toBe('general[foo][bar]')

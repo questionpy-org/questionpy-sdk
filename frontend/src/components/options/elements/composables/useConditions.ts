@@ -9,8 +9,8 @@ import { type Ref, ref, watchEffect } from 'vue'
 
 import useOptionsFormDataStore from '@/stores/useOptionsFormDataStore'
 import { getElementName } from '@/stores/useOptionsFormDataStore/formDataUtils'
-import { assertNever } from '@/utils'
-import type { CanHaveConditions, Condition, OptionsFormData } from '@/schema/options/types'
+import { assertNever } from '@/types'
+import type { CanHaveConditions, Condition, OptionsFormData } from '@/types'
 
 /**
  * Evaluates whether a given condition is met based on form data and a base path.

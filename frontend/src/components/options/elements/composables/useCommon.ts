@@ -7,7 +7,7 @@
 import { computed, type ComputedRef } from 'vue'
 
 import { getElementName } from '@/stores/useOptionsFormDataStore/formDataUtils'
-import type { FormElement } from '@/schema/options/types'
+import type { FormElement } from '@/types'
 
 /**
  * A composable providing common values to options form elements.

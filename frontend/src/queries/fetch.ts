@@ -4,12 +4,6 @@
  * (c) Technische Universität Berlin, innoCampus <info@isis.tu-berlin.de>
  */
 
-import { z } from 'zod'
-
-import { serverErrorSchema } from '@/schema/error'
-import { serverValidationErrorsSchema } from '@/schema/options'
-import type { ServerValidationErrors } from '@/schema/options/types'
-
 /**
  * Represents an error that occurs during a fetch operation.
  * Extends the built-in `Error` class to include HTTP status information.
@@ -46,35 +40,24 @@ class FetchError extends Error {
      * @returns A Promise resolving to a FetchError instance.
      */
     static async fromResponse(response: Response): Promise<FetchError> {
-        let message = `${response.status} ${response.statusText}`
-        let details: string | undefined = undefined
-
-        try {
-            const errorObj = serverErrorSchema.parse(await response.json())
-            message = errorObj.error
-            details = errorObj.details
-        } catch (err) {
-            if (err instanceof Error) {
-                console.error(err.stack)
-            }
-        }
+        const message = `${response.status} ${response.statusText}`
+        const details: DetailedServerError['details'] = null
 
         return new FetchError(response.status, response.statusText, message, details)
     }
 }
 
 /**
- * Performs a GET request to the specified API path and validates the response using a Zod schema.
+ * Performs a GET request to the specified API endpoint.
  *
  * @param path The relative API endpoint path (e.g., `manifest` or `options`).
- * @param schema The Zod schema used to validate the response data.
  * @param params Optional query parameters.
+ * @template T The response data type.
  * @returns A promise that resolves to the validated data.
  * @throws {@link FetchError} If the response is not OK (status code outside the 200-299 range).
  */
-async function get<T>(
+async function get<T = unknown>(
     path: string,
-    schema: z.ZodType<T>,
     params?: Record<string, string | number | boolean | string[]>,
 ): Promise<T> {
     const url = new URL(`/api/${path}`, window.location.origin)
@@ -93,14 +76,8 @@ async function get<T>(
     if (!response.ok) {
         throw await FetchError.fromResponse(response)
     }
-    try {
-        return schema.parse(await response.json())
-    } catch (err) {
-        if (err instanceof Error) {
-            console.error(err.stack)
-        }
-        throw err
-    }
+
+    return await response.json()
 }
 
 /**
@@ -112,17 +89,10 @@ async function get<T>(
  *          or `undefined` if the request is successful.
  * @throws {@link FetchError} If the response is not OK (status code outside the 200-299 range) and not 422.
  */
-async function post(path: string, body?: string): Promise<ServerValidationErrors | undefined> {
+async function post<T = unknown>(path: string, body?: string): Promise<T | undefined> {
     const response = await fetch(`/api/${path}`, { method: 'POST', body })
     if (response.status === 422) {
-        try {
-            return serverValidationErrorsSchema.parse(await response.json())
-        } catch (err) {
-            if (err instanceof Error) {
-                console.error(err.stack)
-            }
-            throw err
-        }
+        return await response.json()
     } else if (!response.ok) {
         throw await FetchError.fromResponse(response)
     }

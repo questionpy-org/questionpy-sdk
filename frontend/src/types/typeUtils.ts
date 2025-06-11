@@ -4,15 +4,27 @@
  * (c) Technische Universität Berlin, innoCampus <info@isis.tu-berlin.de>
  */
 
+import type { EditableElement, FormElement, HasElements } from '.'
+
 /** Utility function to be used as exhaustion check. */
 // eslint-disable-next-line @typescript-eslint/no-unused-vars
 function assertNever(_: never): never {
     throw new Error('This code should never be reached')
 }
 
-/** Type guard for object. */
+/** Type guard for `FormElement` with `elements` property. */
+function hasElements(elem: FormElement): elem is HasElements {
+    return Array.isArray((elem as HasElements).elements)
+}
+
+/** Type guard for `FormElement` that is editable. */
+function isEditableElement(elem: FormElement): elem is EditableElement {
+    return !['group', 'static_text', 'hidden', 'id'].includes(elem.kind)
+}
+
+/** Type guard for `object`. */
 function isObject(value: unknown): value is Record<string, unknown> {
     return typeof value === 'object' && value !== null && !Array.isArray(value)
 }
 
-export { assertNever, isObject }
+export { assertNever, hasElements, isEditableElement, isObject }
