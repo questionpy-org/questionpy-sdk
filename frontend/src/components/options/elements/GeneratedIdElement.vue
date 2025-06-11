@@ -9,7 +9,7 @@
 </template>
 
 <script lang="ts" setup>
-import type { GeneratedIdElement } from '@/schema/options/types'
+import type { GeneratedIdElement } from '@/types'
 
 import { useCommon, useModel } from './composables'
 

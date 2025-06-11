@@ -6,7 +6,7 @@
 
 import type { Ref } from 'vue'
 
-import type { FormElement, OptionsFormData, ServerValidationErrors } from '@/schema/options/types'
+import type { FormElement, OptionsFormData, ServerValidationErrors } from '@/types'
 
 import { createFormDataValues, getElementName, getErrorKey } from './formDataUtils'
 

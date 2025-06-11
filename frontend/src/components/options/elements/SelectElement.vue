@@ -23,7 +23,7 @@
 <script lang="ts" setup>
 import { computed } from 'vue'
 
-import type { SelectElement } from '@/schema/options/types'
+import type { SelectElement } from '@/types'
 
 import { useAriaDescribedBy, useCommon, useConditions, useHelp, useIsDisabled, useModel } from './composables'
 

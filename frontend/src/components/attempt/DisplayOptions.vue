@@ -11,14 +11,14 @@
             <BRow>
                 <BCol>
                     <BFormGroup label="Show">
-                        <BFormCheckbox v-model="displayOptions.generalFeedback">General feedback</BFormCheckbox>
-                        <BFormCheckbox v-model="displayOptions.specificFeedback">Specific feedback</BFormCheckbox>
-                        <BFormCheckbox v-model="displayOptions.rightAnswer">Right answer</BFormCheckbox>
+                        <BFormCheckbox v-model="displayOptions.general_feedback">General feedback</BFormCheckbox>
+                        <BFormCheckbox v-model="displayOptions.specific_feedback">Specific feedback</BFormCheckbox>
+                        <BFormCheckbox v-model="displayOptions.right_answer">Right answer</BFormCheckbox>
                     </BFormGroup>
                 </BCol>
                 <BCol>
                     <BFormGroup label="Roles">
-                        <BFormCheckboxGroup v-model="rolesModel" :options="roleOptions" stacked />
+                        <BFormCheckboxGroup v-model="displayOptions.roles" :options="roleOptions" stacked />
                     </BFormGroup>
                 </BCol>
             </BRow>
@@ -28,9 +28,14 @@
 
 <script setup lang="ts">
 import { storeToRefs } from 'pinia'
-import { computed } from 'vue'
 
 import useDisplayOptionsStore from '@/stores/useDisplayOptionsStore'
+import type { DisplayRole } from '@/types'
+
+interface RoleOption {
+    text: string
+    value: DisplayRole
+}
 
 const { displayOptions } = storeToRefs(useDisplayOptionsStore())
 
@@ -39,14 +44,5 @@ const roleOptions = [
     { text: 'Proctor', value: 'PROCTOR' },
     { text: 'Scorer', value: 'SCORER' },
     { text: 'Teacher', value: 'TEACHER' },
-]
-
-const rolesModel = computed({
-    get() {
-        return Array.from(displayOptions.value.roles)
-    },
-    set(newRoles) {
-        displayOptions.value.roles = new Set(newRoles)
-    },
-})
+] satisfies RoleOption[]
 </script>

@@ -11,7 +11,7 @@
 <script lang="ts" setup>
 import { computed } from 'vue'
 
-import type { HiddenElement } from '@/schema/options/types'
+import type { HiddenElement } from '@/types'
 
 import { useCommon, useConditions, useIsDisabled } from './composables'
 

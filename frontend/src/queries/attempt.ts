@@ -8,22 +8,16 @@ import { defineMutation, defineQuery, useMutation, useQuery, useQueryCache } fro
 import { storeToRefs } from 'pinia'
 
 import { get, post } from '@/queries/fetch'
-import { attemptDataSchema } from '@/schema/attempt'
 import useDisplayOptionsStore from '@/stores/useDisplayOptionsStore'
+import type { AttemptRenderData } from '@/types'
 
 /** Get attempt data query. */
 const useAttemptDataQuery = defineQuery(() => {
-    const { cacheKey, displayOptions } = storeToRefs(useDisplayOptionsStore())
+    const { displayOptions } = storeToRefs(useDisplayOptionsStore())
 
     return useQuery({
-        key: () => ['attempt-data', cacheKey.value],
-        query: () =>
-            get('attempt', attemptDataSchema, {
-                generalFeedback: displayOptions.value.generalFeedback,
-                specificFeedback: displayOptions.value.specificFeedback,
-                rightAnswer: displayOptions.value.rightAnswer,
-                roles: Array.from(displayOptions.value.roles),
-            }),
+        key: () => ['attempt-data', displayOptions.value],
+        query: () => get<AttemptRenderData>('attempt', displayOptions.value),
     })
 })
 

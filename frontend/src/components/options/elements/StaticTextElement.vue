@@ -12,7 +12,7 @@
 </template>
 
 <script lang="ts" setup>
-import type { StaticTextElement } from '@/schema/options/types'
+import type { StaticTextElement } from '@/types'
 
 import { useConditions, useHelp } from './composables'
 

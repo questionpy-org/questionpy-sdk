@@ -27,7 +27,7 @@
 <script lang="ts" setup>
 import { computed } from 'vue'
 
-import type { TextAreaElement } from '@/schema/options/types'
+import type { TextAreaElement } from '@/types'
 
 import {
     useAriaDescribedBy,

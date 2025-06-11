@@ -11,9 +11,8 @@
             :aria-describedby="ariaDescribedBy"
             :disabled="isDisabled"
             :name="name"
-            :options="element.options"
+            :options="options"
             :required="element.required"
-            text-field="label"
         />
         <BFormText v-if="helpText" :id="helpId">{{ helpText }}</BFormText>
     </FormGroup>
@@ -22,7 +21,7 @@
 <script lang="ts" setup>
 import { computed } from 'vue'
 
-import type { RadioGroupElement } from '@/schema/options/types'
+import type { RadioGroupElement } from '@/types'
 
 import { useAriaDescribedBy, useCommon, useConditions, useHelp, useIsDisabled, useModel } from './composables'
 
@@ -38,4 +37,5 @@ const { isDisabledByCond, isHiddenByCond } = useConditions(pathPrefix, element)
 const { helpId, helpText } = useHelp(pathPrefix, element)
 const isDisabled = useIsDisabled(computed(() => disabled || isDisabledByCond.value))
 const ariaDescribedBy = useAriaDescribedBy([helpId.value])
+const options = computed(() => element.options.map(({ value, label }) => ({ value, text: label })))
 </script>

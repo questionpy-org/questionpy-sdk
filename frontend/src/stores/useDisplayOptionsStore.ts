@@ -5,63 +5,27 @@
  */
 
 import { defineStore } from 'pinia'
-import { computed, ref } from 'vue'
+import { ref } from 'vue'
 
-type Role = 'DEVELOPER' | 'PROCTOR' | 'SCORER' | 'TEACHER'
-
-interface DisplayOptions {
-    generalFeedback: boolean
-    specificFeedback: boolean
-    rightAnswer: boolean
-    roles: Set<Role>
-}
+import type { ClientQuestionDisplayOptions } from '@/types'
 
 /** Provides attempt display options. */
 const useDisplayOptionsStore = defineStore(
     'displayOptions',
     () => {
-        const displayOptions = ref<DisplayOptions>({
-            generalFeedback: true,
-            specificFeedback: true,
-            rightAnswer: true,
-            roles: new Set(),
+        const displayOptions = ref<ClientQuestionDisplayOptions>({
+            general_feedback: true,
+            specific_feedback: true,
+            right_answer: true,
+            roles: [],
         })
 
-        return {
-            displayOptions,
-
-            // Cache keys need to be serializable
-            cacheKey: computed(() => ({
-                ...displayOptions.value,
-                roles: Array.from(displayOptions.value.roles),
-            })),
-        }
+        return { displayOptions }
     },
     {
         // Persist data to localStorage
-        persist: {
-            // Convert Set to/from Array as JSON can't handle Sets
-            serializer: {
-                serialize: (state) =>
-                    JSON.stringify({
-                        displayOptions: {
-                            ...state.displayOptions,
-                            roles: Array.from(state.displayOptions.roles),
-                        },
-                    }),
-                deserialize: (data) => {
-                    const parsed = JSON.parse(data)
-                    return {
-                        displayOptions: {
-                            ...parsed.displayOptions,
-                            roles: new Set(parsed.displayOptions.roles),
-                        },
-                    }
-                },
-            },
-        },
+        persist: true,
     },
 )
 
 export default useDisplayOptionsStore
-export type { DisplayOptions }

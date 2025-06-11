@@ -6,7 +6,7 @@
 
 import { computed, type ComputedRef } from 'vue'
 
-import type { CanHaveHelp, FormElement } from '@/schema/options/types'
+import type { CanHaveHelp } from '@/types'
 
 import useCommon from './useCommon'
 
@@ -18,9 +18,9 @@ import useCommon from './useCommon'
  *
  * @returns An object containing `helpId` and `helpText` for the form element.
  */
-function useHelp(pathPrefix: string[], element: FormElement & CanHaveHelp): UseHelpReturn {
+function useHelp(pathPrefix: string[], element: CanHaveHelp): UseHelpReturn {
     const { id: elementId } = useCommon(pathPrefix, element)
-    const hasHelp = computed(() => typeof element.help === 'string' && element.help.length > 0)
+    const hasHelp = computed(() => (element.help ?? '').length > 0)
 
     return {
         helpId: computed(() => (hasHelp.value ? `${elementId.value}___help` : undefined)),

@@ -7,15 +7,15 @@
 import { defineStore } from 'pinia'
 import { computed } from 'vue'
 
-import { useOptionsFormDataQuery, useOptionsFormDefinition, usePostOptionsFormData } from '@/queries/options'
+import { useOptionsFormDataQuery, useOptionsFormDefinitionQuery, usePostOptionsFormDataQuery } from '@/queries/options'
 
 import useFormDataState from './useFormDataState'
 
 /** Provides options form definition and manages form data. */
 const useOptionsFormDataStore = defineStore('optionsFormData', () => {
-    const { asyncStatus: definitionAsyncStatus, state: definitionState } = useOptionsFormDefinition()
+    const { asyncStatus: definitionAsyncStatus, state: definitionState } = useOptionsFormDefinitionQuery()
     const { asyncStatus: dataAsyncStatus, state: dataState } = useOptionsFormDataQuery()
-    const { asyncStatus: postDataAsyncStatus, state: mutationState } = usePostOptionsFormData()
+    const { asyncStatus: postDataAsyncStatus, state: mutationState } = usePostOptionsFormDataQuery()
 
     const asyncStatus = computed(() =>
         [definitionAsyncStatus, dataAsyncStatus, postDataAsyncStatus].some((status) => status.value === 'loading')

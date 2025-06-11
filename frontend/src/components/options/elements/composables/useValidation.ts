@@ -7,7 +7,7 @@
 import { computed, type ComputedRef } from 'vue'
 
 import useOptionsFormDataStore from '@/stores/useOptionsFormDataStore'
-import type { FormElement } from '@/schema/options/types'
+import type { FormElement } from '@/types'
 
 import useCommon from './useCommon'
 

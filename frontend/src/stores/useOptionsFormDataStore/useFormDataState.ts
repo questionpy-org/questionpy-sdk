@@ -7,16 +7,20 @@
 import { computed, ref, toRaw, watch } from 'vue'
 
 import { useAttemptDataQuery } from '@/queries/attempt'
-import { useOptionsFormDataQuery, useOptionsFormDefinition, usePostOptionsFormData } from '@/queries/options'
-import type { OptionsFormData, OptionsFormDataValue, ServerValidationErrors } from '@/schema/options/types'
+import { useOptionsFormDataQuery, useOptionsFormDefinitionQuery, usePostOptionsFormDataQuery } from '@/queries/options'
+import type { OptionsFormData, OptionsFormValue, ServerValidationErrors } from '@/types'
 
 import { areFormDataObjIdentical, getErrorKey, getFormData, hasEditableElements } from './formDataUtils'
 import useRepetitions from './useRepetitions'
 
 function useFormDataState() {
-    const { state: definitionState } = useOptionsFormDefinition()
+    const { state: definitionState } = useOptionsFormDefinitionQuery()
     const { state: dataState, refresh: dataRefresh } = useOptionsFormDataQuery()
-    const { asyncStatus: postDataAsyncStatus, mutateAsync: postData, state: mutationState } = usePostOptionsFormData()
+    const {
+        asyncStatus: postDataAsyncStatus,
+        mutateAsync: postData,
+        state: mutationState,
+    } = usePostOptionsFormDataQuery()
     const { state: attemptDataState } = useAttemptDataQuery()
 
     // Form data
@@ -90,7 +94,7 @@ function useFormDataState() {
      * @param name The name representing the input field, e.g. `general[first_name]`.
      * @returns The value found at the specified name in the `formData` object, or `undefined` otherwise.
      */
-    function getValue<T extends OptionsFormDataValue>(name: string): T | undefined {
+    function getValue<T extends OptionsFormValue>(name: string): T | undefined {
         if (name in formData.value) {
             return formData.value[name] as T
         }
@@ -102,7 +106,7 @@ function useFormDataState() {
      * @param name The name representing the input field, e.g. `general[first_name]`.
      * @param value The value to set at the specified name.
      */
-    function setValue(name: string, value: OptionsFormDataValue): void {
+    function setValue(name: string, value: OptionsFormValue): void {
         formData.value[name] = value
     }
 

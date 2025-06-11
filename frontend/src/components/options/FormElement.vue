@@ -12,7 +12,7 @@
 import { computed } from 'vue'
 import type { Component, ComponentInstance } from 'vue'
 
-import type { FormElement } from '@/schema/options/types'
+import type { FormElement } from '@/types'
 
 import CheckboxElement from './elements/CheckboxElement.vue'
 import GeneratedIdElement from './elements/GeneratedIdElement.vue'

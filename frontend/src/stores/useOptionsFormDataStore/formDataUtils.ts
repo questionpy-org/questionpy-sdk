@@ -6,9 +6,8 @@
 
 import { v4 as uuidv4 } from 'uuid'
 
-import { hasChildren } from '@/schema/options/elements'
-import { assertNever } from '@/utils'
-import type { FormElement, Options, OptionsFormData } from '@/schema/options/types'
+import { assertNever, hasElements, isEditableElement } from '@/types'
+import type { FormElement, OptionsFormData, OptionsFormDefinition } from '@/types'
 
 /**
  * Constructs an element name string from an array of path segments.
@@ -135,7 +134,7 @@ function createFormDataValues(data: OptionsFormData, elems: FormElement[], pathP
  * @param initialFormData Prepopulated form data.
  * @returns The default form data.
  */
-function getFormData(options: Options, initialFormData: OptionsFormData): OptionsFormData {
+function getFormData(options: OptionsFormDefinition, initialFormData: OptionsFormData): OptionsFormData {
     const data: OptionsFormData = { ...initialFormData }
 
     createFormDataValues(data, options.general, ['general'])
@@ -199,10 +198,7 @@ function areFormDataObjIdentical(d1: OptionsFormData, d2: OptionsFormData): bool
  */
 function hasEditableElements(elements: FormElement[]): boolean {
     for (const elem of elements) {
-        if (
-            (hasChildren(elem) && hasEditableElements(elem.elements)) ||
-            !['group', 'static_text', 'hidden', 'id'].includes(elem.kind)
-        ) {
+        if (isEditableElement(elem) || (hasElements(elem) && hasEditableElements(elem.elements))) {
             return true
         }
     }

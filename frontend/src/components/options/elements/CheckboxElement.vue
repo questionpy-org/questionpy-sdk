@@ -21,7 +21,7 @@
 <script lang="ts" setup>
 import { computed } from 'vue'
 
-import type { CheckboxElement } from '@/schema/options/types'
+import type { CheckboxElement } from '@/types'
 
 import { useAriaDescribedBy, useCommon, useConditions, useHelp, useIsDisabled, useModel } from './composables'
 

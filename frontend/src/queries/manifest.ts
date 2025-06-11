@@ -7,7 +7,7 @@
 import { defineQuery, useQuery } from '@pinia/colada'
 import { computed } from 'vue'
 
-import { manifestSchema } from '@/schema/manifest'
+import type { Manifest } from '@/types'
 
 import { get } from './fetch'
 
@@ -15,7 +15,7 @@ import { get } from './fetch'
 const useManifestQuery = defineQuery(() => {
     const query = useQuery({
         key: ['manifest'],
-        query: () => get('manifest', manifestSchema),
+        query: () => get<Manifest>('manifest'),
     })
 
     const manifest = computed(() => {

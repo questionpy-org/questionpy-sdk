@@ -20,7 +20,7 @@
 <script lang="ts" setup>
 import { computed } from 'vue'
 
-import type { GroupElement } from '@/schema/options/types'
+import type { GroupElement } from '@/types'
 
 import { useCommon, useConditions, useHelp, useIsDisabled } from './composables'
 
