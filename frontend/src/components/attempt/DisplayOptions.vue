@@ -14,6 +14,7 @@
                         <BFormCheckbox v-model="displayOptions.general_feedback">General feedback</BFormCheckbox>
                         <BFormCheckbox v-model="displayOptions.specific_feedback">Specific feedback</BFormCheckbox>
                         <BFormCheckbox v-model="displayOptions.right_answer">Right answer</BFormCheckbox>
+                        <BFormCheckbox v-model="displayOptions.correctness">Correctness</BFormCheckbox>
                     </BFormGroup>
                 </BCol>
                 <BCol>

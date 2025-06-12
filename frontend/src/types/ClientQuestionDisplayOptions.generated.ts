@@ -13,5 +13,6 @@ export interface ClientQuestionDisplayOptions {
     general_feedback: boolean
     specific_feedback: boolean
     right_answer: boolean
+    correctness: boolean
     roles: DisplayRole[]
 }

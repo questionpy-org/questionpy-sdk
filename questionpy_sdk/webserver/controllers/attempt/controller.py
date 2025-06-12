@@ -127,7 +127,10 @@ class AttemptController(BaseController):
         # Force display options if not scored
         if not score:
             display_options.readonly = False
-            display_options.general_feedback = display_options.specific_feedback = display_options.right_answer = False
+            display_options.general_feedback = display_options.specific_feedback = False
+            display_options.right_answer = display_options.correctness = False
+        else:
+            display_options.readonly = True
 
         # Render UI
         renderer_args = (attempt.ui.placeholders, display_options, await self._get_attempt_seed(), last_attempt_data)
