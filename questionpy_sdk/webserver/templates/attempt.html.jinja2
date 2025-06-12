@@ -118,4 +118,173 @@
             })
         })();
     </script>
+    <script type="importmap">
+        { "imports": {{ import_map|tojson }} }
+    </script>
+    <script>
+        class Attempt {
+            #readOnly;
+            #showGeneralFeedback;
+            #showSpecificFeedback;
+            #showRightAnswer;
+            #showCorrectness;
+            #formulation;
+            #generalFeedback;
+            #specificFeedback;
+            #rightAnswer;
+            #roles;
+
+            /**
+             * @param {boolean} readOnly
+             * @param {boolean} showGeneralFeedback
+             * @param {boolean} showSpecificFeedback
+             * @param {boolean} showRightAnswer
+             * @param {boolean} showCorrectness
+             * @param {Element} formulationElement
+             * @param {?Element} generalFeedbackElement
+             * @param {?Element} specificFeedbackElement
+             * @param {?Element} rightAnswer
+             * @param {string[]} roles
+             */
+            constructor(
+                readOnly,
+                showGeneralFeedback,
+                showSpecificFeedback,
+                showRightAnswer,
+                showCorrectness,
+                formulationElement,
+                generalFeedbackElement,
+                specificFeedbackElement,
+                rightAnswer,
+                roles
+            ) {
+                this.#readOnly = readOnly;
+                this.#showGeneralFeedback = showGeneralFeedback;
+                this.#showSpecificFeedback = showSpecificFeedback;
+                this.#showRightAnswer = showRightAnswer;
+                this.#showCorrectness = showCorrectness;
+                this.#formulation = formulationElement;
+                this.#generalFeedback = generalFeedbackElement;
+                this.#specificFeedback = specificFeedbackElement;
+                this.#rightAnswer = rightAnswer;
+                this.#roles = roles;
+            }
+
+            /**
+             * Whether the question should be displayed as a read-only review.
+             *
+             * @returns {boolean}
+             */
+            get readOnly() {
+                return this.#readOnly;
+            }
+
+            /**
+             * Whether the general feedback should be visible.
+             *
+             * This is typically feedback shown to all students after the question
+             * is finished, irrespective of which answer they gave.
+             *
+             * @returns {boolean}
+             */
+            get showGeneralFeedback() {
+                return this.#showGeneralFeedback;
+            }
+
+            /**
+             * Whether the specific feedback should be visible.
+             *
+             * Specific feedback is typically the part of the feedback that changes based on the
+             * answer that the student gave.
+             *
+             * @returns {boolean}
+             */
+            get showSpecificFeedback() {
+                return this.#showSpecificFeedback;
+            }
+
+            /**
+             * Whether the automatically generated display of what the correct answer is should be visible.
+             *
+             * @returns {boolean}
+             */
+            get showRightAnswer() {
+                return this.#showRightAnswer;
+            }
+
+            /**
+             * Whether the student should have what they got right and wrong clearly indicated.
+             *
+             * @returns {boolean}
+             */
+            get showCorrectness() {
+                return this.#showCorrectness;
+            }
+
+            /**
+             * Get the top html element where the question's formulation xhtml was inserted.
+             *
+             * @returns {Element}
+             */
+            get formulationElement() {
+                return this.#formulation;
+            }
+
+            /**
+             * Get the top html element where the question's general feedback xhtml was inserted (if available).
+             *
+             * @returns {?Element}
+             */
+            get generalFeedbackElement() {
+                return this.#generalFeedback;
+            }
+
+            /**
+             * Get the top html element where the question's specific feedback xhtml was inserted (if available).
+             *
+             * @returns {?Element}
+             */
+            get specificFeedbackElement() {
+                return this.#specificFeedback;
+            }
+
+            /**
+             * Get the top html element where the question's right answer xhtml was inserted (if available).
+             *
+             * @returns {?Element}
+             */
+            get rightAnswerElement() {
+                return this.#rightAnswer;
+            }
+
+            /**
+             * Get the names of the roles that the current user has.
+             *
+             * @typedef {'teacher' | 'developer' | 'scorer' | 'proctor'} roleName
+             * @returns {roleName[]}
+             */
+            get userRoles() {
+                return this.#roles;
+            }
+        }
+
+        const attempt = new Attempt(
+            {{ display_options.readonly|tojson }},
+            {{ display_options.general_feedback|tojson }},
+            {{ display_options.specific_feedback|tojson }},
+            {{ display_options.right_answer|tojson }},
+            {{ display_options.correctness|tojson }},
+            document.getElementById("question-preview"),
+            document.getElementById("container-general-feedback"),
+            document.getElementById("container-specific-feedback"),
+            document.getElementById("container-right-answer"),
+            [{{ display_options.roles|map('lower')|map('tojson')|join(',') }}]
+        );
+
+        {% for javascript_call in javascript_calls %}
+            import("{{ javascript_call.module|safe }}").then(module => {
+                module["{{ javascript_call.function|safe }}"](attempt, {{ javascript_call.data|safe }});
+            })
+        {% endfor %}
+    </script>
 {% endblock %}
