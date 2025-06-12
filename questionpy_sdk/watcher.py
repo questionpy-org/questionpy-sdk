@@ -8,7 +8,7 @@ from collections.abc import Callable
 from contextlib import AbstractAsyncContextManager
 from pathlib import Path
 from types import TracebackType
-from typing import TYPE_CHECKING, Self
+from typing import TYPE_CHECKING, Self, Unpack
 
 from watchdog.events import (
     FileCreatedEvent,
@@ -27,8 +27,8 @@ from questionpy_sdk.package.builder import DirPackageBuilder
 from questionpy_sdk.package.errors import PackageError
 from questionpy_sdk.package.source import PackageSource
 from questionpy_sdk.webserver import WebServer
+from questionpy_sdk.webserver.server import WebServerArgs
 from questionpy_server.worker.runtime.messages import BaseWorkerError
-from questionpy_server.worker.runtime.package_location import DirPackageLocation
 
 if TYPE_CHECKING:
     from watchdog.observers.api import ObservedWatch
@@ -98,14 +98,9 @@ class _EventHandler(FileSystemEventHandler):
 class Watcher(AbstractAsyncContextManager):
     """Watch a package source path and rebuild package/restart server on file changes."""
 
-    def __init__(
-        self, source_path: Path, pkg_location: DirPackageLocation, state_storage_path: Path, host: str, port: int
-    ) -> None:
+    def __init__(self, source_path: Path, **webserver_args: Unpack[WebServerArgs]) -> None:
         self._source_path = source_path
-        self._pkg_location = pkg_location
-        self._state_storage_path = state_storage_path
-        self._host = host
-        self._port = port
+        self._webserver_args = webserver_args
 
         self._file_change = asyncio.Event()
         self._observer = Observer()
@@ -152,7 +147,7 @@ class Watcher(AbstractAsyncContextManager):
             # Run web server
             self._schedule()
             try:
-                async with WebServer(self._pkg_location, self._state_storage_path, self._host, self._port):
+                async with WebServer(**self._webserver_args):
                     await self._file_change.wait()
             except BaseWorkerError:
                 log.exception("Failed to start web server.")

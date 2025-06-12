@@ -69,6 +69,6 @@ async def page(
 ) -> AsyncIterator[Page]:
     """Overrides pytest-playwright-asyncio's `page` fixture to include setup/teardown for the SDK web server."""
     pkg_location = FunctionPackageLocation.from_function(init_func, manifest)
-    async with WebServer(pkg_location, state_storage_path=tmp_path, port=unused_tcp_port):
+    async with WebServer(package_location=pkg_location, state_storage_path=tmp_path, port=unused_tcp_port):
         await page.goto(url)
         yield page

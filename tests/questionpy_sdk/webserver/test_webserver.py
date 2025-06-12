@@ -95,7 +95,7 @@ async def test_webserver_startup(
     package_location = Mock()
     state_storage_path = Path("/tmp/storage")
 
-    async with WebServer(package_location, state_storage_path):
+    async with WebServer(package_location=package_location, state_storage_path=state_storage_path):
         mock_worker_pool_cls.assert_called_once()
 
         mock_worker_pool_instance.get_worker.assert_called_once_with(package_location, 0, None)
@@ -114,7 +114,7 @@ async def test_webserver_shutdown(
     _, mock_worker_pool_instance = mock_worker_pool
     mock_app_runner, _ = mock_web_components
 
-    async with WebServer(Mock(), Path("/tmp")):
+    async with WebServer(package_location=Mock(), state_storage_path=Path("/tmp")):
         pass
 
     mock_app_runner.cleanup.assert_awaited_once()
@@ -133,7 +133,7 @@ def test_create_webapp_frontend_routes(monkeypatch: pytest.MonkeyPatch) -> None:
 
         mp.setattr("questionpy_sdk.webserver.server.frontend_routes", routes)
 
-        server = WebServer(Mock(), Path("/tmp"))
+        server = WebServer(package_location=Mock(), state_storage_path=Path("/tmp"))
         app = server._create_webapp()
 
         assert some_route in (route.handler for route in app.router.routes())
@@ -145,7 +145,7 @@ def test_create_webapp_vite_middleware(monkeypatch: pytest.MonkeyPatch) -> None:
         mock_middleware = Mock()
         mp.setattr("questionpy_sdk.webserver.middlewares.vite_dev.vite_devserver_middleware", mock_middleware)
 
-        server = WebServer(Mock(), Path("/tmp"))
+        server = WebServer(package_location=Mock(), state_storage_path=Path("/tmp"))
         app = server._create_webapp()
 
         assert mock_middleware in app.middlewares
@@ -153,7 +153,7 @@ def test_create_webapp_vite_middleware(monkeypatch: pytest.MonkeyPatch) -> None:
 
 def test_print_status_logs_urls(caplog: pytest.LogCaptureFixture) -> None:
     with caplog.at_level(logging.INFO):
-        server = WebServer(Mock(), Path("/tmp"))
+        server = WebServer(package_location=Mock(), state_storage_path=Path("/tmp"))
         server._runner = Mock()
         server._runner.addresses = [("127.0.0.1", 8080), ("::1", 8080, 0, 0)]
 
@@ -164,7 +164,7 @@ def test_print_status_logs_urls(caplog: pytest.LogCaptureFixture) -> None:
 
 
 def test_print_status_raises_on_invalid_address() -> None:
-    server = WebServer(Mock(), Path("/tmp"))
+    server = WebServer(package_location=Mock(), state_storage_path=Path("/tmp"))
     server._runner = Mock()
     server._runner.addresses = [("invalid",)]
 
@@ -213,7 +213,7 @@ def pkg_location(request: pytest.FixtureRequest) -> PackageLocation:
 
 @pytest.mark.asyncio(loop_scope="function")
 async def test_webserver_graceful_shutdown(pkg_location: PackageLocation, tmp_path: Path, port: int) -> None:
-    async with WebServer(pkg_location, state_storage_path=tmp_path, port=port):
+    async with WebServer(package_location=pkg_location, state_storage_path=tmp_path, port=port):
         await asyncio.sleep(0)
 
     pending = [t for t in asyncio.all_tasks() if t is not asyncio.current_task() and not t.done()]
