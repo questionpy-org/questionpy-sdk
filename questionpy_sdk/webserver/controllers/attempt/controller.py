@@ -3,6 +3,7 @@
 #  (c) Technische Universität Berlin, innoCampus <info@isis.tu-berlin.de>
 
 import random
+import re
 from enum import StrEnum
 from typing import TYPE_CHECKING, Any, Literal, TypedDict, overload
 
@@ -11,7 +12,7 @@ from pydantic import JsonValue
 from pydantic.dataclasses import dataclass
 
 from questionpy import AttemptModel, AttemptScoredModel, AttemptStartedModel, ScoreModel
-from questionpy_common.api.attempt import ScoringCode
+from questionpy_common.api.attempt import FeedbackType, JsModuleCall, ScoringCode
 from questionpy_sdk.webserver.constants import DEFAULT_REQUEST_USER
 from questionpy_sdk.webserver.controllers.base import BaseController
 from questionpy_sdk.webserver.controllers.errors import MissingAttemptDataError, MissingAttemptStateError
@@ -42,6 +43,9 @@ class AttemptTemplateContext(TypedDict):
     general_feedback: str | None
     specific_feedback: str | None
     right_answer: str | None
+    display_options: QuestionDisplayOptions
+    import_map: dict[str, str]
+    javascript_calls: list[JsModuleCall]
 
 
 @dataclass
@@ -133,7 +137,13 @@ class AttemptController(BaseController):
             display_options.right_answer = display_options.correctness = False
 
         # Render UI
-        renderer_args = (attempt.ui.placeholders, display_options, await self._get_attempt_seed(), last_attempt_data)
+        renderer_args = (
+            attempt.ui.placeholders,
+            display_options,
+            self.qpy_url_replacer,
+            await self._get_attempt_seed(),
+            last_attempt_data,
+        )
         html, errors = QuestionFormulationUIRenderer(attempt.ui.formulation, *renderer_args).render()
 
         template_context: AttemptTemplateContext = {
@@ -141,6 +151,9 @@ class AttemptController(BaseController):
             "general_feedback": None,
             "specific_feedback": None,
             "right_answer": None,
+            "display_options": display_options,
+            "import_map": await self._get_import_map(),
+            "javascript_calls": self._get_js_calls(attempt, display_options),
         }
 
         render_errors: SectionErrorMap = {}
@@ -155,6 +168,36 @@ class AttemptController(BaseController):
                     render_errors[key] = errors
 
         return template_context, render_errors
+
+    async def _get_import_map(self) -> dict[str, str]:
+        worker: Worker
+        async with self._worker_pool.get_worker(self._package_location, 0, None) as worker:
+            dependencies = worker.get_loaded_packages(only_with_hash=False)
+
+        return {
+            f"@{dependency.namespace}/{dependency.short_name}/":
+                str(self.generate_api_url(
+                    "file",
+                    namespace=dependency.namespace,
+                    short_name=dependency.short_name,
+                    path="static/js/",
+                ))
+            for dependency in dependencies
+        }  # fmt: skip
+
+    def _get_js_calls(self, attempt: AttemptModel, display_options: QuestionDisplayOptions) -> list[JsModuleCall]:
+        feedback_map = {
+            FeedbackType.GENERAL_FEEDBACK: display_options.general_feedback,
+            FeedbackType.SPECIFIC_FEEDBACK: display_options.specific_feedback,
+            FeedbackType.RIGHT_ANSWER: display_options.right_answer,
+        }
+
+        return [
+            call
+            for call in attempt.ui.javascript_calls
+            if (call.if_role is None or call.if_role in display_options.roles)
+            and (call.if_feedback_type is None or feedback_map[call.if_feedback_type])
+        ]
 
     @property
     def _attempt_template(self) -> jinja2.Template:
@@ -225,3 +268,13 @@ class AttemptController(BaseController):
             if allow_missing:
                 return None
             raise MissingAttemptDataError from err
+
+    def qpy_url_replacer(self, match: re.Match[str]) -> str:
+        return str(
+            self.generate_api_url(
+                "file",
+                namespace=match.group(2),
+                short_name=match.group(3),
+                path=match.group(1),
+            )
+        )

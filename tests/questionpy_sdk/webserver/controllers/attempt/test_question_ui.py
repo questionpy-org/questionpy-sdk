@@ -81,6 +81,7 @@ def renderer(request: pytest.FixtureRequest, xml_content: str | None) -> Questio
         "placeholders": {},
         "xml": xml_content,
         "options": QuestionDisplayOptions(),
+        "qpy_url_replacer": lambda _: "",
     }
 
     marker = request.node.get_closest_marker("render_params")
@@ -92,7 +93,7 @@ def renderer(request: pytest.FixtureRequest, xml_content: str | None) -> Questio
 
 @pytest.mark.ui_file("metadata")
 def test_should_extract_correct_metadata(xml_content: str) -> None:
-    ui_renderer = QuestionFormulationUIRenderer(xml_content, {}, QuestionDisplayOptions())
+    ui_renderer = QuestionFormulationUIRenderer(xml_content, {}, QuestionDisplayOptions(), lambda _: "")
     question_metadata = ui_renderer.metadata
 
     expected_metadata = QuestionMetadata()
@@ -204,7 +205,7 @@ def test_should_show_inline_feedback(renderer: QuestionUIRenderer) -> None:
 )
 @pytest.mark.ui_file("if-role")
 def test_element_visibility_based_on_role(options: QuestionDisplayOptions, expected: str, xml_content: str) -> None:
-    html, errors = QuestionUIRenderer(xml_content, {}, options).render()
+    html, errors = QuestionUIRenderer(xml_content, {}, options, lambda _: "").render()
     assert len(errors) == 0
     assert_html_is_equal(html, expected)
 
@@ -371,14 +372,15 @@ def test_clean_up(renderer: QuestionUIRenderer) -> None:
 
 
 @pytest.mark.ui_file("qpy-urls")
+@pytest.mark.render_params(qpy_url_replacer=lambda match: "/".join(match.group(2, 3, 1)))
 def test_should_replace_qpy_urls(renderer: QuestionUIRenderer) -> None:
     expected = """
         <div xmlns="http://www.w3.org/1999/xhtml">
-            <link rel="stylesheet" href="/worker/foo/bar/file/static/style.css"/>
-            <script src="/worker/foo/bar/file/static/script.js"></script>
-            <img src="/worker/acme/example/file/static-private/some/nested/path/img.png"/>
-            <p>/worker/acme/example/file/static/some/link</p>
-            <p>/worker/acme/example/file/static-private/some/other/link</p>
+            <link rel="stylesheet" href="foo/bar/static/style.css"/>
+            <script src="foo/bar/static/script.js"></script>
+            <img src="acme/example/static-private/some/nested/path/img.png"/>
+            <p>acme/example/static/some/link</p>
+            <p>acme/example/static-private/some/other/link</p>
             <p>qpy://test/acme/example/broken/qpy-url</p>
             <p>qpy://static/broken/example</p>
         </div>

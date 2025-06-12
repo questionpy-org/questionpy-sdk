@@ -24,6 +24,7 @@ async def test_get_attempt_started(
     mock_state_manager.read_attempt_state.side_effect = FileNotFoundError
     mock_state_manager.read_score.side_effect = FileNotFoundError
     mock_state_manager.read_attempt_seed.side_effect = FileNotFoundError
+    mock_worker.get_loaded_packages = Mock(return_value=[])
     mock_worker.start_attempt.return_value = AttemptStartedModel(
         variant=1, lang="en", ui=AttemptUi(formulation=""), attempt_state="attempt_state"
     )
@@ -43,6 +44,7 @@ async def test_get_attempt_started(
 async def test_get_attempt_scored(
     controller: AttemptController, mock_worker: AsyncMock, mock_jinja2_template: Mock
 ) -> None:
+    mock_worker.get_loaded_packages = Mock(return_value=[])
     mock_worker.get_attempt.return_value = AttemptModel(variant=1, lang="en", ui=AttemptUi(formulation=""))
     mock_jinja2_template.render_async.return_value = "<html>Attempt</html>"
     display_opts = QuestionDisplayOptions(general_feedback=True, specific_feedback=True, right_answer=True, roles=[])
@@ -57,6 +59,7 @@ async def test_get_attempt_scored(
 async def test_get_attempt_in_progress(
     controller: AttemptController, mock_state_manager: AsyncMock, mock_worker: AsyncMock, mock_jinja2_template: Mock
 ) -> None:
+    mock_worker.get_loaded_packages = Mock(return_value=[])
     mock_worker.get_attempt.return_value = AttemptModel(variant=1, lang="en", ui=AttemptUi(formulation=""))
     mock_state_manager.read_score.side_effect = FileNotFoundError
     mock_jinja2_template.render_async.return_value = "<html>Attempt</html>"
@@ -77,6 +80,7 @@ async def test_get_attempt_render_errors(
     monkeypatch: pytest.MonkeyPatch,
     caplog: pytest.LogCaptureFixture,
 ) -> None:
+    mock_worker.get_loaded_packages = Mock(return_value=[])
     mock_worker.get_attempt.return_value = AttemptModel(variant=1, lang="en", ui=AttemptUi(formulation=""))
 
     with monkeypatch.context() as mp:
