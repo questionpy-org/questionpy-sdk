@@ -124,10 +124,13 @@ class AttemptController(BaseController):
         last_attempt_data: dict[str, JsonValue] | None,
         score: ScoreModel | None,
     ) -> tuple[AttemptTemplateContext, SectionErrorMap]:
-        # Force display options if not scored
-        if not score:
+        # Force display options when scored / not scored.
+        if score:
+            display_options.readonly = True
+        else:
             display_options.readonly = False
-            display_options.general_feedback = display_options.specific_feedback = display_options.right_answer = False
+            display_options.general_feedback = display_options.specific_feedback = False
+            display_options.right_answer = display_options.correctness = False
 
         # Render UI
         renderer_args = (attempt.ui.placeholders, display_options, await self._get_attempt_seed(), last_attempt_data)
