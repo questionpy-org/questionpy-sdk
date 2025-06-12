@@ -4,6 +4,7 @@
 
 from pathlib import Path
 
+import psutil
 from aiohttp import ClientSession
 from click.testing import CliRunner
 
@@ -76,3 +77,23 @@ async def test_run_watch_with_qpy_file(cwd: Path, source_path: Path, port: int) 
         assert await proc.wait() != 0
         stderr = (await proc.stderr.read()).decode("utf-8")
         assert "The --watch option only works with source directories." in stderr
+
+
+async def test_run_explicit_subprocess_worker_with_qpy_file(
+    source_path: Path, client_session: ClientSession, port: int
+) -> None:
+    async with long_running_cmd(("run", "-Wsubprocess", "--port", str(port), str(source_path))) as proc:
+        await assert_webserver_is_up(client_session, port)
+
+        assert len(psutil.Process(proc.pid).children()) == 1
+
+
+async def test_run_explicit_thread_worker_with_qpy_file(
+    source_path: Path, client_session: ClientSession, port: int
+) -> None:
+    async with long_running_cmd(("run", "-Wthread", "--port", str(port), str(source_path))) as proc:
+        await assert_webserver_is_up(client_session, port)
+
+        assert len(psutil.Process(proc.pid).children()) == 0
+        # Python doesn't call pthread_setname_np, so we have no way of getting the thread names of subprocess to check
+        # for the existence of worker threads.

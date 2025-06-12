@@ -104,7 +104,9 @@ def watcher_mock_setup(monkeypatch: pytest.MonkeyPatch) -> Iterable[WatchMockSet
 
 @pytest.fixture
 async def watcher(watcher_mock_setup: WatchMockSetup) -> AsyncIterable[Watcher]:
-    async with Watcher(Path("source"), Mock(), Path("storage"), "localhost", 1234) as watcher:
+    async with Watcher(
+        Path("source"), package_location=Mock(), state_storage_path=Path("storage"), host="localhost", port=1234
+    ) as watcher:
         try:
             task = asyncio.create_task(watcher.run_forever())
             await asyncio.sleep(0)
@@ -119,7 +121,7 @@ async def watcher(watcher_mock_setup: WatchMockSetup) -> AsyncIterable[Watcher]:
 async def test_watcher_lifecycle(watcher_mock_setup: WatchMockSetup) -> None:
     observer_mock, event_handler_mock, _, _ = watcher_mock_setup
 
-    async with Watcher(Path("source"), Mock(), Path("storage"), "localhost", 1234):
+    async with Watcher(Path("source"), package_location=Mock(), state_storage_path=Path("/tmp")):
         observer_mock.start.assert_called_once()
         event_handler_mock.start.assert_called_once()
 

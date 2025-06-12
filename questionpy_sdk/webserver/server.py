@@ -5,7 +5,7 @@
 import logging
 from pathlib import Path
 from types import TracebackType
-from typing import TYPE_CHECKING, Self
+from typing import ClassVar, NotRequired, Self, TypedDict, Unpack
 
 from aiohttp import web
 
@@ -17,29 +17,32 @@ from questionpy_sdk.webserver.routes import api_routes
 from questionpy_sdk.webserver.routes.frontend import routes as frontend_routes
 from questionpy_sdk.webserver.state import StateManager
 from questionpy_server import WorkerPool
-from questionpy_server.worker.impl.thread import ThreadWorker
+from questionpy_server.worker import Worker
+from questionpy_server.worker.impl.subprocess import SubprocessWorker
 from questionpy_server.worker.runtime.package_location import PackageLocation
 
 from .constants import API_PATH_PREFIX, USE_VITE_DEV_SERVER, WEBSERVER_KEY
 
-if TYPE_CHECKING:
-    from questionpy_server.worker import Worker
-
 log = logging.getLogger("questionpy-sdk:web-server")
 
 
+class WebServerArgs(TypedDict):
+    package_location: PackageLocation
+    state_storage_path: Path
+    host: NotRequired[str]
+    port: NotRequired[int]
+    worker_class: NotRequired[type[Worker]]
+
+
 class WebServer:
-    def __init__(
-        self,
-        package_location: PackageLocation,
-        state_storage_path: Path,
-        host: str = "localhost",
-        port: int = 8080,
-    ) -> None:
-        self.package_location = package_location
-        self._state_storage_root = state_storage_path
-        self._host = host
-        self._port = port
+    DEFAULT_WORKER_CLASS: ClassVar[type[Worker]] = SubprocessWorker
+
+    def __init__(self, **kwargs: Unpack[WebServerArgs]) -> None:
+        self.package_location = kwargs["package_location"]
+        self._state_storage_root = kwargs["state_storage_path"]
+        self._host = kwargs.get("host", "localhost")
+        self._port = kwargs.get("port", 8080)
+        self._worker_class = kwargs.get("worker_class", self.DEFAULT_WORKER_CLASS)
 
         self._web_app: web.Application
         self._runner: web.AppRunner
@@ -50,7 +53,7 @@ class WebServer:
 
     async def __aenter__(self) -> Self:
         # Add worker pool
-        self._worker_pool = await WorkerPool(1, 500 * MiB, worker_type=ThreadWorker).__aenter__()
+        self._worker_pool = await WorkerPool(1, 500 * MiB, worker_type=self._worker_class).__aenter__()
 
         # Load manifest
         worker: Worker
