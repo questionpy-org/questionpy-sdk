@@ -187,6 +187,7 @@ class ClientQuestionDisplayOptions(BaseModel):
     general_feedback: bool = True
     specific_feedback: bool = True
     right_answer: bool = True
+    correctness: bool = True
     roles: set[DisplayRole] = {
         DisplayRole.DEVELOPER,
         DisplayRole.PROCTOR,

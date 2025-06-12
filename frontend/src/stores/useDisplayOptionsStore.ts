@@ -17,6 +17,7 @@ const useDisplayOptionsStore = defineStore(
             general_feedback: true,
             specific_feedback: true,
             right_answer: true,
+            correctness: true,
             roles: [],
         })
 
