@@ -6,7 +6,7 @@ from __future__ import annotations
 
 import re
 from random import Random
-from typing import Any
+from typing import TYPE_CHECKING, Any
 
 import lxml.html
 import lxml.html.clean
@@ -28,6 +28,9 @@ from .errors import (
     UnknownElementError,
     XMLSyntaxError,
 )
+
+if TYPE_CHECKING:
+    from collections.abc import Callable
 
 _XHTML_NAMESPACE: str = "http://www.w3.org/1999/xhtml"
 _QPY_NAMESPACE: str = "http://questionpy.org/ns/question"
@@ -208,10 +211,12 @@ class QuestionUIRenderer:
         xml: str,
         placeholders: dict[str, str],
         options: QuestionDisplayOptions,
+        qpy_url_replacer: Callable[[re.Match[str]], str],
         seed: int | None = None,
         attempt: dict | None = None,
     ) -> None:
         self._html: str | None = None
+        self._qpy_url_replacer = qpy_url_replacer
 
         xml = self._replace_qpy_urls(xml)
         self._error_collector = _RenderErrorCollector(xml, placeholders)
@@ -265,7 +270,11 @@ class QuestionUIRenderer:
 
     def _replace_qpy_urls(self, xml: str) -> str:
         """Replace QPY-URLs to package files with SDK-URLs."""
-        return re.sub(r"qpy://(static|static-private)/((?:[a-z_][a-z0-9_]{0,126}/){2})", r"/worker/\2file/\1/", xml)
+        return re.sub(
+            r"qpy://((?:static|static-private)/)([a-z_]\w{0,126})/([a-z_]\w{0,126})/",
+            self._qpy_url_replacer,
+            xml,
+        )
 
     def _resolve_placeholders(self) -> None:
         """Replace placeholder PIs such as `<?p my_key plain?>` with the appropriate value from `self.placeholders`.
@@ -492,10 +501,11 @@ class QuestionFormulationUIRenderer(QuestionUIRenderer):
         xml: str,
         placeholders: dict[str, str],
         options: QuestionDisplayOptions,
+        qpy_url_replacer: Callable[[re.Match[str]], str],
         seed: int | None = None,
         attempt: dict | None = None,
     ) -> None:
-        super().__init__(xml, placeholders, options, seed, attempt)
+        super().__init__(xml, placeholders, options, qpy_url_replacer, seed, attempt)
         self.metadata = self._get_metadata()
 
     def _get_metadata(self) -> QuestionMetadata:
