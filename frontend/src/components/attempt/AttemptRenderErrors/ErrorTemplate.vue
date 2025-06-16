@@ -5,80 +5,96 @@
 -->
 
 <template>
-    <span>
-        <template v-for="(part, index) in parts" :key="index">
-            <template v-if="part.type === 'text'">
-                {{ part.content }}
-            </template>
-            <code v-else>{{ part.content }}</code>
-        </template>
-    </span>
+    <component :is="node" />
 </template>
 
 <script setup lang="ts">
-import { computed } from 'vue'
+import { computed, h } from 'vue'
+import type { VNode } from 'vue'
 
 import type { TemplateKwargs } from '@/types/AttemptRenderData.generated'
 
-interface Part {
-    type: 'text' | 'value'
-    content: string
-}
+const PLACEHOLDER_REGEX = /({\w+})/g
 
-const { template, values } = defineProps<{
+const props = defineProps<{
     template: string
     values: TemplateKwargs
 }>()
 
-function formatArray(arrValue: string[]): Part[] {
-    const parts: Part[] = []
+/**
+ * Renders an array of strings into a sequence of `VNode`s and text separators.
+ *
+ * @example
+ * // Returns: [<code>'A'</code>, ', ', <code>'B'</code>, ' and ', <code>'C'</code>]
+ * renderStringArray(['A', 'B', 'C'])
+ *
+ * @param arrValue - The array of strings to render
+ * @returns An array of VNodes and strings representing the formatted array output
+ */
+function renderStringArray(arrValue: string[]): (VNode | string)[] {
+    const nodes: (VNode | string)[] = []
 
-    if (!arrValue.length) {
-        return parts
+    if (arrValue.length > 0) {
+        for (let i = 0; i < arrValue.length - 1; ++i) {
+            // Add all but the last value,
+            nodes.push(h('code', arrValue[i]))
+            // each followed by a ', ', except for the second-to-last one, which is followed by ' and '.
+            nodes.push(i < arrValue.length - 2 ? ', ' : ' and ')
+        }
+
+        // Add the last (or only) value.
+        const lastValue = arrValue[arrValue.length - 1]
+        nodes.push(h('code', lastValue))
     }
 
-    const [lastValue, ...restValues] = [...arrValue].reverse()
-    restValues.reverse()
-
-    for (let i = 0; i < restValues.length; ++i) {
-        parts.push({ type: 'value', content: restValues[i] })
-        parts.push({ type: 'text', content: i < restValues.length - 1 ? ', ' : ' and ' })
-    }
-
-    parts.push({ type: 'value', content: lastValue })
-
-    return parts
+    return nodes
 }
 
-const parts = computed(() => {
-    const parts: Part[] = []
-    let lastIndex = 0
+/**
+ * Renders a template string with placeholders into a Vue `VNode` tree.
+ *
+ * @example
+ * // Returns: <span>Result: <code>42</code> and <code>100</code></span>
+ * renderTemplate("Result: {value1} and {value2}", {
+ *   value1: "42",
+ *   value2: "100"
+ * })
+ *
+ * @param template - The template string containing `{placeholder}` segments
+ * @param kwargs - An object mapping placeholder keys to `string` or `string[]` values
+ * @returns A `VNode` representing the rendered template wrapped in a `<span>`
+ * @throws {Error} When a placeholder in the template has no corresponding value in `kwargs`
+ */
+function renderTemplate(template: string, kwargs: TemplateKwargs): VNode {
+    const children: (VNode | string)[] = []
 
-    template.replace(/{(\w+)}/g, (match, key, offset) => {
-        if (offset > lastIndex) {
-            parts.push({ type: 'text', content: template.slice(lastIndex, offset) })
+    const tokens = template
+        .split(PLACEHOLDER_REGEX)
+        // Skip empty strings if placeholder is at template start/end
+        .filter(Boolean)
+
+    for (const token of tokens) {
+        // Placeholder segment
+        if (token.startsWith('{') && token.endsWith('}')) {
+            const key = token.slice(1, -1)
+            const value = kwargs[key]
+            if (value === undefined) {
+                throw new Error(`Missing value for placeholder '${key}'`)
+            }
+            if (Array.isArray(value)) {
+                children.push(...renderStringArray(value))
+            } else {
+                children.push(h('code', value))
+            }
         }
-
-        const value = values[key]
-
-        if (value === undefined) {
-            throw new Error(`Expected value for placeholder '${key}'`)
+        // Text segment
+        else {
+            children.push(token)
         }
-
-        if (Array.isArray(value)) {
-            parts.push(...formatArray(value))
-        } else {
-            parts.push({ type: 'value', content: value })
-        }
-
-        lastIndex = offset + match.length
-        return match
-    })
-
-    if (lastIndex < template.length) {
-        parts.push({ type: 'text', content: template.slice(lastIndex) })
     }
 
-    return parts
-})
+    return h('span', children)
+}
+
+const node = computed(() => renderTemplate(props.template, props.values))
 </script>
