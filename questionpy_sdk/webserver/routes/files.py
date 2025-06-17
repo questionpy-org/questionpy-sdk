@@ -11,7 +11,7 @@ from questionpy_sdk.webserver.routes.base import BaseView
 routes = web.RouteTableDef()
 
 
-@routes.view(r"/file/{namespace}/{short_name}/{path:static/.*}")
+@routes.view(r"/file/{namespace}/{short_name}/{path:(static|static-private)/.*}")
 class FilesView(BaseView["FilesController"]):
     controller_class = FilesController
 

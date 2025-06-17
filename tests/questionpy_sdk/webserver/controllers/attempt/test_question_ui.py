@@ -374,11 +374,11 @@ def test_clean_up(renderer: QuestionUIRenderer) -> None:
 def test_should_replace_qpy_urls(renderer: QuestionUIRenderer) -> None:
     expected = """
         <div xmlns="http://www.w3.org/1999/xhtml">
-            <link rel="stylesheet" href="/worker/foo/bar/file/static/style.css"/>
-            <script src="/worker/foo/bar/file/static/script.js"></script>
-            <img src="/worker/acme/example/file/static-private/some/nested/path/img.png"/>
-            <p>/worker/acme/example/file/static/some/link</p>
-            <p>/worker/acme/example/file/static-private/some/other/link</p>
+            <link rel="stylesheet" href="/api/file/foo/bar/static/style.css"/>
+            <script src="/api/file/foo/bar/static/script.js"></script>
+            <img src="/api/file/acme/example/static-private/some/nested/path/img.png"/>
+            <p>/api/file/acme/example/static/some/link</p>
+            <p>/api/file/acme/example/static-private/some/other/link</p>
             <p>qpy://test/acme/example/broken/qpy-url</p>
             <p>qpy://static/broken/example</p>
         </div>

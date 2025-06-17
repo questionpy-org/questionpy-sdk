@@ -265,7 +265,7 @@ class QuestionUIRenderer:
 
     def _replace_qpy_urls(self, xml: str) -> str:
         """Replace QPY-URLs to package files with SDK-URLs."""
-        return re.sub(r"qpy://(static|static-private)/((?:[a-z_][a-z0-9_]{0,126}/){2})", r"/worker/\2file/\1/", xml)
+        return re.sub(r"qpy://(static|static-private)/((?:[a-z_][a-z0-9_]{0,126}/){2})", r"/api/file/\2\1/", xml)
 
     def _resolve_placeholders(self) -> None:
         """Replace placeholder PIs such as `<?p my_key plain?>` with the appropriate value from `self.placeholders`.
