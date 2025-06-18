@@ -47,3 +47,32 @@ jobs:
         with:
           name: playwright-traces
           path: e2e-results/
+
+  check-ts-types:
+    runs-on: ubuntu-latest
+    steps:
+      - name: Checkout repository
+        uses: actions/checkout@v4
+
+      - uses: questionpy-org/actions-setup/setup-python@v1
+        with:
+          python-version: "3.13"
+          poetry-options: --with test
+
+      - uses: questionpy-org/actions-setup/setup-node@v1
+        with:
+          node-version: "22"
+          prefix: frontend
+
+      - name: Generate TypeScript definitions
+        run: poetry run --no-interaction -- ./generate-ts-types.py
+
+      - name: Check for uncommitted changes in generated types
+        run: |
+          if ! git diff --quiet -- ./frontend/src/types/*.generated.ts; then
+            echo "::notice title=Generated types out-of-date::Run ./generate-ts-types.py and commit the result."
+            echo "::group::Diff"
+            git --no-pager diff -- ./frontend/src/types/*.generated.ts
+            echo "::endgroup::"
+            exit -1
+          fi

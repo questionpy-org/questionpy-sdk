@@ -5,6 +5,7 @@
 import asyncio
 import json
 import logging
+import os
 import sys
 from pathlib import Path
 from typing import TypeGuard
@@ -169,7 +170,7 @@ async def write_ts_definitions(validatable: type[BaseModel] | TypeAdapter, *, wr
 
     # Run TypeScript generator and capture output
     proc = await asyncio.create_subprocess_exec(
-        "/usr/bin/npm",
+        "npm",
         "exec",
         "tsx",
         "json-schema-to-types.ts",
@@ -190,16 +191,19 @@ async def write_ts_definitions(validatable: type[BaseModel] | TypeAdapter, *, wr
     return output_path.relative_to(SCRIPT_PATH)
 
 
-async def main() -> None:
+async def main() -> int:
     write_json_schema = "--write-json-schema" in sys.argv
     TYPES_PATH.mkdir(exist_ok=True)
     tasks = (write_ts_definitions(t, write_json_schema=write_json_schema) for t in TYPES)
+    return_code: int = os.EX_OK
     for result in await asyncio.gather(*tasks, return_exceptions=True):
         if isinstance(result, Exception):
             logger.error("Task failed:", exc_info=result)
+            return_code = os.EX_SOFTWARE
         else:
             logger.info("Generated: %s", result)
+    return return_code
 
 
 if __name__ == "__main__":
-    asyncio.run(main())
+    raise SystemExit(asyncio.run(main()))
