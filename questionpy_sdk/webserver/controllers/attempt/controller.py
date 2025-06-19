@@ -171,7 +171,7 @@ class AttemptController(BaseController):
             f"@{dependency.namespace}/{dependency.short_name}/":
             f"./api/file/{dependency.namespace}/{dependency.short_name}/static/js/"
             for dependency in dependencies
-        }
+        }  # fmt: skip
 
     def _get_js_calls(self, attempt: AttemptModel, display_options: QuestionDisplayOptions) -> list[JsModuleCall]:
         feedback_map = {
