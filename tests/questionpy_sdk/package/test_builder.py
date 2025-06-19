@@ -85,6 +85,32 @@ def test_installs_requirements_txt(tmp_path: Path, source_path: Path) -> None:
         assert zipfile.getinfo(f"{DIST_DIR}/dependencies/site-packages/pytz/__init__.py")
 
 
+def test_installs_static_dep(tmp_path: Path, source_path: Path, qpy_pkg_path: Path) -> None:
+    config_path = source_path / PACKAGE_CONFIG_FILENAME
+    with config_path.open("r") as f:
+        config = yaml.safe_load(f)
+    config["dependencies"] = {"qpy": [str(qpy_pkg_path)]}
+
+    with config_path.open("w") as f:
+        yaml.dump(config, f)
+
+    target_path = tmp_path / "consumer-package.qpy"
+    with ZipPackageBuilder(target_path, PackageSource(source_path)) as builder:
+        builder.write_package()
+
+    with ZipFile(target_path) as consumer_zipfile, ZipFile(qpy_pkg_path) as dep_zipfile:
+        expected_prefix = f"{DIST_DIR}/dependencies/qpy/local-minimal_example-0.1.0/"
+        names_in_consumer = {
+            name.removeprefix(expected_prefix)
+            for name in consumer_zipfile.namelist()
+            if name.startswith(expected_prefix) and name != expected_prefix
+        }
+        names_in_dep = set(dep_zipfile.namelist())
+
+        assert names_in_consumer
+        assert names_in_dep == names_in_consumer
+
+
 def test_invalid_requirement_raises_error(source_path: Path, tmp_path: Path, monkeypatch: pytest.MonkeyPatch) -> None:
     package_source = PackageSource(source_path)
     package_source.config.requirements = ["this_package_does_not_exist"]

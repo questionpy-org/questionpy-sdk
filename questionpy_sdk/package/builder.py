@@ -11,9 +11,11 @@ import tempfile
 import zipfile
 from abc import abstractmethod
 from contextlib import AbstractContextManager
+from hashlib import file_digest
+from importlib.resources.abc import Traversable
 from mimetypes import guess_type
 from os import PathLike
-from pathlib import Path
+from pathlib import Path, PurePath
 from tempfile import TemporaryDirectory
 from types import TracebackType
 
@@ -22,14 +24,16 @@ import babel.messages.frontend
 import questionpy
 from questionpy import i18n
 from questionpy_common.constants import DIST_DIR, MANIFEST_FILENAME
-from questionpy_common.manifest import Manifest, PackageFile
+from questionpy_common.manifest import DistStaticQPyDependency, Manifest, PackageFile
 from questionpy_sdk._i18n_utils import bcp47_to_posix
-from questionpy_sdk.models import BuildHookName
+from questionpy_sdk.models import BuildHookName, SourceStaticQPyDependency
 from questionpy_sdk.package._helper import create_ignore_file_callable
 from questionpy_sdk.package.errors import PackageBuildError
 from questionpy_sdk.package.source import PackageSource
 
 log = logging.getLogger("questionpy-sdk:builder")
+
+_LOCAL_TIMEZONE = datetime.datetime.now(datetime.UTC).astimezone().tzinfo
 
 
 class PackageBuilderBase(AbstractContextManager):
@@ -42,7 +46,9 @@ class PackageBuilderBase(AbstractContextManager):
     def __init__(self, source: PackageSource, *, copy_sources: bool):
         self._source = source
         self._copy_sources = copy_sources
-        self._static_files: dict[str, PackageFile] = {}
+
+        source_manifest = self._source.config.manifest
+        self._manifest = Manifest(**source_manifest.model_dump())
 
     def write_package(self) -> None:
         """Writes the package to the filesystem.
@@ -54,6 +60,7 @@ class PackageBuilderBase(AbstractContextManager):
         self._run_build_hooks("pre")
         self._install_questionpy()
         self._install_requirements()
+        self._install_static_qpy_dependencies()
         self._write_package_files()
         self._compile_pos()
         self._write_manifest()
@@ -109,6 +116,39 @@ class PackageBuilderBase(AbstractContextManager):
             msg = f"Failed to install requirements: {exc.stderr.decode()}"
             raise PackageBuildError(msg) from exc
 
+    def _install_static_qpy_dependencies(self) -> None:
+        # Ignoring duplicates, we collect all the dependencies in the dependencies directory and those exlicitly listed.
+        # TODO: Should we allow specifying other source directories as deps, which are then automagically built?
+        dependency_paths = set((self._source.path / "dependencies").glob("*.qpy"))
+        for dep in self._source.config.dependencies.qpy:
+            if not isinstance(dep, SourceStaticQPyDependency):
+                continue
+
+            dep_path = dep.path if dep.path.is_absolute() else (self._source.path / dep.path)
+            if not dep_path.exists():
+                msg = f"The specified dependency '{dep.path}' does not exist."
+                raise PackageBuildError(msg)
+
+            dependency_paths.add(dep_path)
+
+        # Then, we copy all of their contents into a directory in dist/dependencies/qpy.
+        for dep_path in dependency_paths:
+            log.info("Copying static QPy dependency '%s'", dep_path)
+
+            with dep_path.open("rb+") as dep_package_file, zipfile.ZipFile(dep_package_file) as dep_package_zf:
+                dep_hash = file_digest(dep_package_file, "sha256").hexdigest()
+                dep_manifest = Manifest.model_validate_json(dep_package_zf.read(f"{DIST_DIR}/{MANIFEST_FILENAME}"))
+                dep_dir_name = f"{dep_manifest.namespace}-{dep_manifest.short_name}-{dep_manifest.version}"
+
+                for file_in_dep in dep_package_zf.infolist():
+                    dest_path = Path(DIST_DIR) / "dependencies" / "qpy" / dep_dir_name / file_in_dep.filename
+                    if file_in_dep.is_dir():
+                        self._mkdir(dest_path)
+                    else:
+                        self._write_file(zipfile.Path(dep_package_zf, file_in_dep.filename), dest_path)
+
+            self._manifest.dependencies.qpy.append(DistStaticQPyDependency(name=dep_dir_name, hash=dep_hash))
+
     def _write_package_files(self) -> None:
         """Writes custom package files."""
         self._write_glob(self._source.path, "python/**/*", DIST_DIR)
@@ -125,10 +165,8 @@ class PackageBuilderBase(AbstractContextManager):
     def _write_manifest(self) -> None:
         """Writes package manifest."""
         build_manifest_path = Path(DIST_DIR) / MANIFEST_FILENAME
-        source_manifest = self._source.config.manifest
-        manifest = Manifest(**source_manifest.model_dump(), static_files=self._static_files)
-        log.debug("%s: %s", MANIFEST_FILENAME, manifest)
-        self._write_string(build_manifest_path, manifest.model_dump_json())
+        log.debug("%s: %s", MANIFEST_FILENAME, self._manifest)
+        self._write_string(build_manifest_path, self._manifest.model_dump_json())
 
     def _run_hook(self, cmd: str, hook_name: BuildHookName, num: int) -> None:
         log.info("Running %s hook[%d]: '%s'", hook_name, num, cmd)
@@ -160,7 +198,10 @@ class PackageBuilderBase(AbstractContextManager):
             if ignore_file(path_in_pkg):
                 continue
             log.debug("%s: %s", source_file, path_in_pkg)
-            self._write_file(source_file, path_in_pkg)
+            if source_file.is_dir():
+                self._mkdir(path_in_pkg)
+            else:
+                self._write_file(source_file, path_in_pkg)
 
     def _compile_pos(self) -> None:
         with tempfile.TemporaryDirectory(prefix="qpy_build_locales_") as tempdir_str:
@@ -190,7 +231,7 @@ class PackageBuilderBase(AbstractContextManager):
         self, source_dir: Path, glob: str, prefix: str | Path = "", *, add_to_static_files: bool = False
     ) -> None:
         for source_file in source_dir.glob(glob):
-            if "__pycache__" in source_file.parts:
+            if source_file.is_dir() or "__pycache__" in source_file.parts:
                 continue
             path_in_pkg = prefix / source_file.relative_to(source_dir)
             log.debug("%s: %s", path_in_pkg, source_file)
@@ -201,10 +242,14 @@ class PackageBuilderBase(AbstractContextManager):
                 mime_type = guess_type(source_file)[0]
                 file_size = source_file.stat().st_size
                 path_in_dist = str(path_in_pkg.relative_to(DIST_DIR))
-                self._static_files[path_in_dist] = PackageFile(mime_type=mime_type, size=file_size)
+                self._manifest.static_files[path_in_dist] = PackageFile(mime_type=mime_type, size=file_size)
 
     @abstractmethod
-    def _write_file(self, source_path: Path, dest_path: Path) -> None:
+    def _write_file(self, source_path: Path | Traversable, dest_path: Path) -> None:
+        pass
+
+    @abstractmethod
+    def _mkdir(self, dest_path: PurePath) -> None:
         pass
 
     @abstractmethod
@@ -236,11 +281,21 @@ class DirPackageBuilder(PackageBuilderBase):
         if dist_path.is_dir():
             shutil.rmtree(dist_path)
 
-    def _write_file(self, source_path: Path, dest_path: Path) -> None:
-        if not source_path.is_dir():
-            abs_dest_path = self._source.path / dest_path
-            self._ensure_target_dir(abs_dest_path)
+    def _write_file(self, source_path: Path | Traversable, dest_path: Path) -> None:
+        if source_path.is_dir():
+            raise ValueError("Expected file, got dir")
+        abs_dest_path = self._source.path / dest_path
+        self._ensure_target_dir(abs_dest_path)
+        if isinstance(source_path, Path):
             shutil.copy(source_path, abs_dest_path)
+        else:
+            with abs_dest_path.open("wb") as dest_file, source_path.open("rb") as source_file:
+                shutil.copyfileobj(source_file, dest_file)
+
+    def _mkdir(self, dest_path: PurePath) -> None:
+        full_path = self._source.path / dest_path
+        self._ensure_target_dir(full_path)
+        full_path.mkdir(exist_ok=True)
 
     def _write_string(self, dest_path: Path, content: str) -> None:
         abs_dest_path = self._source.path / dest_path
@@ -267,9 +322,16 @@ class ZipPackageBuilder(PackageBuilderBase):
         super().__init__(source, copy_sources=copy_sources)
         self._zipfile = zipfile.ZipFile(output_path, mode="w", compression=self.COMPRESS_TYPE)
 
-    def _write_file(self, source_path: Path, dest_path: Path) -> None:
+    def _write_file(self, source_path: Path | Traversable, dest_path: Path) -> None:
+        if source_path.is_dir():
+            raise ValueError("Expected file, got dir")
+
         self._ensure_directory_entries(dest_path)
-        self._zipfile.write(source_path, dest_path, compress_type=self.COMPRESS_TYPE)
+        if isinstance(source_path, Path):
+            self._zipfile.write(source_path, dest_path, compress_type=self.COMPRESS_TYPE)
+        else:
+            with self._zipfile.open(str(dest_path), "w") as dest_file, source_path.open("rb") as source_file:
+                shutil.copyfileobj(source_file, dest_file)
 
     def _write_string(self, dest_path: Path, content: str) -> None:
         self._ensure_directory_entries(dest_path)
@@ -277,20 +339,26 @@ class ZipPackageBuilder(PackageBuilderBase):
 
     def _ensure_directory_entries(self, path: Path) -> None:
         """Ensure directory entries up to `path` are created."""
-        tz = datetime.datetime.now().astimezone().tzinfo
         for parent in reversed(path.parents):
-            strpath = str(parent)
-            if not strpath.endswith("/"):
-                strpath += "/"
-            if len(parent.parts) > 0 and all(strpath != fn.filename for fn in self._zipfile.infolist()):
-                # use `ZipInfo`, otherwise the directory entry ends up with timestamp 0
-                zipinfo = zipfile.ZipInfo(strpath, date_time=datetime.datetime.now(tz).timetuple()[:6])
-                zipinfo.compress_type = self.COMPRESS_TYPE
-                zipinfo.CRC = 0  # TODO: remove once bug is resolved (https://github.com/python/cpython/issues/119052)
-                # There is a great summary of the external attributes field here: https://unix.stackexchange.com/a/14727
-                zipinfo.external_attr = 0o40755 << 16  # Unix mode drwxr-xr-x
-                zipinfo.external_attr |= 0b10000  # DOS directory attribute
-                self._zipfile.mkdir(zipinfo)
+            if len(parent.parts) > 0:
+                self._mkdir(parent)
+
+    def _mkdir(self, dest_path: PurePath) -> None:
+        strpath = str(dest_path)
+        if not strpath.endswith("/"):
+            strpath += "/"
+        if strpath in self._zipfile.namelist():
+            # Dir already exists, which is fine.
+            return
+
+        # use `ZipInfo`, otherwise the directory entry ends up with timestamp 0
+        zipinfo = zipfile.ZipInfo(strpath, date_time=datetime.datetime.now(_LOCAL_TIMEZONE).timetuple()[:6])
+        zipinfo.compress_type = self.COMPRESS_TYPE
+        zipinfo.CRC = 0  # TODO: remove once bug is resolved (https://github.com/python/cpython/issues/119052)
+        # There is a great summary of the external attributes field here: https://unix.stackexchange.com/a/14727
+        zipinfo.external_attr = 0o40755 << 16  # Unix mode drwxr-xr-x
+        zipinfo.external_attr |= 0b10000  # DOS directory attribute
+        self._zipfile.mkdir(zipinfo)
 
     def __exit__(
         self, exc_type: type[BaseException] | None, exc_value: BaseException | None, traceback: TracebackType | None
