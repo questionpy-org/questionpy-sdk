@@ -10,7 +10,7 @@ from click.testing import CliRunner
 
 from questionpy_common.constants import DIST_DIR, MANIFEST_FILENAME
 from questionpy_sdk.commands.run import run
-from questionpy_sdk.package.builder import DirPackageBuilder, ZipPackageBuilder
+from questionpy_sdk.package import DirBuildTarget, ZipBuildTarget, build_qpy_package
 from questionpy_sdk.package.source import PackageSource
 from tests.questionpy_sdk.commands.conftest import assert_webserver_is_up, long_running_cmd
 
@@ -44,8 +44,7 @@ async def test_run_source_dir_builds_package(source_path: Path, client_session: 
 
 
 async def test_run_dist_dir(source_path: Path, client_session: ClientSession, port: int) -> None:
-    with DirPackageBuilder(PackageSource(source_path)) as builder:
-        builder.write_package()
+    build_qpy_package(PackageSource(source_path), DirBuildTarget.in_source(source_path))
 
     async with long_running_cmd(("run", "--port", str(port), str(source_path / DIST_DIR))):
         await assert_webserver_is_up(client_session, port)
@@ -57,8 +56,7 @@ async def test_run_watch_with_source_dir(source_path: Path, client_session: Clie
 
 
 async def test_run_watch_with_dist_dir(source_path: Path, port: int) -> None:
-    with DirPackageBuilder(PackageSource(source_path)) as builder:
-        builder.write_package()
+    build_qpy_package(PackageSource(source_path), DirBuildTarget.in_source(source_path))
 
     async with long_running_cmd(("run", "--watch", "--port", str(port), str(source_path / DIST_DIR))) as proc:
         assert proc.stderr
@@ -69,8 +67,7 @@ async def test_run_watch_with_dist_dir(source_path: Path, port: int) -> None:
 
 async def test_run_watch_with_qpy_file(cwd: Path, source_path: Path, port: int) -> None:
     qpy_path = cwd / "test.qpy"
-    with ZipPackageBuilder(qpy_path, PackageSource(source_path)) as builder:
-        builder.write_package()
+    build_qpy_package(PackageSource(source_path), ZipBuildTarget(qpy_path))
 
     async with long_running_cmd(("run", "--watch", "--port", str(port), str(qpy_path))) as proc:
         assert proc.stderr

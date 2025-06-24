@@ -15,7 +15,8 @@ from questionpy import Attempt, NeedsManualScoringError, Package, Question, Ques
 from questionpy.form import FormModel
 from questionpy_common.api.qtype import QuestionTypeInterface
 from questionpy_common.constants import DIST_DIR
-from questionpy_sdk.package.builder import DirPackageBuilder
+
+from questionpy_sdk.package import build_qpy_package, DirBuildTarget
 from questionpy_sdk.package.source import PackageSource
 from questionpy_sdk.webserver.server import WebServer
 from questionpy_server.hash import calculate_hash
@@ -148,8 +149,8 @@ def function_pkg_location() -> FunctionPackageLocation:
 
 @pytest.fixture
 def dir_pkg_location(source_path: Path) -> DirPackageLocation:
-    with DirPackageBuilder(PackageSource(source_path)) as builder:
-        builder.write_package()
+    build_qpy_package(PackageSource(source_path), DirBuildTarget.in_source(source_path))
+
     return DirPackageLocation(source_path / DIST_DIR)
 
 

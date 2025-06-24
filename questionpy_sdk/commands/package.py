@@ -1,7 +1,6 @@
 #  This file is part of the QuestionPy SDK. (https://questionpy.org)
 #  The QuestionPy SDK is free software released under terms of the MIT license. See LICENSE.md.
 #  (c) Technische Universität Berlin, innoCampus <info@isis.tu-berlin.de>
-
 import shutil
 import tempfile
 from contextlib import suppress
@@ -10,11 +9,10 @@ from pathlib import Path
 import click
 
 from questionpy_common.constants import DIST_DIR
-from questionpy_sdk.package.builder import DirPackageBuilder, ZipPackageBuilder
+from questionpy_sdk.commands._helper import confirm_overwrite
+from questionpy_sdk.package import DirBuildTarget, ZipBuildTarget, build_qpy_package
 from questionpy_sdk.package.errors import PackageBuildError, PackageSourceValidationError
 from questionpy_sdk.package.source import PackageSource
-
-from ._helper import confirm_overwrite
 
 
 def validate_out_path(context: click.Context, _parameter: click.Parameter, value: Path | None) -> Path | None:
@@ -74,7 +72,7 @@ def package(
             raise click.UsageError(msg, ctx=ctx)
 
     if development:
-        create_dist(ctx, package_source)
+        create_dist(package_source)
 
     else:
         if not out_path:
@@ -84,10 +82,9 @@ def package(
         )
 
 
-def create_dist(ctx: click.Context, package_source: PackageSource) -> None:
+def create_dist(package_source: PackageSource) -> None:
     try:
-        with DirPackageBuilder(package_source) as builder:
-            builder.write_package()
+        build_qpy_package(package_source, DirBuildTarget.in_source(package_source))
     except PackageBuildError as exc:
         msg = f"Failed to build package: {exc}"
         raise click.ClickException(msg) from exc
@@ -113,8 +110,7 @@ def create_qpy_package(
         temp_file_path = Path(temp_file.name)
 
         try:
-            with ZipPackageBuilder(temp_file, package_source, copy_sources=not without_sources) as builder:
-                builder.write_package()
+            build_qpy_package(package_source, ZipBuildTarget(temp_file_path), copy_sources=not without_sources)
         except PackageBuildError as exc:
             msg = f"Failed to build package: {exc}"
             raise click.ClickException(msg) from exc

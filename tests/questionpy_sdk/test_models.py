@@ -18,4 +18,4 @@ def test_package_config_strips_config_fields() -> None:
     exp = SourceManifest(
         short_name="foo", version="0.0.1", api_version="0.1", author="John Doe", languages=[Bcp47LanguageTag("en")]
     )
-    assert dict(config.manifest) == dict(exp)
+    assert dict(config.to_manifest()) == dict(exp)

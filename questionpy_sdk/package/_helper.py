@@ -4,7 +4,7 @@
 from collections.abc import Callable
 from pathlib import Path
 
-from pathspec import GitIgnoreSpec
+from pathspec import GitIgnoreSpec, PathSpec
 
 from questionpy_common.constants import DIST_DIR
 from questionpy_common.manifest import SourceManifest
@@ -39,6 +39,18 @@ _DEFAULT_IGNORES = f"""
 """
 
 
+def create_ignore_spec(gitignore_folder: Path, additional_ignores: list[str]) -> PathSpec:
+    ignores = _DEFAULT_IGNORES
+
+    gitignore_file = gitignore_folder / ".gitignore"
+    if gitignore_file.exists():
+        ignores += gitignore_file.read_text()
+
+    ignores += "\n".join(additional_ignores)
+
+    return GitIgnoreSpec.from_lines(ignores.splitlines())
+
+
 def create_ignore_file_callable(gitignore_folder: Path, additional_ignores: list[str]) -> Callable[[Path], bool]:
     """Returns a callable that determines whether a file should be ignored.
 
@@ -54,15 +66,7 @@ def create_ignore_file_callable(gitignore_folder: Path, additional_ignores: list
         gitignore_folder: the path to the directory where a `.gitignore` may be found
         additional_ignores: additional ignore patterns
     """
-    ignores = _DEFAULT_IGNORES
-
-    gitignore_file = gitignore_folder / ".gitignore"
-    if gitignore_file.exists():
-        ignores += gitignore_file.read_text()
-
-    ignores += "\n".join(additional_ignores)
-
-    spec = GitIgnoreSpec.from_lines(ignores.splitlines())
+    spec = create_ignore_spec(gitignore_folder, additional_ignores)
 
     def ignore_file(path: Path) -> bool:
         return spec.match_file(path)

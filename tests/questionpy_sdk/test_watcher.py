@@ -7,12 +7,14 @@ from collections.abc import AsyncIterable, Iterable
 from itertools import product
 from pathlib import Path
 from typing import NamedTuple, cast
-from unittest.mock import AsyncMock, MagicMock, Mock
+from unittest.mock import AsyncMock, MagicMock, Mock, create_autospec
 
 import pytest
 from watchdog import events as we
 
+from questionpy_sdk.package import build_qpy_package
 from questionpy_sdk.package.errors import PackageBuildError
+from questionpy_sdk.package.source import PackageSource
 from questionpy_sdk.watcher import Watcher, _EventHandler
 from questionpy_server.worker.runtime.messages import WorkerUnknownError
 
@@ -79,7 +81,7 @@ class WatchMockSetup(NamedTuple):
     observer_mock: Mock
     event_handler_mock: Mock
     webserver_mock: AsyncMock
-    package_builder_mock: MagicMock
+    build_qpy_package_mock: MagicMock
 
 
 @pytest.fixture
@@ -88,18 +90,18 @@ def watcher_mock_setup(monkeypatch: pytest.MonkeyPatch) -> Iterable[WatchMockSet
         observer_mock = Mock()
         event_handler_mock = Mock()
         webserver_mock = AsyncMock()
-        package_source_mock = Mock()
+        package_source_mock = MagicMock(spec=PackageSource)
         ignore_mock = MagicMock()
         ignore_mock.iter.return_value = iter([])
         package_source_mock.config.ignore = ignore_mock
-        package_builder_mock = MagicMock()
+        build_qpy_package_mock = create_autospec(build_qpy_package)
         mp.setattr("questionpy_sdk.watcher.Observer", Mock(return_value=observer_mock))
         mp.setattr("questionpy_sdk.watcher._EventHandler", Mock(return_value=event_handler_mock))
         mp.setattr("questionpy_sdk.watcher.WebServer", Mock(return_value=webserver_mock))
         mp.setattr("questionpy_sdk.watcher.PackageSource", Mock(return_value=package_source_mock))
-        mp.setattr("questionpy_sdk.watcher.DirPackageBuilder", Mock(return_value=package_builder_mock))
+        mp.setattr("questionpy_sdk.watcher.build_qpy_package", build_qpy_package_mock)
 
-        yield WatchMockSetup(observer_mock, event_handler_mock, webserver_mock, package_builder_mock)
+        yield WatchMockSetup(observer_mock, event_handler_mock, webserver_mock, build_qpy_package_mock)
 
 
 @pytest.fixture
@@ -137,17 +139,17 @@ async def test_watcher_lifecycle(watcher_mock_setup: WatchMockSetup) -> None:
 async def test_watcher_run_loop(
     server_crash: bool, build_error: bool, watcher_mock_setup: WatchMockSetup, watcher: Watcher
 ) -> None:
-    _, _, webserver_mock, package_builder_mock = watcher_mock_setup
+    _, _, webserver_mock, build_qpy_package_mock = watcher_mock_setup
 
     if server_crash:
         webserver_mock.__aenter__.side_effect = WorkerUnknownError(worker_name="mock")
     if build_error:
-        package_builder_mock.__enter__.side_effect = PackageBuildError()
+        build_qpy_package_mock.side_effect = PackageBuildError()
 
     webserver_runs = 1
     for build_runs in range(3):
         assert webserver_mock.__aenter__.call_count == webserver_runs
-        assert package_builder_mock.__enter__.call_count == build_runs
+        assert build_qpy_package_mock.call_count == build_runs
 
         # Web server doesn't restart when the package build errors
         if not build_error:
