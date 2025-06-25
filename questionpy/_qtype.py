@@ -2,7 +2,7 @@
 #  The QuestionPy SDK is free software released under terms of the MIT license. See LICENSE.md.
 #  (c) Technische Universität Berlin, innoCampus <info@isis.tu-berlin.de>
 from abc import ABC
-from typing import ClassVar, Self, cast
+from typing import TYPE_CHECKING, ClassVar, Self, cast
 
 from pydantic import BaseModel, JsonValue, ValidationError
 
@@ -13,6 +13,9 @@ from questionpy_common.environment import get_qpy_environment
 from ._attempt import Attempt, AttemptProtocol, AttemptScoredProtocol, AttemptStartedProtocol
 from ._util import cached_class_property, reify_type_hint
 from .form import FormModel, OptionsFormDefinition
+
+if TYPE_CHECKING:
+    from pydantic_core import ErrorDetails, ErrorType
 
 
 class QuestionStateWithVersion[F: FormModel, S: "BaseQuestionState"](BaseModel):
@@ -118,7 +121,26 @@ class Question(ABC):
         try:
             return cls.options_class.model_validate(form_data)
         except ValidationError as e:
-            error_dict = {".".join(map(str, error["loc"])): error["msg"] for error in e.errors()}
+            error_dict = {}
+
+            user_raised_error: set[ErrorType] = {"assertion_error", "value_error"}
+
+            error_details: ErrorDetails
+            for error_details in e.errors():
+                message = error_details["msg"]
+
+                # The `msg` is prepended with a string, such as "Assertion failed, " or "Value error, ", by Pydantic, if
+                # a custom `AssertionError` or `ValueError` was raised. This ensures we return the raw error message.
+                if (
+                    error_details["type"] in user_raised_error
+                    and (context := error_details.get("ctx"))
+                    and (error := context.get("error"))
+                    and isinstance(error, Exception)
+                ):
+                    message = str(error) or type(error).__name__
+
+                error_dict[".".join(map(str, error_details["loc"]))] = message
+
             raise OptionsFormValidationError(error_dict) from e
 
     def get_options_form(self) -> tuple[OptionsFormDefinition, dict[str, JsonValue]]:
