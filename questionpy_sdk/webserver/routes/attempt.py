@@ -23,7 +23,7 @@ class AttemptBaseView(BaseView["AttemptController"]):
     controller_class = AttemptController
 
 
-@routes.view("/attempt")
+@routes.view("/attempt", name="attempt")
 class AttemptView(AttemptBaseView):
     async def get(self) -> web.Response:
         """Gets the attempt data."""
@@ -46,7 +46,7 @@ class AttemptView(AttemptBaseView):
         return web.Response()
 
 
-@routes.view("/attempt/score")
+@routes.view("/attempt/score", name="attempt-score")
 class AttemptScoreView(AttemptBaseView):
     async def post(self) -> web.Response:
         """Scores the saved attempt."""
@@ -57,7 +57,7 @@ class AttemptScoreView(AttemptBaseView):
         return web.Response()
 
 
-@routes.view("/attempt/restart")
+@routes.view("/attempt/restart", name="attempt-restart")
 class AttemptResetView(AttemptBaseView):
     async def post(self) -> web.Response:
         """Restarts the attempt by deleting the attempt scored state and last attempt data and by resetting the seed."""

@@ -25,18 +25,6 @@ def mock_state_manager() -> AsyncMock:
 
 
 @pytest.fixture
-def mock_worker() -> AsyncMock:
-    return AsyncMock()
-
-
-@pytest.fixture
-def mock_worker_pool(mock_worker: AsyncMock) -> AsyncMock:
-    worker_pool = MagicMock()
-    worker_pool.get_worker.return_value.__aenter__.return_value = mock_worker
-    return worker_pool
-
-
-@pytest.fixture
 def mock_formulation_renderer(monkeypatch: pytest.MonkeyPatch) -> Iterator[Mock]:
     formulation_renderer = Mock()
     formulation_renderer.render = Mock(return_value=("<html>Formulation</html>", RenderErrorCollection()))
@@ -76,12 +64,12 @@ def mock_jinja2_template(monkeypatch: pytest.MonkeyPatch) -> Iterator[Mock]:
 @pytest.fixture
 def mock_webserver(
     mock_state_manager: AsyncMock,
-    mock_worker_pool: AsyncMock,
+    mock_worker_pool: tuple[Mock, MagicMock],
     mock_formulation_renderer: Mock,
     mock_renderer: Mock,
     mock_jinja2_template: Mock,
 ) -> Mock:
     webserver = Mock()
     webserver.state_manager = mock_state_manager
-    webserver.worker_pool = mock_worker_pool
+    webserver.worker_pool = mock_worker_pool[1]
     return webserver

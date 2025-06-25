@@ -23,7 +23,8 @@ dependencies = [
     "aiohttp-jinja2 >=1.6, <2.0",
     "lxml[html-clean] >=5.4.0, <5.5.0",
     "babel >=2.17.0, <3.0.0",
-    "pathspec >=0.12.1, <0.13.0"
+    "pathspec >=0.12.1, <0.13.0",
+    "yarl (>=1.20.1,<2.0.0)"
 ]
 
 [tool.poetry.group.dev.dependencies]

@@ -10,7 +10,7 @@ from questionpy_sdk.webserver.routes.base import BaseView
 routes = web.RouteTableDef()
 
 
-@routes.view("/manifest")
+@routes.view("/manifest", name="manifest")
 class ManifestView(BaseView["ManifestController"]):
     controller_class = ManifestController
 

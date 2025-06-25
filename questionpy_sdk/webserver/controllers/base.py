@@ -4,6 +4,8 @@
 
 from typing import TYPE_CHECKING, Literal, overload
 
+from yarl import URL
+
 from questionpy_common.manifest import Manifest
 from questionpy_sdk.webserver.controllers.errors import MissingQuestionStateError
 from questionpy_sdk.webserver.state import StateManager
@@ -14,9 +16,12 @@ if TYPE_CHECKING:
     from questionpy_server.worker.runtime.package_location import PackageLocation
 
 
-class BaseController:  # noqa: B903 ("Class could be dataclass or namedtuple", that doesn't mean it should.)
+class BaseController:
     def __init__(self, webserver: "WebServer") -> None:
         self._webserver = webserver
+
+    def generate_api_url(self, name: str, **kwargs: str) -> URL:
+        return self._webserver.api_app.router[name].url_for(**kwargs)
 
     @property
     def _package_location(self) -> "PackageLocation":
