@@ -44,7 +44,8 @@ class WebServer:
         self._port = kwargs.get("port", 8080)
         self._worker_class = kwargs.get("worker_class", self.DEFAULT_WORKER_CLASS)
 
-        self._web_app: web.Application
+        self._app: web.Application
+        self._api_app: web.Application
         self._runner: web.AppRunner
 
         self._manifest: Manifest
@@ -82,16 +83,15 @@ class WebServer:
     def _create_webapp(self) -> web.Application:
         app = web.Application()
         app[WEBSERVER_KEY] = self
-
         app.middlewares.append(inject_controller_middleware)
         app.middlewares.append(error_middleware)
 
         # API
-        api_app = web.Application()
-        api_app.middlewares.append(api_error_middleware)
+        self._api_app = web.Application()
+        self._api_app.middlewares.append(api_error_middleware)
         for routes in api_routes:
-            api_app.add_routes(routes)
-        app.add_subapp(API_PATH_PREFIX, api_app)
+            self._api_app.add_routes(routes)
+        app.add_subapp(API_PATH_PREFIX, self._api_app)
 
         # Frontend
         if USE_VITE_DEV_SERVER:
@@ -125,6 +125,10 @@ class WebServer:
     @property
     def app(self) -> web.Application:
         return self._app
+
+    @property
+    def api_app(self) -> web.Application:
+        return self._api_app
 
     @property
     def manifest(self) -> Manifest:

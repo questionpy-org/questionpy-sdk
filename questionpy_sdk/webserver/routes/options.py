@@ -16,14 +16,14 @@ class OptionsBaseView(BaseView["OptionsController"]):
     controller_class = OptionsController
 
 
-@routes.view("/options")
+@routes.view("/options", name="options")
 class OptionsView(OptionsBaseView):
     async def get(self) -> web.Response:
         """Gets the options form definition that allows a question creator to customize a question."""
         return self.json_model_response(await self.controller.get_form_definition())
 
 
-@routes.view("/options/state")
+@routes.view("/options/state", name="options-state")
 class OptionsStateView(OptionsBaseView):
     async def get(self) -> web.Response:
         """Gets the form data for the Options Form from the state storage."""

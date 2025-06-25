@@ -6,7 +6,7 @@ import asyncio
 import logging
 from collections.abc import Iterator
 from pathlib import Path
-from unittest.mock import AsyncMock, Mock
+from unittest.mock import AsyncMock, MagicMock, Mock
 
 import pytest
 from aiohttp import web
@@ -15,7 +15,6 @@ from questionpy import Attempt, NeedsManualScoringError, Package, Question, Ques
 from questionpy.form import FormModel
 from questionpy_common.api.qtype import QuestionTypeInterface
 from questionpy_common.constants import DIST_DIR
-from questionpy_common.manifest import Bcp47LanguageTag, Manifest
 from questionpy_sdk.package.builder import DirPackageBuilder
 from questionpy_sdk.package.source import PackageSource
 from questionpy_sdk.webserver.server import WebServer
@@ -29,53 +28,6 @@ from questionpy_server.worker.runtime.package_location import (
 
 
 @pytest.fixture
-def mock_worker_pool(monkeypatch: pytest.MonkeyPatch, mock_worker: AsyncMock) -> Iterator[tuple[Mock, AsyncMock]]:
-    with monkeypatch.context() as mp:
-        mock_get_worker_context = Mock()
-        mock_get_worker_context.return_value = AsyncMock(
-            __aenter__=AsyncMock(return_value=mock_worker),
-            __aexit__=AsyncMock(return_value=None),
-        )
-
-        mock_worker_pool_instance = AsyncMock(get_worker=mock_get_worker_context)
-        mock_worker_pool_cls = Mock()
-        mock_worker_pool_cls.return_value = AsyncMock(
-            __aenter__=AsyncMock(return_value=mock_worker_pool_instance),
-            __aexit__=AsyncMock(return_value=None),
-        )
-
-        mp.setattr("questionpy_sdk.webserver.server.WorkerPool", mock_worker_pool_cls)
-        yield mock_worker_pool_cls, mock_worker_pool_instance
-
-
-@pytest.fixture
-def mock_worker() -> AsyncMock:
-    mock_worker = AsyncMock()
-    manifest = Manifest(
-        short_name="my_short_name",
-        version="7.3.1",
-        api_version="9.4",
-        author="Testy McTestface",
-        languages=[Bcp47LanguageTag("en")],
-    )
-    mock_worker.get_manifest = AsyncMock(return_value=manifest)
-    return mock_worker
-
-
-@pytest.fixture
-def mock_web_components(monkeypatch: pytest.MonkeyPatch) -> Iterator[tuple[Mock, AsyncMock]]:
-    with monkeypatch.context() as mp:
-        mock_app_runner = AsyncMock()
-        mp.setattr("questionpy_sdk.webserver.server.web.AppRunner", Mock(return_value=mock_app_runner))
-
-        mock_tcp_site = Mock()
-        mock_tcp_site.return_value.start = AsyncMock()
-        mp.setattr("questionpy_sdk.webserver.server.web.TCPSite", mock_tcp_site)
-
-        yield mock_app_runner, mock_tcp_site
-
-
-@pytest.fixture
 def mock_state_manager(monkeypatch: pytest.MonkeyPatch) -> Iterator[Mock]:
     with monkeypatch.context() as mp:
         mock_state_manager_cls = Mock()
@@ -84,7 +36,7 @@ def mock_state_manager(monkeypatch: pytest.MonkeyPatch) -> Iterator[Mock]:
 
 
 async def test_webserver_startup(
-    mock_worker_pool: tuple[Mock, AsyncMock],
+    mock_worker_pool: tuple[Mock, MagicMock],
     mock_worker: AsyncMock,
     mock_web_components: tuple[Mock, AsyncMock],
     mock_state_manager: Mock,
@@ -109,7 +61,7 @@ async def test_webserver_startup(
 
 
 async def test_webserver_shutdown(
-    mock_worker_pool: tuple[Mock, AsyncMock], mock_web_components: tuple[Mock, AsyncMock]
+    mock_worker_pool: tuple[Mock, MagicMock], mock_web_components: tuple[Mock, AsyncMock]
 ) -> None:
     _, mock_worker_pool_instance = mock_worker_pool
     mock_app_runner, _ = mock_web_components
