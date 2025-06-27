@@ -23,7 +23,7 @@ from watchdog.observers import Observer
 from watchdog.utils.event_debouncer import EventDebouncer
 
 from questionpy_sdk.package import DirBuildTarget, build_qpy_package
-from questionpy_sdk.package._helper import create_ignore_file_callable
+from questionpy_sdk.package._ignores import create_ignore_file_callable
 from questionpy_sdk.package.errors import PackageError
 from questionpy_sdk.package.source import PackageSource
 from questionpy_sdk.webserver import WebServer
