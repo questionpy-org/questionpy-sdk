@@ -117,9 +117,9 @@ class PackageBuilder:
         self._copy_glob(self._source.path, "css/**/*", static_path, add_to_static_files=True)
         self._copy_glob(self._source.path, "js/**/*", static_path, add_to_static_files=True)
         self._copy_glob(self._source.path, "assets/**/*", static_path, add_to_static_files=True)
-        self._copy_glob(self._source.path, "logo.svg", static_path, add_to_static_files=True)
-        self._copy_glob(self._source.path, "logo.png", static_path, add_to_static_files=True)
-        self._copy_glob(self._source.path, "logo.jpg", static_path, add_to_static_files=True)
+        self._copy_glob(self._source.path, "logo.svg", static_path / "assets", add_to_static_files=True)
+        self._copy_glob(self._source.path, "logo.png", static_path / "assets", add_to_static_files=True)
+        self._copy_glob(self._source.path, "logo.jpg", static_path / "assets", add_to_static_files=True)
 
     def _write_manifest(self) -> None:
         """Writes package manifest."""
