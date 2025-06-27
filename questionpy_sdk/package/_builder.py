@@ -17,7 +17,7 @@ from questionpy_common.constants import MANIFEST_FILENAME
 from questionpy_common.manifest import Manifest, PackageFile
 from questionpy_sdk._i18n_utils import bcp47_to_posix
 from questionpy_sdk.models import BuildHookName
-from questionpy_sdk.package._helper import create_ignore_spec
+from questionpy_sdk.package._ignores import create_ignore_spec
 from questionpy_sdk.package._targets import BuildTarget
 from questionpy_sdk.package.errors import PackageBuildError
 from questionpy_sdk.package.source import PackageSource
