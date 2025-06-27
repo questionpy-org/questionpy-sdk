@@ -6,8 +6,8 @@ import { defineConfig } from "rollup";
 export default defineConfig({
     input: "src/main.ts",
     output: {
-        file: "js/main.js",
+        file: `${process.env.QPY_DIST_JS}/main.js`,
         format: "amd",
     },
-    plugins: [typescript(), sass({ output: "css/styles.css" }), terser()],
+    plugins: [typescript(), sass({ output: `${process.env.QPY_DIST_CSS}/styles.css` }), terser()],
 });

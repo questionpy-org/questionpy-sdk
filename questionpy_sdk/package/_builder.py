@@ -1,5 +1,6 @@
 import inspect
 import logging
+import os
 import shutil
 import subprocess
 import tempfile
@@ -124,13 +125,17 @@ class PackageBuilder:
 
     def _run_hook(self, cmd: str, hook_name: BuildHookName, num: int) -> None:
         _log.info("Running %s hook[%d]: '%s'", hook_name, num, cmd)
+
+        env = {
+            **os.environ,
+            "QPY_DIST": str(self._target.dist.absolute()),
+            "QPY_DIST_JS": str(self._target.dist.absolute() / "static" / "js"),
+            "QPY_DIST_CSS": str(self._target.dist.absolute() / "static" / "css"),
+            "QPY_SOURCE": str(self._source.path.absolute()),
+        }
+
         with subprocess.Popen(  # noqa: S602
-            cmd,
-            cwd=self._source.path,
-            shell=True,
-            stdout=subprocess.PIPE,
-            stderr=subprocess.STDOUT,
-            text=True,
+            cmd, cwd=self._source.path, shell=True, stdout=subprocess.PIPE, stderr=subprocess.STDOUT, text=True, env=env
         ) as proc:
             if proc.stdout:
                 while True:
