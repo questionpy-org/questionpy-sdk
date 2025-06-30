@@ -14,7 +14,7 @@
         "format": "prettier --write ."
     },
     "dependencies": {
-        "@pinia/colada": "^0.13.6",
+        "@pinia/colada": "^0.17.1",
         "bootstrap": "^5.3.3",
         "bootstrap-vue-next": "^0.26.30",
         "core-js": "^3.40.0",
