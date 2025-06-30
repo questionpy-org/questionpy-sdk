@@ -5,5 +5,13 @@
 -->
 
 <template>
-    <code>TODO: Question preview</code>
+    <PackageCard />
+    <QuestionList />
 </template>
+
+<route lang="json">
+{
+    "name": "index",
+    "meta": { "title": "Package preview" }
+}
+</route>
