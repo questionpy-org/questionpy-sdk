@@ -5,5 +5,12 @@
 -->
 
 <template>
-    <QuestionOptions />
+    <AttemptPreview />
 </template>
+
+<route lang="json">
+{
+    "name": "question-attempt",
+    "meta": { "title": "Question Attempt" }
+}
+</route>

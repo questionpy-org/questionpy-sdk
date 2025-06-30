@@ -55,6 +55,12 @@ const config = defineConfigWithVueTs(
 
     {
         name: `${BASE_NAME}/custom-overrides`,
+        languageOptions: {
+            globals: {
+                // Ignore macro from Unplugin Vue Router
+                definePage: 'readonly',
+            },
+        },
         rules: {
             // Allow removing keys by destructuring
             '@typescript-eslint/no-unused-vars': [
@@ -64,6 +70,13 @@ const config = defineConfigWithVueTs(
                 },
             ],
         },
+    },
+
+    // Follows file based routing naming scheme (https://uvr.esm.is/guide/file-based-routing)
+    {
+        name: `${BASE_NAME}/unplugin-vue-router`,
+        files: ['src/pages/**'],
+        rules: { 'vue/multi-word-component-names': 'off' },
     },
 )
 

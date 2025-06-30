@@ -5,52 +5,29 @@
  */
 
 import { createRouter, createWebHistory } from 'vue-router'
+import { handleHotUpdate, routes } from 'vue-router/auto-routes'
 
 import useAppStateStore from '@/stores/useAppStateStore'
-import AttemptView from '@/views/AttemptView.vue'
-import PackageView from '@/views/PackageView.vue'
-import QuestionPreviewView from '@/views/QuestionPreviewView.vue'
-import QuestionView from '@/views/QuestionView.vue'
 
-const router = createRouter({
-    history: createWebHistory(import.meta.env.BASE_URL),
-    routes: [
-        {
-            path: '/',
-            name: 'package-preview',
-            component: PackageView,
-            meta: { title: 'Package preview' },
-        },
-        {
-            path: '/question',
-            name: 'question',
-            component: QuestionView,
-            meta: { title: 'Question' },
-        },
-        {
-            path: '/question/preview',
-            name: 'question-preview',
-            component: QuestionPreviewView,
-            meta: { title: 'Question preview' },
-        },
-        {
-            path: '/attempt',
-            name: 'attempt',
-            component: AttemptView,
-            meta: { title: 'Attempt preview' },
-        },
-        {
-            path: '/:pathMatch(.*)*',
-            name: 'NotFound',
-            redirect: '/',
-        },
-    ],
+// Catch-all route
+routes.push({
+    path: '/:pathMatch(.*)*',
+    name: 'not-found',
+    redirect: '/',
 })
+
+const history = createWebHistory(import.meta.env.BASE_URL)
+const router = createRouter({ history, routes })
 
 router.beforeEach((to, from, next) => {
     const store = useAppStateStore()
     store.pageTitle = to.meta.title
     next()
 })
+
+// This will update routes at runtime without reloading the page
+if (import.meta.hot) {
+    handleHotUpdate(router)
+}
 
 export default router

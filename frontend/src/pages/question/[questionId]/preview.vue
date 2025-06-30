@@ -5,5 +5,12 @@
 -->
 
 <template>
-    <AttemptPreview />
+    <code>TODO: Question preview</code>
 </template>
+
+<route lang="json">
+{
+    "name": "question-preview",
+    "meta": { "title": "Question Preview" }
+}
+</route>
