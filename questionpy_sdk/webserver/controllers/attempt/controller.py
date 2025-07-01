@@ -1,7 +1,7 @@
 #  This file is part of the QuestionPy SDK. (https://questionpy.org)
 #  The QuestionPy SDK is free software released under terms of the MIT license. See LICENSE.md.
 #  (c) Technische Universität Berlin, innoCampus <info@isis.tu-berlin.de>
-
+import logging
 import random
 import re
 from enum import StrEnum
@@ -22,6 +22,10 @@ from .question_ui import QuestionDisplayOptions, QuestionFormulationUIRenderer, 
 
 if TYPE_CHECKING:
     from questionpy_server.worker import Worker
+
+
+_log = logging.getLogger(__name__)
+_QPY_URL_PATTERN = re.compile(r"^qpy://static/([a-z_]\w{0,126})/([a-z_]\w{0,126})((?:/[\w\-@:%+.~=]+)+)$")
 
 
 class AttemptStatus(StrEnum):
@@ -46,6 +50,7 @@ class AttemptTemplateContext(TypedDict):
     display_options: QuestionDisplayOptions
     import_map: dict[str, str]
     javascript_calls: list[JsModuleCall]
+    stylesheet_urls: list[str]
 
 
 @dataclass
@@ -154,6 +159,7 @@ class AttemptController(BaseController):
             "display_options": display_options,
             "import_map": await self._get_import_map(),
             "javascript_calls": self._get_js_calls(attempt, display_options),
+            "stylesheet_urls": self._get_stylesheet_urls(attempt),
         }
 
         render_errors: SectionErrorMap = {}
@@ -198,6 +204,26 @@ class AttemptController(BaseController):
             if (call.if_role is None or call.if_role in display_options.roles)
             and (call.if_feedback_type is None or feedback_map[call.if_feedback_type])
         ]
+
+    def _get_stylesheet_urls(self, attempt: AttemptModel) -> list[str]:
+        urls = []
+
+        for url in set(attempt.ui.css_files):
+            if match := _QPY_URL_PATTERN.match(url):
+                namespace, short_name, path = match.group(1, 2, 3)
+                static_path = f"static{path}"
+                api_url = self.generate_api_url("file", namespace=namespace, short_name=short_name, path=static_path)
+                urls.append(str(api_url))
+                continue
+            if url.startswith("qpy://"):
+                _log.warning("Stylesheet URL '%s' looks like a QPy-URL, but could not be parsed.", url)
+                continue
+            if not url.startswith("https://"):
+                _log.warning("Stylesheet URL '%s' does not use a supported scheme.", url)
+                continue
+            urls.append(url)
+
+        return urls
 
     @property
     def _attempt_template(self) -> jinja2.Template:
