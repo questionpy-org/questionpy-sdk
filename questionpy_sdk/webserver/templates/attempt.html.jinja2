@@ -104,6 +104,9 @@
                     }
                 }
 
+                // Add dynamic data.
+                formData['data'] = Object.fromEntries(attempt.data)
+
                 return formData
             }
 
@@ -175,6 +178,7 @@
             #specificFeedback;
             #rightAnswer;
             #roles;
+            #data;
             #environment;
 
             /**
@@ -188,6 +192,7 @@
              * @param {?Element} specificFeedbackElement
              * @param {?Element} rightAnswer
              * @param {string[]} roles
+             * @param {Iterable} data
              */
             constructor(
                 readOnly,
@@ -200,6 +205,7 @@
                 specificFeedbackElement,
                 rightAnswer,
                 roles,
+                data,
             ) {
                 this.#readOnly = readOnly;
                 this.#showGeneralFeedback = showGeneralFeedback;
@@ -211,6 +217,7 @@
                 this.#specificFeedback = specificFeedbackElement;
                 this.#rightAnswer = rightAnswer;
                 this.#roles = roles;
+                this.#data = new Map(data);
                 this.#environment = new AttemptEnvironment("SDK", 0);
             }
 
@@ -312,6 +319,21 @@
             }
 
             /**
+             * Get the map used to store dynamic data.
+             *
+             * @note
+             * The keys should be of type `string`.
+             * The values can have a depth of 16 and will be serialized to JSON by using `JSON.stringify` and therefore follow
+             * the conversion rules of this function. This also means that the keys of (nested) objects will be converted to
+             * strings.
+             *
+             * @returns {Map<string, any>}
+             */
+            get data() {
+                return this.#data;
+            }
+
+            /**
              * Get information about the current environment.
              *
              * @returns {AttemptEnvironment}
@@ -332,6 +354,7 @@
             document.getElementById("container-specific-feedback"),
             document.getElementById("container-right-answer"),
             [{{ display_options.roles|map('lower')|map('tojson')|join(',') }}],
+            Object.entries({{ data|tojson }})
         );
 
         {% for javascript_call in javascript_calls %}

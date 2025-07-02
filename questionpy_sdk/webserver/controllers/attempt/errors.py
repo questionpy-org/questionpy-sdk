@@ -47,6 +47,7 @@ type RenderError = Annotated[
     | UnknownElementError
     | UnknownAttributeError
     | DuplicateNameError
+    | ReservedNameError
     | XMLSyntaxError,
     Field(discriminator="kind"),
 ]
@@ -281,6 +282,19 @@ class DuplicateNameError(RenderElementError):
                 "other_element": self._element_representation(other_element),
                 "line": str(other_element.sourceline or "?"),
             },
+        )
+
+
+class ReservedNameError(RenderElementError):
+    """Reserved input name."""
+
+    kind: Literal["reserved_name"] = "reserved_name"
+
+    def __init__(self, element: etree._Element, name: str):
+        super().__init__(
+            element,
+            "{element} cannot use the reserved name {name}.",
+            {"name": name},
         )
 
 
