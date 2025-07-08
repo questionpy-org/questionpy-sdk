@@ -30,6 +30,10 @@
             border-color: var(--invalid-input-color);
         }
     </style>
+
+    {% for stylesheet_url in stylesheet_urls %}
+        <link rel="stylesheet" href="{{ stylesheet_url|safe }}" />
+    {% endfor %}
 {% endblock %}
 
 {% block content %}
