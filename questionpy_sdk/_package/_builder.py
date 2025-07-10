@@ -138,7 +138,7 @@ class PackageBuilder:
                 dest_path = self._target.dist / "dependencies" / "qpy" / dep_dir_name
                 dep_package_zf.extractall(dest_path)
 
-            self._manifest.dependencies.qpy.append(DistStaticQPyDependency(name=dep_dir_name, hash=dep_hash))
+            self._manifest.dependencies.qpy.append(DistStaticQPyDependency(dir_name=dep_dir_name, hash=dep_hash))
 
     def _write_package_files(self) -> None:
         """Writes custom package files."""

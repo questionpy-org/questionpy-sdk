@@ -43,11 +43,11 @@ def package() -> ImportablePackage:
 @pytest.fixture(autouse=True)
 def environment(package: ImportablePackage) -> Generator[Environment, None, None]:
     env = EnvironmentImpl(
-        type="test",
-        limits=None,
-        request_user=DEFAULT_REQUEST_USER,
-        main_package=package,
-        packages={},
+        _type="test",
+        _limits=None,
+        _request_user=DEFAULT_REQUEST_USER,
+        _main_package=package,
+        _packages={},
         _on_request_callbacks=[],
     )
     set_qpy_environment(env)
