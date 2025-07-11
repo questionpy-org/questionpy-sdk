@@ -28,41 +28,50 @@ class ZipBuildTarget(BuildTarget):
     _COMPRESS_TYPE = zipfile.ZIP_DEFLATED
     _LOCAL_TIMEZONE = datetime.datetime.now(datetime.UTC).astimezone().tzinfo
 
-    def __init__(self, out_path: Path) -> None:
+    def __init__(self, out_path: Path, *, allow_overwrite: bool = False) -> None:
         self._out_path = out_path
+        self._allow_overwrite = allow_overwrite
 
-        self._temp_dist: Path | None = None
+        self._temp_dir: Path | None = None
         self._zipfile: zipfile.ZipFile | None = None
 
     def __enter__(self) -> Self:
-        if not self._temp_dist:
-            self._temp_dist = Path(tempfile.mkdtemp(prefix="qpy-build-"))
+        if not self._temp_dir:
+            self._temp_dir = Path(tempfile.mkdtemp(prefix="qpy-build-"))
         if not self._zipfile:
-            self._zipfile = zipfile.ZipFile(self._out_path, mode="w")
+            self._zipfile = zipfile.ZipFile(self._temp_dir / "package.qpy", mode="x")
         return self
 
     def __exit__(self, *_: object) -> None:
-        if not self._zipfile or not self._temp_dist:
+        if not self._zipfile or not self._temp_dir:
             self._raise_not_entered()
 
-        self._mkdir(DIST_DIR)
-        for entry in self.dist.glob("**/*"):
-            path_in_pkg = DIST_DIR / entry.relative_to(self.dist)
+        try:
+            self._mkdir(DIST_DIR)
+            for entry in self.dist.glob("**/*"):
+                path_in_pkg = DIST_DIR / entry.relative_to(self.dist)
 
-            if entry.is_dir():
-                self._mkdir(path_in_pkg.as_posix())
-            else:
-                self._zipfile.write(entry, path_in_pkg, compress_type=self._COMPRESS_TYPE)
+                if entry.is_dir():
+                    self._mkdir(path_in_pkg.as_posix())
+                else:
+                    self._zipfile.write(entry, path_in_pkg, compress_type=self._COMPRESS_TYPE)
 
-        self._zipfile.close()
+            self._zipfile.close()
 
-        shutil.rmtree(self._temp_dist)
+            if self._out_path.exists() and not self._allow_overwrite:
+                raise FileExistsError(self._out_path)
+
+            # shutil.move will overwrite if the out path exists.
+            shutil.move(self._temp_dir / "package.qpy", self._out_path)
+        finally:
+            self._zipfile.close()
+            shutil.rmtree(self._temp_dir)
 
     @property
     def dist(self) -> Path:
-        if not self._temp_dist:
+        if not self._temp_dir:
             self._raise_not_entered()
-        return self._temp_dist
+        return self._temp_dir / DIST_DIR
 
     def maybe_copy_source(self, package_source: PackageSource, ignore_spec: PathSpec) -> None:
         if not self._zipfile:
