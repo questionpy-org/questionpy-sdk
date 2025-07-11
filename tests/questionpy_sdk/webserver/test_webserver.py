@@ -15,8 +15,7 @@ from questionpy import Attempt, NeedsManualScoringError, Package, Question, Ques
 from questionpy.form import FormModel
 from questionpy_common.api.qtype import QuestionTypeInterface
 from questionpy_common.constants import DIST_DIR
-
-from questionpy_sdk.package import build_qpy_package, DirBuildTarget
+from questionpy_sdk.package import DirBuildTarget, build_qpy_package
 from questionpy_sdk.package.source import PackageSource
 from questionpy_sdk.webserver.server import WebServer
 from questionpy_server.hash import calculate_hash
