@@ -7,7 +7,7 @@ import click
 
 from questionpy_common.constants import DIST_DIR
 from questionpy_sdk.commands._helper import confirm_overwrite
-from questionpy_sdk.package import DirBuildTarget, ZipBuildTarget, build_qpy_package
+from questionpy_sdk.package import ZipBuildTarget, build_qpy_package
 from questionpy_sdk.package.errors import PackageBuildError, PackageSourceValidationError
 from questionpy_sdk.package.source import PackageSource
 
@@ -81,7 +81,7 @@ def package(
 
 def create_dist(package_source: PackageSource) -> None:
     try:
-        build_qpy_package(package_source, DirBuildTarget.in_source(package_source))
+        build_qpy_package(package_source)
     except PackageBuildError as exc:
         msg = f"Failed to build package: {exc}"
         raise click.ClickException(msg) from exc
