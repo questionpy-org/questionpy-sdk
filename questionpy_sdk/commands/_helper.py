@@ -9,7 +9,7 @@ import click
 from pydantic import ValidationError
 
 from questionpy_common.constants import DIST_DIR, MANIFEST_FILENAME
-from questionpy_sdk.package import DirBuildTarget, build_qpy_package
+from questionpy_sdk.package import build_qpy_package
 from questionpy_sdk.package.errors import PackageBuildError, PackageSourceValidationError
 from questionpy_sdk.package.source import PackageSource
 from questionpy_server.hash import calculate_hash
@@ -35,7 +35,7 @@ def _get_dir_package_location_from_source(pkg_string: str, source_path: Path) ->
     except PackageSourceValidationError as exc:
         raise click.ClickException(str(exc)) from exc
     try:
-        build_qpy_package(package_source, DirBuildTarget.in_source(package_source))
+        build_qpy_package(package_source)
         click.echo(f"Successfully built package '{pkg_string}'.")
     except PackageBuildError as exc:
         msg = f"Failed to build package: {exc}"

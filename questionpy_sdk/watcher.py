@@ -22,7 +22,7 @@ from watchdog.events import (
 from watchdog.observers import Observer
 from watchdog.utils.event_debouncer import EventDebouncer
 
-from questionpy_sdk.package import DirBuildTarget, build_qpy_package
+from questionpy_sdk.package import build_qpy_package
 from questionpy_sdk.package._ignores import create_ignore_file_callable
 from questionpy_sdk.package.errors import PackageError
 from questionpy_sdk.package.source import PackageSource
@@ -159,7 +159,7 @@ class Watcher(AbstractAsyncContextManager):
                 log.info("File change detected. Rebuilding package...")
                 try:
                     package_source = PackageSource(self._source_path)
-                    build_qpy_package(package_source, DirBuildTarget.in_source(package_source))
+                    build_qpy_package(package_source)
                 except PackageError:
                     log.exception("Failed to build package.")
                     await wait_for_changes()

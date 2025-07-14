@@ -226,7 +226,12 @@ class PackageBuilder:
                 self._manifest.static_files[path_in_dist] = PackageFile(mime_type=mime_type, size=file_size)
 
 
-def build_qpy_package(source: PackageSource, target: BuildTarget, *, copy_sources: bool = True) -> None:
+def build_qpy_package(source: PackageSource, target: BuildTarget | None = None, *, copy_sources: bool = True) -> None:
+    if not target:
+        from questionpy_sdk.package import DirBuildTarget  # noqa: PLC0415 (works around a circular import)
+
+        target = DirBuildTarget.in_source(source)
+
     with target:
         builder = PackageBuilder(source, target, copy_sources=copy_sources)
         builder.write_package()

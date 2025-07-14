@@ -16,7 +16,7 @@ import yaml
 from questionpy_common.constants import DIST_DIR, MANIFEST_FILENAME
 from questionpy_common.manifest import Manifest
 from questionpy_sdk.constants import PACKAGE_CONFIG_FILENAME
-from questionpy_sdk.package import DirBuildTarget, ZipBuildTarget, build_qpy_package
+from questionpy_sdk.package import ZipBuildTarget, build_qpy_package
 from questionpy_sdk.package.errors import PackageBuildError
 from questionpy_sdk.package.source import PackageSource
 
@@ -195,7 +195,7 @@ def test_copy_sources(copy_sources: bool, tmp_path: Path, source_path: Path) -> 
 
 
 def test_dir_package_builder(tmp_path: Path, source_path: Path) -> None:
-    build_qpy_package(PackageSource(source_path), DirBuildTarget.in_source(source_path))
+    build_qpy_package(PackageSource(source_path))
 
     dist_dir = source_path / DIST_DIR
     assert (dist_dir / MANIFEST_FILENAME).is_file()
@@ -209,6 +209,6 @@ def test_dir_package_builder_clears_dist(tmp_path: Path, source_path: Path) -> N
     some_file_path = dist_dir / "static" / "some_file.txt"
     some_file_path.touch()
 
-    build_qpy_package(PackageSource(source_path), DirBuildTarget.in_source(source_path))
+    build_qpy_package(PackageSource(source_path))
 
     assert not some_file_path.exists()
