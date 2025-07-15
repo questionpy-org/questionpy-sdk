@@ -26,8 +26,8 @@ pinia.use(piniaPluginPersistedstate)
 app.use(pinia)
 app.use(PiniaColada, {
     queryOptions: {
-        refetchOnMount: false,
-        refetchOnReconnect: false,
+        refetchOnMount: true,
+        refetchOnReconnect: true,
         refetchOnWindowFocus: false,
         staleTime: 30_000,
     },

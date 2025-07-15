@@ -6,10 +6,10 @@
 
 import { render, screen, waitFor } from '@testing-library/vue'
 
-import CollapseCard from '@/components/common/CollapseCard.vue'
+import CollapsibleCard from '@/components/common/CollapsibleCard.vue'
 
 test('toggle button is visible', () => {
-    render(CollapseCard, {
+    render(CollapsibleCard, {
         slots: {
             default: '<div>card body</div>',
             'button-title': '<span>button title</span>',
@@ -20,7 +20,7 @@ test('toggle button is visible', () => {
 })
 
 test('card is initially collapsed by default', () => {
-    render(CollapseCard, {
+    render(CollapsibleCard, {
         slots: {
             default: '<div>card body</div>',
             'button-title': '<span>button title</span>',
@@ -31,7 +31,7 @@ test('card is initially collapsed by default', () => {
 })
 
 test('card can be initially expanded', async () => {
-    render(CollapseCard, {
+    render(CollapsibleCard, {
         props: { expanded: true },
         slots: {
             default: '<div>card body</div>',

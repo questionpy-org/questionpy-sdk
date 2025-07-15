@@ -5,7 +5,7 @@
 -->
 
 <template>
-    <CollapseCard expanded variant="secondary">
+    <CollapsibleCard expanded variant="secondary">
         <template #button-title>Display options</template>
         <BContainer class="px-0" fluid>
             <BRow>
@@ -24,7 +24,7 @@
                 </BCol>
             </BRow>
         </BContainer>
-    </CollapseCard>
+    </CollapsibleCard>
 </template>
 
 <script setup lang="ts">

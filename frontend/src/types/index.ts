@@ -19,6 +19,7 @@ import type {
     TextAreaElement,
     TextInputElement,
 } from './OptionsFormDefinition.generated'
+import type { OptionsFormData, OptionsStateResponse } from './OptionsStateResponse.generated'
 
 /** Mapping of form element `kind` types to their corresponding value types. */
 interface ElementValueMap {
@@ -58,12 +59,16 @@ type CanHaveConditions = Extract<FormElement, { disable_if: Condition[]; hide_if
 type CanHaveHelp = Extract<FormElement, { help: string | null }>
 
 /** Possible primitive and list value types allowed in the options form. */
-type OptionsFormValue = string | boolean | number | Array<string> | null
+type OptionsFormValue = OptionsFormData[string]
 
-/** Key-value structure representing the complete options form data. */
-type OptionsFormData = Record<string, OptionsFormValue>
-
-export type { AttemptRenderData } from './AttemptRenderData.generated'
+export type {
+    AttemptData,
+    AttemptRenderData,
+    RenderErrorCollection,
+    ScoringCode,
+    SectionErrorMap,
+    TemplateKwargs,
+} from './AttemptRenderData.generated'
 export type { ClientQuestionDisplayOptions, DisplayRole } from './ClientQuestionDisplayOptions.generated'
 export type { DetailedServerError, ErrorDetails } from './DetailedServerError.generated'
 export type { ErrorSectionKey } from './ErrorSectionKey.generated'
@@ -84,6 +89,7 @@ export type {
     OptionsFormData,
     OptionsFormDefinition,
     OptionsFormValue,
+    OptionsStateResponse,
     RadioGroupElement,
     RepetitionElement,
     SelectElement,

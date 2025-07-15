@@ -5,12 +5,12 @@
 -->
 
 <template>
-    <CollapseCard expanded variant="danger" v-if="renderErrorsEntries.length > 0">
+    <CollapsibleCard expanded variant="danger" v-if="renderErrorsEntries.length > 0">
         <template #button-title>Render errors</template>
         <div v-for="[key, errors] in renderErrorsEntries" :key="key" class="table-wrapper">
             <h5>
                 {{ errors.length }} error{{ errors.length > 1 ? 's' : '' }} occurred while rendering
-                {{ categoryTitle(key as ErrorSectionKey) }}
+                {{ categoryTitle(key) }}
             </h5>
             <BTableSimple class="mb-0 table-bg">
                 <BThead>
@@ -31,21 +31,21 @@
                 </BTbody>
             </BTableSimple>
         </div>
-    </CollapseCard>
+    </CollapsibleCard>
 </template>
 
 <script setup lang="ts">
-import { storeToRefs } from 'pinia'
 import { computed } from 'vue'
 
-import useAttemptStore from '@/stores/useAttemptStore'
-import { assertNever, type ErrorSectionKey } from '@/types'
+import { assertNever } from '@/types'
+import type { ErrorSectionKey, SectionErrorMap } from '@/types'
 
-const { renderErrors } = storeToRefs(useAttemptStore())
+const { renderErrors } = defineProps<{ renderErrors: SectionErrorMap }>()
 
-const renderErrorsEntries = computed(() => Object.entries(renderErrors.value))
+const renderErrorsEntries = computed(() => Object.entries(renderErrors ?? {}))
 
-function categoryTitle(key: ErrorSectionKey): string {
+function categoryTitle(strKey: string): string {
+    const key = strKey as ErrorSectionKey // Cast since auto-translated types are imprecise
     switch (key) {
         case 'formulation':
             return 'Formulation'
