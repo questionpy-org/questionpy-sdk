@@ -15,7 +15,7 @@
 <script lang="ts" setup>
 import { computed } from 'vue'
 
-import { FetchError } from '@/queries/fetch'
+import { FetchError } from '@/queries'
 
 const props = defineProps<{ error: Error }>()
 

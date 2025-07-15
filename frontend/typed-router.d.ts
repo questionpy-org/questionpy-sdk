@@ -20,8 +20,7 @@ declare module 'vue-router/auto-routes' {
   export interface RouteNamedMap {
     'index': RouteRecordInfo<'index', '/', Record<never, never>, Record<never, never>>,
     'question': RouteRecordInfo<'question', '/question/:questionId', { questionId: ParamValue<true> }, { questionId: ParamValue<false> }>,
-    'question-attempt': RouteRecordInfo<'question-attempt', '/question/:questionId/attempt', { questionId: ParamValue<true> }, { questionId: ParamValue<false> }>,
-    'question-preview': RouteRecordInfo<'question-preview', '/question/:questionId/preview', { questionId: ParamValue<true> }, { questionId: ParamValue<false> }>,
-    'question-new': RouteRecordInfo<'question-new', '/question/new', Record<never, never>, Record<never, never>>,
+    'question-attempt': RouteRecordInfo<'question-attempt', '/question/:questionId/attempt/:attemptId', { questionId: ParamValue<true>, attemptId: ParamValue<true> }, { questionId: ParamValue<false>, attemptId: ParamValue<false> }>,
+    'question-edit': RouteRecordInfo<'question-edit', '/question/:questionId/edit', { questionId: ParamValue<true> }, { questionId: ParamValue<false> }>,
   }
 }

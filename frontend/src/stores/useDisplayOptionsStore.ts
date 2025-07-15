@@ -9,20 +9,20 @@ import { ref } from 'vue'
 
 import type { ClientQuestionDisplayOptions } from '@/types'
 
-/** Provides attempt display options. */
+const DEFAULT_DISPLAY_OPTIONS = {
+    general_feedback: true,
+    specific_feedback: true,
+    right_answer: true,
+    correctness: true,
+    roles: [],
+}
+
+/** Manages display options for attempts, persisted in the browser. */
 const useDisplayOptionsStore = defineStore(
     'displayOptions',
-    () => {
-        const displayOptions = ref<ClientQuestionDisplayOptions>({
-            general_feedback: true,
-            specific_feedback: true,
-            right_answer: true,
-            correctness: true,
-            roles: [],
-        })
-
-        return { displayOptions }
-    },
+    () => ({
+        displayOptions: ref<ClientQuestionDisplayOptions>(DEFAULT_DISPLAY_OPTIONS),
+    }),
     {
         // Persist data to localStorage
         persist: true,

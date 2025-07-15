@@ -7,9 +7,9 @@
 import type { DetailedServerError, EditableElement, FormElement, HasElements } from '.'
 
 /** Utility function to be used as exhaustion check. */
-// eslint-disable-next-line @typescript-eslint/no-unused-vars
-function assertNever(_: never): never {
-    throw new Error('This code should never be reached')
+
+function assertNever(value: never): never {
+    throw new Error(`This code should never be reached. Value='${value}'`)
 }
 
 /** Type guard for `FormElement` with `elements` property. */

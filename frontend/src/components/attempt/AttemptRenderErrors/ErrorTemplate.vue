@@ -12,7 +12,7 @@
 import { computed, h } from 'vue'
 import type { VNode } from 'vue'
 
-import type { TemplateKwargs } from '@/types/AttemptRenderData.generated'
+import type { TemplateKwargs } from '@/types'
 
 const PLACEHOLDER_REGEX = /({\w+})/g
 

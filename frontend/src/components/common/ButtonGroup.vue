@@ -5,7 +5,7 @@
 -->
 
 <template>
-    <div class="d-flex mb-4 flex-wrap column-gap-3 row-gap-3 justify-content-end">
+    <div class="d-flex flex-wrap column-gap-3 row-gap-3 justify-content-end">
         <slot />
     </div>
 </template>

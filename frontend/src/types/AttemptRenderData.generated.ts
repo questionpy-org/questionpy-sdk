@@ -8,6 +8,7 @@
 // DO NOT MODIFY IT BY HAND. Instead, modify the source Pydantic models, and regenerate this file.
 
 export type AttemptStatus = 'STARTED' | 'IN_PROGRESS' | 'SCORED'
+export type ScoringCode = 'AUTOMATICALLY_SCORED' | 'NEEDS_MANUAL_SCORING' | 'RESPONSE_NOT_SCORABLE' | 'INVALID_RESPONSE'
 export type RenderError =
     | InvalidAttributeValueError
     | ConversionError
@@ -24,16 +25,21 @@ export type RenderError =
  * Collects render errors and provides a sorted iterator.
  */
 export type RenderErrorCollection = RenderError[]
-export type ScoringCode = 'AUTOMATICALLY_SCORED' | 'NEEDS_MANUAL_SCORING' | 'RESPONSE_NOT_SCORABLE' | 'INVALID_RESPONSE'
 
 /**
  * Represents the API response data for rendering an attempt in the frontend.
  */
 export interface AttemptRenderData {
+    attempt_data: AttemptData
     attempt_html: string
+    render_errors: SectionErrorMap
+}
+/**
+ * Represents the API response data for an attempt in the frontend.
+ */
+export interface AttemptData {
     attempt_status: AttemptStatus
     attempt_state: string
-    render_errors: SectionErrorMap
     variant: number
     scoring_state?: string | null
     scoring_code?: ScoringCode | null

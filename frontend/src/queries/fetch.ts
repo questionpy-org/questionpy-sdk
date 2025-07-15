@@ -46,10 +46,14 @@ class FetchError extends Error {
         let message = `${response.status} ${response.statusText}`
         let details: DetailedServerError['details'] = null
 
-        const serverError = await response.json()
-        if (isDetailedServerError(serverError)) {
-            message = serverError.error
-            details = serverError.details
+        try {
+            const serverError = await response.json()
+            if (isDetailedServerError(serverError)) {
+                message = serverError.error
+                details = serverError.details
+            }
+        } catch {
+            // Pass if JSON decode fails
         }
 
         return new FetchError(response.status, response.statusText, message, details)
@@ -107,4 +111,18 @@ async function post<T = unknown>(path: string, body?: string): Promise<T | undef
     }
 }
 
-export { FetchError, get, post }
+/**
+ * Performs a DELETE request to the specified API path.
+ *
+ * @param path The relative API endpoint path (e.g., `options/state`).
+ * @returns
+ * @throws {@link FetchError} If the response is not OK (status code outside the 200-299 range).
+ */
+async function delete_(path: string): Promise<undefined> {
+    const response = await fetch(`/api/${path}`, { method: 'DELETE' })
+    if (!response.ok) {
+        throw await FetchError.fromResponse(response)
+    }
+}
+
+export { delete_, FetchError, get, post }
