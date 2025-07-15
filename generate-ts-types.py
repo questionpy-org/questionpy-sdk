@@ -16,9 +16,10 @@ from pydantic_core import core_schema
 
 from questionpy_common.elements import OptionsFormDefinition
 from questionpy_common.manifest import Manifest
-from questionpy_sdk.webserver.controllers.attempt.controller import AttemptRenderData
+from questionpy_sdk.webserver.controllers.attempt.data import AttemptRenderData
 from questionpy_sdk.webserver.controllers.attempt.errors import ErrorSectionKey
 from questionpy_sdk.webserver.controllers.attempt.question_ui import ClientQuestionDisplayOptions
+from questionpy_sdk.webserver.controllers.question.controller import OptionsStateResponse
 from questionpy_sdk.webserver.middlewares.error import DetailedServerError
 
 logging.basicConfig(level=logging.INFO, format="")
@@ -32,6 +33,7 @@ TYPES: tuple[type[BaseModel] | TypeAdapter, ...] = (
     TypeAdapter(ErrorSectionKey),
     Manifest,
     OptionsFormDefinition,
+    TypeAdapter(OptionsStateResponse),
 )
 
 SCRIPT_PATH = Path(__file__).parent

@@ -3,11 +3,14 @@
 #  (c) Technische Universität Berlin, innoCampus <info@isis.tu-berlin.de>
 
 import operator
-from collections.abc import Iterable
+from collections.abc import Iterable, Mapping
 from typing import Any
 
+type OptionsFormDataValue = str | int | float | bool | list[str] | None
+type OptionsFormData = Mapping[str, OptionsFormDataValue]
 
-def _unflatten(flat_form_data: dict[str, str]) -> dict[str, Any]:
+
+def _unflatten(flat_form_data: OptionsFormData) -> dict[str, Any]:
     """Splits the keys of a dictionary to form a new nested dictionary.
 
     Each key of the input dictionary is a reference string of a FormElements from the Options Form.
@@ -53,7 +56,7 @@ def _convert_repetition_dict_to_list(dictionary: dict[str, Any]) -> dict[str, An
     return dictionary
 
 
-def parse_form_data(form_data: dict[str, Any]) -> dict[str, Any]:
+def parse_form_data(form_data: OptionsFormData) -> dict[str, Any]:
     """Parses form data from a flat into a nested dictionary to be consumed by Pydantic.
 
     This function parses a dictionary, where the keys are the references to the Form Elements from the Options Form.
@@ -82,7 +85,7 @@ def parse_form_data(form_data: dict[str, Any]) -> dict[str, Any]:
     return options
 
 
-def _flatten_value(value: Any, prefix: str, result: dict[str, Any]) -> None:
+def _flatten_value(value: Any, prefix: str, result: dict[str, OptionsFormDataValue]) -> None:
     # group
     if isinstance(value, dict):
         for k, v in value.items():
@@ -98,7 +101,7 @@ def _flatten_value(value: Any, prefix: str, result: dict[str, Any]) -> None:
         result[prefix] = value
 
 
-def flatten_form_data(form_data: dict[str, Any], section_names: Iterable[str]) -> dict[str, Any]:
+def flatten_form_data(form_data: dict[str, Any], section_names: Iterable[str]) -> OptionsFormData:
     """Flattens form data from a nested dictionary into a flat dictionary to be consumed by the frontend.
 
     This function flattens a nested dictionary into a flat dictionary, where the keys are references
@@ -123,7 +126,7 @@ def flatten_form_data(form_data: dict[str, Any], section_names: Iterable[str]) -
         ... )
         {'general[my_hidden]': 'foo', 'general[my_repetition][1][input]': 'foo'}
     """
-    result: dict[str, Any] = {}
+    result: dict[str, OptionsFormDataValue] = {}
     for key, value in form_data.items():
         _flatten_value(value, key if key in section_names else f"general[{key}]", result)
     return result

@@ -212,12 +212,12 @@ class QuestionUIRenderer:
         xml: str,
         placeholders: dict[str, str],
         options: QuestionDisplayOptions,
-        qpy_url_replacer: Callable[[re.Match[str]], str],
+        generate_file_url: Callable[[str, str, str], str],
         seed: int | None = None,
         attempt: dict | None = None,
     ) -> None:
         self._html: str | None = None
-        self._qpy_url_replacer = qpy_url_replacer
+        self._generate_file_url = generate_file_url
 
         xml = self._replace_qpy_urls(xml)
         self._error_collector = _RenderErrorCollector(xml, placeholders)
@@ -273,7 +273,7 @@ class QuestionUIRenderer:
         """Replace QPY-URLs to package files with SDK-URLs."""
         return re.sub(
             r"qpy://((?:static|static-private)/)([a-z_]\w{0,126})/([a-z_]\w{0,126})/",
-            self._qpy_url_replacer,
+            lambda m: self._generate_file_url(m.group(2), m.group(3), m.group(1)),
             xml,
         )
 
@@ -502,11 +502,11 @@ class QuestionFormulationUIRenderer(QuestionUIRenderer):
         xml: str,
         placeholders: dict[str, str],
         options: QuestionDisplayOptions,
-        qpy_url_replacer: Callable[[re.Match[str]], str],
+        generate_file_url: Callable[[str, str, str], str],
         seed: int | None = None,
         attempt: dict | None = None,
     ) -> None:
-        super().__init__(xml, placeholders, options, qpy_url_replacer, seed, attempt)
+        super().__init__(xml, placeholders, options, generate_file_url, seed, attempt)
         self.metadata = self._get_metadata()
 
     def _get_metadata(self) -> QuestionMetadata:

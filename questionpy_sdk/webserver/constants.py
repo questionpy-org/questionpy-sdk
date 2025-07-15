@@ -15,6 +15,7 @@ if TYPE_CHECKING:
     from questionpy_sdk.webserver import WebServer
 
 API_PATH_PREFIX = "/api"
+ID_RE = r"[A-Za-z0-9_-]{8}"
 
 WEBSERVER_KEY: web.AppKey["WebServer"] = web.AppKey("qpy_webserver")
 REQUEST_CONTROLLER_KEY = "qpy_controller"
