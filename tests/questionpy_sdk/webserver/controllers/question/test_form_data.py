@@ -2,9 +2,9 @@
 #  The QuestionPy SDK is free software released under terms of the MIT license. See LICENSE.md.
 #  (c) Technische Universität Berlin, innoCampus <info@isis.tu-berlin.de>
 
-from questionpy_sdk.webserver.controllers.options._form_data import flatten_form_data, parse_form_data
+from questionpy_sdk.webserver.controllers.question._form_data import OptionsFormData, flatten_form_data, parse_form_data
 
-FORM_DATA = {
+FORM_DATA: OptionsFormData = {
     "general[input]": "Foo",
     "general[chk]": False,
     "general[radio]": "OPT_1",
@@ -24,6 +24,7 @@ FORM_DATA = {
     "general[name_group][last_name]": "Doe",
     "another_section[some_input]": "Bar",
 }
+
 PARSED_FORM_DATA = {
     "input": "Foo",
     "chk": False,

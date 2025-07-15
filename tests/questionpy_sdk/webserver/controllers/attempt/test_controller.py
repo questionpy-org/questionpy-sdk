@@ -7,8 +7,10 @@ from unittest.mock import AsyncMock, Mock
 
 import pytest
 
+import questionpy_sdk.webserver.errors as webserver_errors
 from questionpy import AttemptModel, AttemptScoredModel, AttemptStartedModel, AttemptUi, ScoringCode
-from questionpy_sdk.webserver.controllers.attempt import AttemptController, AttemptStatus
+from questionpy_sdk.webserver.controllers.attempt import AttemptController
+from questionpy_sdk.webserver.controllers.attempt.data import AttemptStatus
 from questionpy_sdk.webserver.controllers.attempt.errors import InvalidAttributeValueError
 from questionpy_sdk.webserver.controllers.attempt.question_ui import QuestionDisplayOptions, RenderErrorCollection
 
@@ -21,9 +23,9 @@ def controller(mock_webserver: Mock) -> AttemptController:
 async def test_get_attempt_started(
     controller: AttemptController, mock_state_manager: AsyncMock, mock_worker: AsyncMock, mock_jinja2_template: Mock
 ) -> None:
-    mock_state_manager.read_attempt_state.side_effect = FileNotFoundError
-    mock_state_manager.read_score.side_effect = FileNotFoundError
-    mock_state_manager.read_attempt_seed.side_effect = FileNotFoundError
+    mock_state_manager.read_attempt_state.side_effect = webserver_errors.MissingAttemptStateError
+    mock_state_manager.read_attempt_score.side_effect = webserver_errors.MissingAttemptScoreError
+    mock_state_manager.read_attempt_seed.side_effect = webserver_errors.MissingAttemptSeedError
     mock_worker.get_loaded_packages = Mock(return_value=[])
     mock_worker.start_attempt.return_value = AttemptStartedModel(
         variant=1, lang="en", ui=AttemptUi(formulation=""), attempt_state="attempt_state"
@@ -31,13 +33,13 @@ async def test_get_attempt_started(
     mock_jinja2_template.render_async.return_value = "<html>Attempt</html>"
 
     display_opts = QuestionDisplayOptions(general_feedback=True, specific_feedback=True, right_answer=True, roles=[])
-    data = await controller.get_attempt(display_opts)
+    data = await controller.get_attempt("QaKxpanc", "AepM0AFN", display_opts)
 
     mock_jinja2_template.render_async.assert_called_once()
     assert data.attempt_html == "<html>Attempt</html>"
-    assert data.attempt_status == AttemptStatus.STARTED
-    assert data.score is None
-    mock_state_manager.write_attempt_state.assert_called_once_with("attempt_state")
+    assert data.attempt_data.attempt_status == AttemptStatus.STARTED
+    assert data.attempt_data.score is None
+    mock_state_manager.write_attempt_state.assert_called_once_with("QaKxpanc", "AepM0AFN", "attempt_state")
     mock_state_manager.write_attempt_seed.assert_called_once()
 
 
@@ -48,12 +50,12 @@ async def test_get_attempt_scored(
     mock_worker.get_attempt.return_value = AttemptModel(variant=1, lang="en", ui=AttemptUi(formulation=""))
     mock_jinja2_template.render_async.return_value = "<html>Attempt</html>"
     display_opts = QuestionDisplayOptions(general_feedback=True, specific_feedback=True, right_answer=True, roles=[])
-    data = await controller.get_attempt(display_opts)
+    data = await controller.get_attempt("QaKxpanc", "AepM0AFN", display_opts)
 
     mock_jinja2_template.render_async.assert_called_once()
     assert data.attempt_html == "<html>Attempt</html>"
-    assert data.attempt_status == AttemptStatus.SCORED
-    assert data.score == 1.0
+    assert data.attempt_data.attempt_status == AttemptStatus.SCORED
+    assert data.attempt_data.score == 1.0
 
 
 async def test_get_attempt_in_progress(
@@ -61,16 +63,16 @@ async def test_get_attempt_in_progress(
 ) -> None:
     mock_worker.get_loaded_packages = Mock(return_value=[])
     mock_worker.get_attempt.return_value = AttemptModel(variant=1, lang="en", ui=AttemptUi(formulation=""))
-    mock_state_manager.read_score.side_effect = FileNotFoundError
+    mock_state_manager.read_attempt_score.side_effect = webserver_errors.MissingAttemptScoreError
     mock_jinja2_template.render_async.return_value = "<html>Attempt</html>"
 
     display_opts = QuestionDisplayOptions(general_feedback=True, specific_feedback=True, right_answer=True, roles=[])
-    data = await controller.get_attempt(display_opts)
+    data = await controller.get_attempt("QaKxpanc", "AepM0AFN", display_opts)
 
     mock_jinja2_template.render_async.assert_called_once()
     assert data.attempt_html == "<html>Attempt</html>"
-    assert data.attempt_status == AttemptStatus.IN_PROGRESS
-    assert data.score is None
+    assert data.attempt_data.attempt_status == AttemptStatus.IN_PROGRESS
+    assert data.attempt_data.score is None
 
 
 async def test_get_attempt_render_errors(
@@ -94,7 +96,7 @@ async def test_get_attempt_render_errors(
         mock_formulation_renderer.render = Mock(return_value=("<html>Formulation</html>", formulation_errors))
 
         with caplog.at_level(logging.INFO):
-            data = await controller.get_attempt(QuestionDisplayOptions())
+            data = await controller.get_attempt("QaKxpanc", "AepM0AFN", QuestionDisplayOptions())
 
             assert data.render_errors["formulation"] == formulation_errors
             assert "1 error occurred while rendering" in caplog.text
@@ -105,17 +107,28 @@ async def test_get_attempt_render_errors(
             )
 
 
+async def test_get_attempts(
+    controller: AttemptController, mock_state_manager: AsyncMock, mock_jinja2_template: Mock
+) -> None:
+    mock_jinja2_template.render_async.return_value = "<html>Attempt</html>"
+    attempts = await controller.get_attempts("QaKxpanc")
+
+    assert attempts["eTCRKiod"].attempt_state == "data-1"
+    assert attempts["J2m-ALhD"].attempt_state == "data-2"
+    assert len(attempts) == 2
+
+
 async def test_save_attempt(controller: AttemptController, mock_state_manager: AsyncMock) -> None:
     test_data = {"foo": "bar"}
-    await controller.save_attempt(test_data)
+    await controller.save_attempt("QaKxpanc", "AepM0AFN", test_data)
 
-    mock_state_manager.write_last_attempt_data.assert_called_once_with(test_data)
+    mock_state_manager.write_attempt_data.assert_called_once_with("QaKxpanc", "AepM0AFN", test_data)
 
 
-async def test_reset_attempt(controller: AttemptController, mock_state_manager: AsyncMock) -> None:
-    await controller.reset_attempt()
+async def test_delete_attempt(controller: AttemptController, mock_state_manager: AsyncMock) -> None:
+    await controller.delete_attempt("QaKxpanc", "AepM0AFN")
 
-    mock_state_manager.delete_state.assert_called_once()
+    mock_state_manager.delete_attempt.assert_called_once_with("QaKxpanc", "AepM0AFN")
 
 
 async def test_score_attempt(
@@ -129,8 +142,8 @@ async def test_score_attempt(
         score_adjusted=None,
         scoring_code=ScoringCode.AUTOMATICALLY_SCORED,
     )
-    await controller.score_attempt()
+    await controller.score_attempt("QaKxpanc", "AepM0AFN")
 
-    args, _ = mock_state_manager.write_score.call_args
-    attempt_scored = args[0]
+    args, _ = mock_state_manager.write_attempt_score.call_args
+    attempt_scored = args[2]
     assert attempt_scored.score == 0.9

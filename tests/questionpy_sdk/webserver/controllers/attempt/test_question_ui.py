@@ -81,7 +81,7 @@ def renderer(request: pytest.FixtureRequest, xml_content: str | None) -> Questio
         "placeholders": {},
         "xml": xml_content,
         "options": QuestionDisplayOptions(),
-        "qpy_url_replacer": lambda _: "",
+        "generate_file_url": lambda *_: "",
     }
 
     marker = request.node.get_closest_marker("render_params")
@@ -93,7 +93,7 @@ def renderer(request: pytest.FixtureRequest, xml_content: str | None) -> Questio
 
 @pytest.mark.ui_file("metadata")
 def test_should_extract_correct_metadata(xml_content: str) -> None:
-    ui_renderer = QuestionFormulationUIRenderer(xml_content, {}, QuestionDisplayOptions(), lambda _: "")
+    ui_renderer = QuestionFormulationUIRenderer(xml_content, {}, QuestionDisplayOptions(), lambda *_: "")
     question_metadata = ui_renderer.metadata
 
     expected_metadata = QuestionMetadata()
@@ -205,7 +205,7 @@ def test_should_show_inline_feedback(renderer: QuestionUIRenderer) -> None:
 )
 @pytest.mark.ui_file("if-role")
 def test_element_visibility_based_on_role(options: QuestionDisplayOptions, expected: str, xml_content: str) -> None:
-    html, errors = QuestionUIRenderer(xml_content, {}, options, lambda _: "").render()
+    html, errors = QuestionUIRenderer(xml_content, {}, options, lambda *_: "").render()
     assert len(errors) == 0
     assert_html_is_equal(html, expected)
 
@@ -372,7 +372,7 @@ def test_clean_up(renderer: QuestionUIRenderer) -> None:
 
 
 @pytest.mark.ui_file("qpy-urls")
-@pytest.mark.render_params(qpy_url_replacer=lambda match: "/".join(match.group(2, 3, 1)))
+@pytest.mark.render_params(generate_file_url=lambda ns, sn, p: f"{ns}/{sn}/{p}")
 def test_should_replace_qpy_urls(renderer: QuestionUIRenderer) -> None:
     expected = """
         <div xmlns="http://www.w3.org/1999/xhtml">

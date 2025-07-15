@@ -32,7 +32,7 @@ from questionpy_server.worker.runtime.package_location import (
 def mock_state_manager(monkeypatch: pytest.MonkeyPatch) -> Iterator[Mock]:
     with monkeypatch.context() as mp:
         mock_state_manager_cls = Mock()
-        mp.setattr("questionpy_sdk.webserver.server.StateManager", mock_state_manager_cls)
+        mp.setattr("questionpy_sdk.webserver.server.FilesystemStateManager", mock_state_manager_cls)
         yield mock_state_manager_cls
 
 

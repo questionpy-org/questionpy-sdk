@@ -15,17 +15,46 @@ from questionpy_server.worker.runtime.package_location import FunctionPackageLoc
 @pytest.mark.parametrize(
     ("name", "route_kwargs", "expected"),
     [
-        ("attempt", {}, "/api/attempt"),
-        ("attempt-score", {}, "/api/attempt/score"),
-        ("attempt-restart", {}, "/api/attempt/restart"),
+        (
+            "attempt",
+            {"question_id": "QaKxpanc", "attempt_id": "AepM0AFN"},
+            "/api/question/QaKxpanc/attempt/AepM0AFN",
+        ),
+        (
+            "attempt.list",
+            {"question_id": "QaKxpanc"},
+            "/api/question/QaKxpanc/attempts",
+        ),
+        (
+            "attempt.score",
+            {"question_id": "QaKxpanc", "attempt_id": "AepM0AFN"},
+            "/api/question/QaKxpanc/attempt/AepM0AFN/score",
+        ),
         (
             "file",
             {"namespace": "test_ns", "short_name": "test_package", "path": "static/test.txt"},
             "/api/file/test_ns/test_package/static/test.txt",
         ),
-        ("manifest", {}, "/api/manifest"),
-        ("options", {}, "/api/options"),
-        ("options-state", {}, "/api/options/state"),
+        (
+            "manifest",
+            {},
+            "/api/manifest",
+        ),
+        (
+            "question",
+            {"question_id": "QaKxpanc"},
+            "/api/question/QaKxpanc",
+        ),
+        (
+            "question.list",
+            {},
+            "/api/questions",
+        ),
+        (
+            "question.state",
+            {"question_id": "QaKxpanc"},
+            "/api/question/QaKxpanc/state",
+        ),
     ],
 )
 async def test_generate_api_url(
