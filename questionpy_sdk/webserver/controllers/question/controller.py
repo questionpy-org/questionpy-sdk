@@ -1,0 +1,86 @@
+#  This file is part of the QuestionPy SDK. (https://questionpy.org)
+#  The QuestionPy SDK is free software released under terms of the MIT license. See LICENSE.md.
+#  (c) Technische Universität Berlin, innoCampus <info@isis.tu-berlin.de>
+
+from pydantic import ConfigDict
+from pydantic.dataclasses import dataclass
+
+from questionpy_common.elements import OptionsFormDefinition
+from questionpy_sdk.webserver.constants import DEFAULT_REQUEST_USER
+from questionpy_sdk.webserver.controllers.base import BaseController
+from questionpy_sdk.webserver.controllers.question._form_data import OptionsFormData, flatten_form_data, parse_form_data
+from questionpy_sdk.webserver.errors import MissingQuestionStateError
+
+
+@dataclass(config=ConfigDict(use_attribute_docstrings=True))
+class OptionsStateResponse:
+    """Represents the API response data for the question's options state."""
+
+    data: OptionsFormData
+    """The question's options form data."""
+
+    is_new: bool
+    """Whether the question is newly created and has not been persisted yet."""
+
+
+class QuestionController(BaseController):
+    async def get_form_definition(self, question_id: str) -> OptionsFormDefinition:
+        try:
+            state = await self._state_manager.read_question_state(question_id)
+        except MissingQuestionStateError:
+            state = None
+
+        async with self.get_worker() as worker:
+            form_definition, _ = await worker.get_options_form(DEFAULT_REQUEST_USER, state)
+
+        return form_definition
+
+    async def get_questions(self) -> dict[str, OptionsFormData]:
+        states_str = await self._state_manager.read_question_states()
+        states: dict[str, OptionsFormData] = {}
+
+        if len(states_str) > 0:
+            async with self.get_worker() as worker:
+                for question_id in states_str:
+                    state = states_str[question_id]
+                    form_definition, form_data = await worker.get_options_form(DEFAULT_REQUEST_USER, state)
+                    flat_form_data = flatten_form_data(form_data, self._section_names_from_definition(form_definition))
+                    states[question_id] = flat_form_data
+
+        return states
+
+    async def get_options_state(self, question_id: str) -> OptionsStateResponse:
+        try:
+            state = await self._state_manager.read_question_state(question_id)
+            is_new = False
+        except MissingQuestionStateError:
+            state = None
+            is_new = True
+
+        async with self.get_worker() as worker:
+            form_definition, form_data = await worker.get_options_form(DEFAULT_REQUEST_USER, state)
+
+        return OptionsStateResponse(
+            data=flatten_form_data(form_data, self._section_names_from_definition(form_definition)),
+            is_new=is_new,
+        )
+
+    async def save_options_state(self, question_id: str, data: OptionsFormData) -> None:
+        form_data = parse_form_data(data)
+
+        try:
+            old_state = await self._state_manager.read_question_state(question_id)
+        except MissingQuestionStateError:
+            old_state = None
+
+        async with self.get_worker() as worker:
+            question = await worker.create_question_from_options(DEFAULT_REQUEST_USER, old_state, form_data=form_data)
+
+        await self._state_manager.write_question_state(question_id, question.question_state)
+
+    async def delete_question(self, question_id: str) -> None:
+        await self._state_manager.delete_question(question_id)
+
+    @staticmethod
+    def _section_names_from_definition(form_definition: OptionsFormDefinition) -> list[str]:
+        return [section.name for section in form_definition.sections]

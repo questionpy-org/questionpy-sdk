@@ -10,13 +10,21 @@ class MissingStateError(Exception):
         super().__init__(self.message)
 
 
-class MissingAttemptDataError(MissingStateError):
-    message = "The attempt data is missing."
+class MissingQuestionStateError(MissingStateError):
+    message = "The question state is missing."
 
 
 class MissingAttemptStateError(MissingStateError):
     message = "The attempt state is missing."
 
 
-class MissingQuestionStateError(MissingStateError):
-    message = "The question state is missing."
+class MissingAttemptSeedError(MissingStateError):
+    message = "The attempt seed is missing."
+
+
+class MissingAttemptScoreError(MissingStateError):
+    message = "The attempt score is missing."
+
+
+class MissingAttemptDataError(MissingStateError):
+    message = "The attempt data is missing."

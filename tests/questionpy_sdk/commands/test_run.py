@@ -80,7 +80,7 @@ async def test_run_explicit_subprocess_worker_with_qpy_file(
 ) -> None:
     async with long_running_cmd(("run", "-Wsubprocess", "--port", str(port), str(source_path))) as proc:
         await assert_webserver_is_up(client_session, port)
-        async with await client_session.get(f"http://localhost:{port}/api/options"):
+        async with await client_session.get(f"http://localhost:{port}/api/question/12345678"):
             assert len(psutil.Process(proc.pid).children()) == 1
 
 
@@ -91,7 +91,7 @@ async def test_run_explicit_thread_worker_with_qpy_file(
         await assert_webserver_is_up(client_session, port)
 
         await assert_webserver_is_up(client_session, port)
-        async with await client_session.get(f"http://localhost:{port}/api/options"):
+        async with await client_session.get(f"http://localhost:{port}/api/question/12345678"):
             assert len(psutil.Process(proc.pid).children()) == 0
         # Python doesn't call pthread_setname_np, so we have no way of getting the thread names of subprocess to check
         # for the existence of worker threads.

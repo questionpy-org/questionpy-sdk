@@ -15,7 +15,7 @@ from questionpy_sdk.webserver.middlewares.controller import inject_controller_mi
 from questionpy_sdk.webserver.middlewares.error import api_error_middleware, error_middleware
 from questionpy_sdk.webserver.routes import api_routes
 from questionpy_sdk.webserver.routes.frontend import routes as frontend_routes
-from questionpy_sdk.webserver.state import StateManager
+from questionpy_sdk.webserver.state import FilesystemStateManager, StateManager
 from questionpy_server import WorkerPool
 from questionpy_server.settings import CompleteWorkerPermissions
 from questionpy_server.worker import Worker
@@ -72,7 +72,7 @@ class WebServer:
 
         # Initialize state manager
         pkg_dirname = f"{self._manifest.namespace}-{self._manifest.short_name}-{self._manifest.version}"
-        self._state_manager = StateManager(self._state_storage_root / pkg_dirname)
+        self._state_manager = FilesystemStateManager(self._state_storage_root / pkg_dirname)
 
         # Create web app
         self._app = self._create_webapp()
