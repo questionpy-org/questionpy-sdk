@@ -9,18 +9,27 @@ import pytest
 
 from questionpy import ScoreModel, ScoringCode
 from questionpy_sdk.webserver.controllers.attempt.question_ui import RenderErrorCollection
+from questionpy_sdk.webserver.state import Attempt
 
 
 @pytest.fixture
 def mock_state_manager() -> AsyncMock:
     state_manager = AsyncMock()
+    state_manager.read_question_states.return_value = {
+        "svyhZCg8": "question_state_a",
+        "tKVJTdsv": "question_state_b",
+    }
     state_manager.read_question_state.return_value = "question_state"
+    state_manager.read_attempts.return_value = {
+        "eTCRKiod": Attempt(state="data-1", seed=42, score=None, data={}),
+        "J2m-ALhD": Attempt(state="data-2", seed=42, score=None, data={}),
+    }
     state_manager.read_attempt_state.return_value = "attempt_state"
     state_manager.read_attempt_seed.return_value = 1234
-    state_manager.read_last_attempt_data.return_value = {"answer": "42"}
-    state_manager.read_score.return_value = ScoreModel(
+    state_manager.read_attempt_score.return_value = ScoreModel(
         scoring_code=ScoringCode.AUTOMATICALLY_SCORED, score=1.0, score_adjusted=None
     )
+    state_manager.read_attempt_data.return_value = {"answer": "42"}
     return state_manager
 
 
