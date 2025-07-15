@@ -35,6 +35,7 @@ export interface Manifest {
     tags: string[]
     requirements: string | string[] | null
     static_files: StaticFiles
+    dependencies: DistDependencies
 }
 export interface Name {
     [k: string]: string
@@ -51,4 +52,11 @@ export interface StaticFiles {
 export interface PackageFile {
     mime_type: string | null
     size: number
+}
+export interface DistDependencies {
+    qpy: DistStaticQPyDependency[]
+}
+export interface DistStaticQPyDependency {
+    dir_name: string
+    hash: string
 }
