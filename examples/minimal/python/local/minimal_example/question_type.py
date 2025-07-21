@@ -1,7 +1,4 @@
-from pydantic import JsonValue
-
 from questionpy import Attempt, Question, ResponseNotScorableError
-from questionpy_common.elements import OptionsFormDefinition
 
 from .form import MyModel
 
@@ -27,8 +24,3 @@ class ExampleQuestion(Question):
     attempt_class = ExampleAttempt
 
     options: MyModel
-
-    def get_options_form(self) -> tuple[OptionsFormDefinition, dict[str, JsonValue]]:
-        form, data = super().get_options_form()
-        data["input"] = 2
-        return form, data
