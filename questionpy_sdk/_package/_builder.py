@@ -16,12 +16,12 @@ from questionpy import i18n
 from questionpy_common.constants import MANIFEST_FILENAME
 from questionpy_common.manifest import Manifest, PackageFile
 from questionpy_sdk._i18n_utils import bcp47_to_posix
+from questionpy_sdk._package._ignores import create_ignore_spec
+from questionpy_sdk._package._targets import BuildTarget
+from questionpy_sdk._package._validate import validate_dist_structure
+from questionpy_sdk._package.errors import PackageBuildError
+from questionpy_sdk._package.source import PackageSource
 from questionpy_sdk.models import BuildHookName
-from questionpy_sdk.package._ignores import create_ignore_spec
-from questionpy_sdk.package._targets import BuildTarget
-from questionpy_sdk.package._validate import validate_dist_structure
-from questionpy_sdk.package.errors import PackageBuildError
-from questionpy_sdk.package.source import PackageSource
 
 _log = logging.getLogger(__name__)
 
@@ -228,7 +228,7 @@ class PackageBuilder:
 
 def build_qpy_package(source: PackageSource, target: BuildTarget | None = None, *, copy_sources: bool = True) -> None:
     if not target:
-        from questionpy_sdk.package import DirBuildTarget  # noqa: PLC0415 (works around a circular import)
+        from questionpy_sdk._package import DirBuildTarget  # noqa: PLC0415 (works around a circular import)
 
         target = DirBuildTarget.in_source(source)
 

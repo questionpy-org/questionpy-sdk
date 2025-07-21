@@ -9,10 +9,10 @@ from click.testing import CliRunner
 from yaml import safe_dump
 
 from questionpy_common.manifest import Bcp47LanguageTag
+from questionpy_sdk._package._helper import create_normalized_filename
 from questionpy_sdk.commands.package import package
 from questionpy_sdk.constants import PACKAGE_CONFIG_FILENAME
 from questionpy_sdk.models import PackageConfig
-from questionpy_sdk.package._helper import create_normalized_filename
 from tests.questionpy_sdk.commands.conftest import default_ctx_obj
 
 

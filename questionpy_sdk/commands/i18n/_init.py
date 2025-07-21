@@ -10,8 +10,8 @@ from click import ClickException
 from questionpy.i18n import domain_of
 from questionpy_common.manifest import Bcp47LanguageTag
 from questionpy_sdk._i18n_utils import bcp47_to_posix
+from questionpy_sdk._package.source import PackageSource
 from questionpy_sdk.commands.i18n import extract
-from questionpy_sdk.package.source import PackageSource
 
 
 def _init_explicit(ctx: click.Context, pot: Path, output_dir: Path, locale: Bcp47LanguageTag, *, force: bool) -> None:

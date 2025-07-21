@@ -9,9 +9,9 @@ import click
 from pydantic import ValidationError
 
 from questionpy_common.constants import DIST_DIR, MANIFEST_FILENAME
-from questionpy_sdk.package import build_qpy_package
-from questionpy_sdk.package.errors import PackageBuildError, PackageSourceValidationError
-from questionpy_sdk.package.source import PackageSource
+from questionpy_sdk._package import build_qpy_package
+from questionpy_sdk._package.errors import PackageBuildError, PackageSourceValidationError
+from questionpy_sdk._package.source import PackageSource
 from questionpy_server.hash import calculate_hash
 from questionpy_server.worker.runtime.package_location import (
     DirPackageLocation,

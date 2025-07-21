@@ -15,10 +15,10 @@ import yaml
 
 from questionpy_common.constants import DIST_DIR, MANIFEST_FILENAME
 from questionpy_common.manifest import Manifest
+from questionpy_sdk._package import ZipBuildTarget, build_qpy_package
+from questionpy_sdk._package.errors import PackageBuildError
+from questionpy_sdk._package.source import PackageSource
 from questionpy_sdk.constants import PACKAGE_CONFIG_FILENAME
-from questionpy_sdk.package import ZipBuildTarget, build_qpy_package
-from questionpy_sdk.package.errors import PackageBuildError
-from questionpy_sdk.package.source import PackageSource
 
 
 def test_installs_questionpy(qpy_pkg_path: Path) -> None:

@@ -1,7 +1,6 @@
 import datetime
 import shutil
 import tempfile
-import textwrap
 import zipfile
 from abc import ABC, abstractmethod
 from contextlib import AbstractContextManager
@@ -11,8 +10,7 @@ from typing import NoReturn, Self
 from pathspec import PathSpec
 
 from questionpy_common.constants import DIST_DIR
-from questionpy_sdk.constants import PACKAGE_CONFIG_FILENAME
-from questionpy_sdk.package.source import PackageSource
+from questionpy_sdk._package.source import PackageSource
 
 
 class BuildTarget(AbstractContextManager["BuildTarget"], ABC):

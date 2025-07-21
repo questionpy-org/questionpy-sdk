@@ -6,10 +6,10 @@ from pathlib import Path
 
 import pytest
 
+from questionpy_sdk._package.errors import PackageSourceValidationError
+from questionpy_sdk._package.source import PackageSource
 from questionpy_sdk.constants import PACKAGE_CONFIG_FILENAME
 from questionpy_sdk.models import PackageConfig
-from questionpy_sdk.package.errors import PackageSourceValidationError
-from questionpy_sdk.package.source import PackageSource
 
 
 def test_validate(source_path: Path) -> None:

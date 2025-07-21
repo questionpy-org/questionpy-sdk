@@ -8,7 +8,7 @@ import click
 from babel.messages.extract import extract_from_dir
 
 from questionpy.i18n import domain_of
-from questionpy_sdk.package.source import PackageSource
+from questionpy_sdk._package.source import PackageSource
 
 _BABEL_MAPPING = [("python/**.py", "python"), ("templates/**.j2", "jinja2")]
 # See Babel's DEFAULT_KEYWORDS for comparison.

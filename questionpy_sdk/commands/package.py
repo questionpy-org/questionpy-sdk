@@ -6,10 +6,10 @@ from pathlib import Path
 import click
 
 from questionpy_common.constants import DIST_DIR
+from questionpy_sdk._package import ZipBuildTarget, build_qpy_package
+from questionpy_sdk._package.errors import PackageBuildError, PackageSourceValidationError
+from questionpy_sdk._package.source import PackageSource
 from questionpy_sdk.commands._helper import confirm_overwrite
-from questionpy_sdk.package import ZipBuildTarget, build_qpy_package
-from questionpy_sdk.package.errors import PackageBuildError, PackageSourceValidationError
-from questionpy_sdk.package.source import PackageSource
 
 
 def validate_out_path(context: click.Context, _parameter: click.Parameter, value: Path | None) -> Path | None:
