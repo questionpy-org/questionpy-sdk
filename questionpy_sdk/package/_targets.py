@@ -1,6 +1,7 @@
 import datetime
 import shutil
 import tempfile
+import textwrap
 import zipfile
 from abc import ABC, abstractmethod
 from contextlib import AbstractContextManager
@@ -10,6 +11,7 @@ from typing import NoReturn, Self
 from pathspec import PathSpec
 
 from questionpy_common.constants import DIST_DIR
+from questionpy_sdk.constants import PACKAGE_CONFIG_FILENAME
 from questionpy_sdk.package.source import PackageSource
 
 
@@ -113,14 +115,15 @@ class ZipBuildTarget(BuildTarget):
 
 
 class DirBuildTarget(BuildTarget):
-    def __init__(self, dist_path: Path) -> None:
+    def __init__(self, dist_path: Path, *, allow_overwrite: bool = False) -> None:
         self._dist_path = dist_path
+        self._allow_overwrite = allow_overwrite
 
     @classmethod
     def in_source(cls, package_source: PackageSource | Path) -> Self:
         if isinstance(package_source, PackageSource):
             package_source = package_source.path
-        return cls(package_source / DIST_DIR)
+        return cls(package_source / DIST_DIR, allow_overwrite=True)
 
     @property
     def dist(self) -> Path:
@@ -131,10 +134,27 @@ class DirBuildTarget(BuildTarget):
         pass
 
     def __enter__(self) -> Self:
-        if self._dist_path.exists():
+        if not self._dist_path.exists():
+            self._dist_path.mkdir(parents=True)
+            return self
+
+        if not self._dist_path.is_dir():
+            raise NotADirectoryError(self._dist_path)
+
+        if not any(self._dist_path.iterdir()):
+            # Already exists, but is an empty directory.
+            return self
+
+        # In CLI usage, we always overwrite an existing dist dir, but we require an explicit flag in case DirBuildTarget
+        # is used directly.
+        if self._allow_overwrite:
+            # We're allowed to overwrite the directory.
             shutil.rmtree(self._dist_path)
-        self._dist_path.mkdir(parents=True)
-        return self
+            self._dist_path.mkdir()
+            return self
+
+        # Non-empty directory that we can't overwrite.
+        raise FileExistsError(self._dist_path)
 
     def __exit__(self, *_: object) -> None:
         # No cleanup
