@@ -9,9 +9,9 @@ from aiohttp import ClientSession
 from click.testing import CliRunner
 
 from questionpy_common.constants import DIST_DIR, MANIFEST_FILENAME
+from questionpy_sdk._package import ZipBuildTarget, build_qpy_package
+from questionpy_sdk._package.source import PackageSource
 from questionpy_sdk.commands.run import run
-from questionpy_sdk.package import ZipBuildTarget, build_qpy_package
-from questionpy_sdk.package.source import PackageSource
 from tests.questionpy_sdk.commands.conftest import assert_webserver_is_up, long_running_cmd
 
 

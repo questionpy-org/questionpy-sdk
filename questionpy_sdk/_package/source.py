@@ -12,9 +12,9 @@ from yaml import YAMLError
 from questionpy import i18n
 from questionpy.i18n import GettextDomain
 from questionpy_common.manifest import Bcp47LanguageTag
+from questionpy_sdk._package.errors import PackageSourceValidationError
 from questionpy_sdk.constants import PACKAGE_CONFIG_FILENAME
 from questionpy_sdk.models import PackageConfig
-from questionpy_sdk.package.errors import PackageSourceValidationError
 
 from ._helper import create_normalized_filename
 

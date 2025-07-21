@@ -22,10 +22,10 @@ from watchdog.events import (
 from watchdog.observers import Observer
 from watchdog.utils.event_debouncer import EventDebouncer
 
-from questionpy_sdk.package import build_qpy_package
-from questionpy_sdk.package._ignores import create_ignore_file_callable
-from questionpy_sdk.package.errors import PackageError
-from questionpy_sdk.package.source import PackageSource
+from questionpy_sdk._package import build_qpy_package
+from questionpy_sdk._package._ignores import create_ignore_file_callable
+from questionpy_sdk._package.errors import PackageError
+from questionpy_sdk._package.source import PackageSource
 from questionpy_sdk.webserver import WebServer
 from questionpy_sdk.webserver.server import WebServerArgs
 from questionpy_server.worker.runtime.messages import BaseWorkerError

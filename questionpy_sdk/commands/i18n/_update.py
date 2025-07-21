@@ -12,7 +12,7 @@ import click
 from questionpy.i18n import GettextDomain
 from questionpy_common.manifest import Bcp47LanguageTag
 from questionpy_sdk._i18n_utils import bcp47_to_posix
-from questionpy_sdk.package.source import PackageSource
+from questionpy_sdk._package.source import PackageSource
 
 
 def _update_domain(

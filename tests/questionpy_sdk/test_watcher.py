@@ -12,9 +12,9 @@ from unittest.mock import AsyncMock, MagicMock, Mock, create_autospec
 import pytest
 from watchdog import events as we
 
-from questionpy_sdk.package import build_qpy_package
-from questionpy_sdk.package.errors import PackageBuildError
-from questionpy_sdk.package.source import PackageSource
+from questionpy_sdk._package import build_qpy_package
+from questionpy_sdk._package.errors import PackageBuildError
+from questionpy_sdk._package.source import PackageSource
 from questionpy_sdk.watcher import Watcher, _EventHandler
 from questionpy_server.worker.runtime.messages import WorkerUnknownError
 

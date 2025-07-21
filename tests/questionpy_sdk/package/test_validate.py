@@ -7,9 +7,9 @@ from _pytest.logging import LogCaptureFixture
 
 from questionpy_common.constants import MANIFEST_FILENAME
 from questionpy_common.manifest import Manifest
-from questionpy_sdk.package import DirBuildTarget, build_qpy_package
-from questionpy_sdk.package._validate import validate_dist_structure
-from questionpy_sdk.package.source import PackageSource
+from questionpy_sdk._package import DirBuildTarget, build_qpy_package
+from questionpy_sdk._package._validate import validate_dist_structure
+from questionpy_sdk._package.source import PackageSource
 
 
 @pytest.fixture

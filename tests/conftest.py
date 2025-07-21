@@ -9,8 +9,8 @@ from shutil import copytree
 import pytest
 
 from questionpy_common.constants import DIST_DIR
-from questionpy_sdk.package import ZipBuildTarget, build_qpy_package
-from questionpy_sdk.package.source import PackageSource
+from questionpy_sdk._package import ZipBuildTarget, build_qpy_package
+from questionpy_sdk._package.source import PackageSource
 
 
 @pytest.fixture
