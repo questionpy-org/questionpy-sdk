@@ -18,6 +18,7 @@ export type RenderError =
     | UnknownElementError
     | UnknownAttributeError
     | DuplicateNameError
+    | ReservedNameError
     | XMLSyntaxError
 /**
  * Collects render errors and provides a sorted iterator.
@@ -161,6 +162,19 @@ export interface DuplicateNameError {
     template: string
     template_kwargs: TemplateKwargs
     kind: 'duplicate_name'
+    type: string
+    /**
+     * Original line number where the error occurred or None if unknown.
+     */
+    line: number | null
+}
+/**
+ * Reserved input name.
+ */
+export interface ReservedNameError {
+    template: string
+    template_kwargs: TemplateKwargs
+    kind: 'reserved_name'
     type: string
     /**
      * Original line number where the error occurred or None if unknown.

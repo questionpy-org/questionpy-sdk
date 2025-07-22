@@ -24,6 +24,7 @@ from .errors import (
     InvalidContentError,
     PlaceholderReferenceError,
     RenderErrorCollection,
+    ReservedNameError,
     UnknownAttributeError,
     UnknownElementError,
     XMLSyntaxError,
@@ -732,8 +733,13 @@ class _RenderErrorCollector:
         for current_element in _assert_element_list(
             self._xpath("(//xhtml:button | //xhtml:input | //xhtml:select | //xhtml:textarea)[@name]")
         ):
-            # Get name, type, and value of the current element.
             name = str(current_element.attrib["name"])
+
+            if name == "data":
+                reserved_name_error = ReservedNameError(element=current_element, name=name)
+                self.errors.insert(reserved_name_error)
+                continue
+
             current_type = current_element.get("type", "text")
             current_value = current_element.get("value", "on")
 
@@ -748,13 +754,17 @@ class _RenderErrorCollector:
 
             if current_type not in {"checkbox", "radio"}:
                 # Duplicate names are not allowed for other elements.
-                error = DuplicateNameError(element=current_element, name=name, other_element=other_element)
-                self.errors.insert(error)
+                duplicate_name_error = DuplicateNameError(
+                    element=current_element, name=name, other_element=other_element
+                )
+                self.errors.insert(duplicate_name_error)
                 continue
 
             # Check that the types match and the value is unique.
             if other_type != current_type or current_value in values:
-                error = DuplicateNameError(element=current_element, name=name, other_element=other_element)
-                self.errors.insert(error)
+                duplicate_name_error = DuplicateNameError(
+                    element=current_element, name=name, other_element=other_element
+                )
+                self.errors.insert(duplicate_name_error)
             else:
                 values.add(current_value)

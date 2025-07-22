@@ -51,6 +51,7 @@ class AttemptTemplateContext(TypedDict):
     import_map: dict[str, str]
     javascript_calls: list[JsModuleCall]
     stylesheet_urls: list[str]
+    data: dict[str, JsonValue]
 
 
 @dataclass
@@ -160,6 +161,7 @@ class AttemptController(BaseController):
             "import_map": await self._get_import_map(),
             "javascript_calls": self._get_js_calls(attempt, display_options),
             "stylesheet_urls": self._get_stylesheet_urls(attempt),
+            "data": self._get_dynamic_data(last_attempt_data),
         }
 
         render_errors: SectionErrorMap = {}
@@ -174,6 +176,16 @@ class AttemptController(BaseController):
                     render_errors[key] = errors
 
         return template_context, render_errors
+
+    def _get_dynamic_data(self, last_attempt_data: dict[str, JsonValue] | None) -> dict[str, JsonValue]:
+        if not last_attempt_data:
+            return {}
+
+        data = last_attempt_data.get("data", {})
+        if not isinstance(data, dict):
+            return {}
+
+        return data
 
     async def _get_import_map(self) -> dict[str, str]:
         worker: Worker
