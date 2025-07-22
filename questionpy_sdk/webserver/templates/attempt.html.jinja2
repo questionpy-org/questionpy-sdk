@@ -126,6 +126,44 @@
         { "imports": {{ import_map|tojson }} }
     </script>
     <script>
+        /**
+         * Contains information about the current environment.
+         */
+        class AttemptEnvironment {
+            #name;
+            #version;
+
+            /**
+             * @param {String} name
+             * @param {Number} version
+             */
+            constructor(name, version) {
+                this.#name = name;
+                this.#version = version;
+            }
+
+            /**
+             * Get the name of the current environment.
+             *
+             * @returns {String}
+             */
+            get name() {
+                return this.#name;
+            }
+
+            /**
+             * Get the version of the current environment.
+             *
+             * To make versions trivially comparable, a number is returned. Make sure to check how these are mapped for the
+             * different environments. The higher the number, the more recent the version.
+             *
+             * @returns {Number}
+             */
+            get version() {
+                return this.#version;
+            }
+        }
+
         class Attempt {
             #readOnly;
             #showGeneralFeedback;
@@ -137,6 +175,7 @@
             #specificFeedback;
             #rightAnswer;
             #roles;
+            #environment;
 
             /**
              * @param {boolean} readOnly
@@ -160,7 +199,7 @@
                 generalFeedbackElement,
                 specificFeedbackElement,
                 rightAnswer,
-                roles
+                roles,
             ) {
                 this.#readOnly = readOnly;
                 this.#showGeneralFeedback = showGeneralFeedback;
@@ -172,6 +211,7 @@
                 this.#specificFeedback = specificFeedbackElement;
                 this.#rightAnswer = rightAnswer;
                 this.#roles = roles;
+                this.#environment = new AttemptEnvironment("SDK", 0);
             }
 
             /**
@@ -270,6 +310,15 @@
             get userRoles() {
                 return this.#roles;
             }
+
+            /**
+             * Get information about the current environment.
+             *
+             * @returns {AttemptEnvironment}
+             */
+            get environment() {
+                return this.#environment;
+            }
         }
 
         const attempt = new Attempt(
@@ -282,7 +331,7 @@
             document.getElementById("container-general-feedback"),
             document.getElementById("container-specific-feedback"),
             document.getElementById("container-right-answer"),
-            [{{ display_options.roles|map('lower')|map('tojson')|join(',') }}]
+            [{{ display_options.roles|map('lower')|map('tojson')|join(',') }}],
         );
 
         {% for javascript_call in javascript_calls %}
