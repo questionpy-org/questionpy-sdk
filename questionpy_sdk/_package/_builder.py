@@ -4,6 +4,8 @@ import os
 import shutil
 import subprocess
 import tempfile
+import zipfile
+from hashlib import file_digest
 from mimetypes import guess_type
 from pathlib import Path
 
@@ -13,15 +15,15 @@ from pathspec import GitIgnoreSpec, PathSpec
 
 import questionpy
 from questionpy import i18n
-from questionpy_common.constants import MANIFEST_FILENAME
-from questionpy_common.manifest import Manifest, PackageFile
+from questionpy_common.constants import DIST_DIR, MANIFEST_FILENAME
+from questionpy_common.manifest import DistStaticQPyDependency, Manifest, PackageFile
 from questionpy_sdk._i18n_utils import bcp47_to_posix
 from questionpy_sdk._package._ignores import create_ignore_spec
 from questionpy_sdk._package._targets import BuildTarget, DirBuildTarget
 from questionpy_sdk._package._validate import validate_dist_structure
 from questionpy_sdk._package.errors import PackageBuildError
 from questionpy_sdk._package.source import PackageSource
-from questionpy_sdk.models import BuildHookName
+from questionpy_sdk.models import BuildHookName, SourceStaticQPyDependency
 
 _log = logging.getLogger(__name__)
 
@@ -49,6 +51,7 @@ class PackageBuilder:
         self._run_build_hooks("pre")
         self._install_questionpy()
         self._install_requirements()
+        self._install_static_qpy_dependencies()
         self._write_package_files()
         self._compile_pos()
         self._write_manifest()
@@ -107,6 +110,35 @@ class PackageBuilder:
         except subprocess.CalledProcessError as exc:
             msg = f"Failed to install requirements: {exc.stderr.decode()}"
             raise PackageBuildError(msg) from exc
+
+    def _install_static_qpy_dependencies(self) -> None:
+        # Ignoring duplicates, we collect all the dependencies in the dependencies directory and those explicitly
+        # listed.
+        dependency_paths = set((self._source.path / "dependencies").glob("*.qpy"))
+        for dep in self._source.config.dependencies.qpy:
+            if not isinstance(dep, SourceStaticQPyDependency):
+                continue
+
+            dep_path = dep.path if dep.path.is_absolute() else (self._source.path / dep.path)
+            if not dep_path.exists():
+                msg = f"The specified dependency '{dep.path}' does not exist."
+                raise PackageBuildError(msg)
+
+            dependency_paths.add(dep_path)
+
+        # Then, we copy all of their contents into a directory in dist/dependencies/qpy.
+        for dep_path in dependency_paths:
+            _log.info("Copying static QPy dependency '%s'", dep_path)
+
+            with dep_path.open("rb+") as dep_package_file, zipfile.ZipFile(dep_package_file) as dep_package_zf:
+                dep_hash = file_digest(dep_package_file, "sha256").hexdigest()
+                dep_manifest = Manifest.model_validate_json(dep_package_zf.read(f"{DIST_DIR}/{MANIFEST_FILENAME}"))
+                dep_dir_name = f"{dep_manifest.namespace}-{dep_manifest.short_name}-{dep_manifest.version}"
+
+                dest_path = self._target.dist / "dependencies" / "qpy" / dep_dir_name
+                dep_package_zf.extractall(dest_path)
+
+            self._manifest.dependencies.qpy.append(DistStaticQPyDependency(name=dep_dir_name, hash=dep_hash))
 
     def _write_package_files(self) -> None:
         """Writes custom package files."""
