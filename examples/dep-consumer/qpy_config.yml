@@ -1,0 +1,12 @@
+short_name: dep_consumer
+namespace: local
+version: 0.1.0
+api_version: "0.1"
+author: Jane Doe <jane.doe@example.org>
+name:
+  de: Abhängigkeiten konsumierendes Paket
+  en: Package consuming dependencies
+languages: [de, en]
+dependencies:
+  qpy:
+    - ../../local-dep-0.1.0.qpy
