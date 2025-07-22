@@ -5,7 +5,6 @@ import shutil
 import subprocess
 import tempfile
 import zipfile
-from hashlib import file_digest
 from mimetypes import guess_type
 from pathlib import Path
 
@@ -24,6 +23,7 @@ from questionpy_sdk._package._validate import validate_dist_structure
 from questionpy_sdk._package.errors import PackageBuildError
 from questionpy_sdk._package.source import PackageSource
 from questionpy_sdk.models import BuildHookName, SourceStaticQPyDependency
+from questionpy_server.hash import calculate_hash
 
 _log = logging.getLogger(__name__)
 
@@ -131,7 +131,7 @@ class PackageBuilder:
             _log.info("Copying static QPy dependency '%s'", dep_path)
 
             with dep_path.open("rb+") as dep_package_file, zipfile.ZipFile(dep_package_file) as dep_package_zf:
-                dep_hash = file_digest(dep_package_file, "sha256").hexdigest()
+                dep_hash = calculate_hash(dep_package_file)
                 dep_manifest = Manifest.model_validate_json(dep_package_zf.read(f"{DIST_DIR}/{MANIFEST_FILENAME}"))
                 dep_dir_name = f"{dep_manifest.namespace}-{dep_manifest.short_name}-{dep_manifest.version}"
 
