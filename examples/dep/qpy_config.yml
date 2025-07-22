@@ -1,0 +1,10 @@
+short_name: dep
+namespace: local
+version: 0.1.0
+type: LIBRARY
+api_version: "0.1"
+author: Jane Doe <jane.doe@example.org>
+name:
+  de: Abhängigkeit
+  en: Dependency
+languages: [de, en]
