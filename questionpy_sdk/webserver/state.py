@@ -75,14 +75,14 @@ class FilesystemStateManager:
     async def read_question_states(self) -> dict[str, str]:
         def _read_question_states() -> dict[str, str]:
             try:
-                dir_iter = self._package_state_dir.iterdir()
+                dir_entries = list(self._package_state_dir.iterdir())
             except FileNotFoundError:
                 # Package dir might not have been created yet
                 return {}
             else:
                 return {
                     path.name: (path / self.StateFilename.QUESTION_STATE).read_text()
-                    for path in dir_iter
+                    for path in dir_entries
                     if path.is_dir() and re.match(ID_RE, path.name)
                 }
 
@@ -105,9 +105,16 @@ class FilesystemStateManager:
                 (question_path / self.StateFilename.QUESTION_STATE).unlink()
             except FileNotFoundError as err:
                 raise webserver_errors.MissingQuestionStateError from err
-            for path in question_path.iterdir():
-                if path.is_dir() and re.match(ID_RE, path.name):
-                    self._delete_attempt_data_sync(question_id, path.name)
+
+            try:
+                dir_entries = list(question_path.iterdir())
+            except FileNotFoundError:
+                return
+            else:
+                for path in dir_entries:
+                    if path.is_dir() and re.match(ID_RE, path.name):
+                        self._delete_attempt_data_sync(question_id, path.name)
+
             with contextlib.suppress(OSError):
                 # Ignore in case of non-empty directory
                 question_path.rmdir()
@@ -121,12 +128,12 @@ class FilesystemStateManager:
         attempts: dict[str, Attempt] = {}
 
         try:
-            dir_iter = self._question_path(question_id).iterdir()
+            dir_entries = list(self._question_path(question_id).iterdir())
         except FileNotFoundError:
             # Question dir might not have been created yet
             return attempts
 
-        for path in dir_iter:
+        for path in dir_entries:
             attempt_id = path.name
             if path.is_dir() and re.match(ID_RE, attempt_id):
                 state = (path / self.StateFilename.ATTEMPT_STATE).read_text()
