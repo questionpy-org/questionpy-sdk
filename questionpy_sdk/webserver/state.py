@@ -79,12 +79,12 @@ class FilesystemStateManager:
             except FileNotFoundError:
                 # Package dir might not have been created yet
                 return {}
-            else:
-                return {
-                    path.name: (path / self.StateFilename.QUESTION_STATE).read_text()
-                    for path in dir_entries
-                    if path.is_dir() and re.match(ID_RE, path.name)
-                }
+
+            return {
+                path.name: (path / self.StateFilename.QUESTION_STATE).read_text()
+                for path in dir_entries
+                if path.is_dir() and re.match(ID_RE, path.name)
+            }
 
         return await asyncio.to_thread(_read_question_states)
 
