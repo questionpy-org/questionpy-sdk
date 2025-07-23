@@ -25,6 +25,7 @@
                 </BCol>
             </BRow>
             <BRow class="mb-3">
+                <!-- TODO: Show storage location -->
                 <BCol>Storage location</BCol>
                 <BCol class="fw-bold"></BCol>
             </BRow>

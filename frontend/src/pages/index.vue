@@ -29,6 +29,6 @@ function importQuestion() {
 <route lang="json">
 {
     "name": "index",
-    "meta": { "title": "Package preview" }
+    "meta": { "title": "Package Preview" }
 }
 </route>
