@@ -100,7 +100,7 @@ function provideFormDataState(questionId: string): UseFormDataStateReturn {
             // On existing: disable when nothing changed
             (isClean.value || isSaving.value),
     )
-    const isPreviewDisabled = computed(() => isNew.value || isSaving.value || hasValidationErrors.value)
+    const isPreviewDisabled = computed(() => isSaving.value || (!isNew.value && hasValidationErrors.value))
 
     // Form methods
 

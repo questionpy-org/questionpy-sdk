@@ -96,7 +96,9 @@ onBeforeRouteLeave(async () => {
 })
 
 const submitLabel = computed(() => (isNew.value ? 'Create' : 'Save'))
-const submitAndPreviewLabel = computed(() => (isClean && !isNew.value ? 'Preview' : `${submitLabel.value} and preview`))
+const submitAndPreviewLabel = computed(() =>
+    isClean.value && !isNew.value ? 'Preview' : `${submitLabel.value} and preview`,
+)
 const SubmitIcon = computed(() => (isNew.value ? IMdiContentSavePlus : IMdiContentSave))
 
 watch(
@@ -108,7 +110,7 @@ watch(
 )
 
 async function saveAndPreview() {
-    if (isClean.value || (await submit())) {
+    if ((isClean.value && !isNew.value) || (await submit())) {
         await router.push({ name: 'question', params: { questionId } })
     }
 }
