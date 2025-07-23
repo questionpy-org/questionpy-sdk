@@ -93,10 +93,14 @@ function provideFormDataState(questionId: string): UseFormDataStateReturn {
     const isClean = computed(() => areFormDataObjIdentical(formDataCurrent.value, formDataClean.value))
     const isSaving = computed(() => postDataAsyncStatus.value !== 'idle')
 
-    const isSaveDisabled = computed(() => isClean.value || isSaving.value)
-    const isPreviewDisabled = computed(
-        () => (isNew.value && isClean.value) || isSaving.value || hasValidationErrors.value,
+    const isSaveDisabled = computed(
+        () =>
+            // Always allow initial creation
+            !isNew.value &&
+            // On existing: disable when nothing changed
+            (isClean.value || isSaving.value),
     )
+    const isPreviewDisabled = computed(() => isNew.value || isSaving.value || hasValidationErrors.value)
 
     // Form methods
 
