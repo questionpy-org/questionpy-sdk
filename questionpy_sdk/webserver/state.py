@@ -81,9 +81,9 @@ class FilesystemStateManager:
                 return {}
             else:
                 return {
-                    str(path.name): (path / self.StateFilename.QUESTION_STATE).read_text()
+                    path.name: (path / self.StateFilename.QUESTION_STATE).read_text()
                     for path in dir_iter
-                    if path.is_dir() and re.match(ID_RE, str(path.name))
+                    if path.is_dir() and re.match(ID_RE, path.name)
                 }
 
         return await asyncio.to_thread(_read_question_states)
@@ -127,7 +127,7 @@ class FilesystemStateManager:
             return attempts
 
         for path in dir_iter:
-            attempt_id = str(path.name)
+            attempt_id = path.name
             if path.is_dir() and re.match(ID_RE, attempt_id):
                 state = (path / self.StateFilename.ATTEMPT_STATE).read_text()
                 try:
