@@ -50,19 +50,26 @@ function provideFormDataState(questionId: string): UseFormDataStateReturn {
     const formErrors = ref<ServerValidationErrors>({})
 
     // Build form data from server-side state
-    watch([() => formDefinitionStatus.value, () => formDataStatus.value], ([definitionStatus, dataStatus]) => {
-        if (
-            definitionStatus === 'success' &&
-            dataStatus === 'success' &&
-            formDefinition.value &&
-            formDataRemote.value
-        ) {
-            // Restore form data and populate with default values
-            formDataCurrent.value = getFormData(formDefinition.value, formDataRemote.value.data)
-            // Remember clean form state
-            formDataClean.value = structuredClone(toRaw(formDataCurrent.value))
-        }
-    })
+    watch(
+        [() => formDefinitionStatus.value, () => formDataStatus.value],
+        ([definitionStatus, dataStatus]) => {
+            if (
+                definitionStatus === 'success' &&
+                dataStatus === 'success' &&
+                formDefinition.value &&
+                formDataRemote.value
+            ) {
+                // Restore form data and populate with default values
+                formDataCurrent.value = getFormData(formDefinition.value, formDataRemote.value.data)
+                // Remember clean form state
+                formDataClean.value = structuredClone(toRaw(formDataCurrent.value))
+            }
+        },
+        {
+            // If the queries already succeeded before this composable mounted, run once immediately
+            immediate: true,
+        },
+    )
 
     const asyncStatus = computed(() =>
         [formDefinitionAsyncStatus, formDataAsyncStatus, postDataAsyncStatus].some(
