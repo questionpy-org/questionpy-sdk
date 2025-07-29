@@ -145,7 +145,7 @@ class Question(ABC):
 
     def get_options_form(self) -> tuple[OptionsFormDefinition, dict[str, JsonValue]]:
         """Return the options form and field values for viewing or editing this question."""
-        return self.options_class.qpy_form, self.options.model_dump(mode="json")
+        return self.get_new_question_options_form(), self.options.model_dump(mode="json")
 
     def start_attempt(self, variant: int) -> AttemptStartedProtocol:
         attempt_state = self.attempt_class.make_attempt_state(self, variant)
