@@ -171,9 +171,20 @@ class _FormModelMeta(ModelMetaclass):
                 # If the field type has been annotated by the user, this will add our annotations to theirs.
                 annotations[key] = Annotated[annotations[key], *annotate_with]
 
-        new_namespace["qpy_form"] = form
         new_namespace["__annotations__"] = annotations
-        return super().__new__(mcs, name, bases, new_namespace, **kwargs)
+        cls: _FormModelMeta = super().__new__(mcs, name, bases, new_namespace, **kwargs)  # type: ignore[assignment]
+        cls.__qpy_form = form
+        return cls
+
+    __qpy_form: OptionsFormDefinition
+
+    def __getattr__(cls, key: str) -> object:  # noqa: N805 (cls is the convention in metaclasses)
+        # Properties do not seem to work correctly in metaclasses.
+        if key == "qpy_form":
+            # We copy the form every time it is accessed to prevent changes (such as adding an extra element) from
+            # snowballing from request to request.
+            return cls.__qpy_form.model_copy(deep=True)
+        raise AttributeError(key, name=key, obj=cls)
 
 
 class FormModel(BaseModel, metaclass=_FormModelMeta):
