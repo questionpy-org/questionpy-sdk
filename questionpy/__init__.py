@@ -31,7 +31,7 @@ from questionpy_common.environment import (
     Package,
     PackageInitFunction,
     RequestUser,
-    WorkerResourceLimits,
+    WorkerPermissions,
     get_qpy_environment,
     set_qpy_environment,
 )
@@ -88,7 +88,7 @@ __all__ = [
     "ScoringMethod",
     "SourceManifest",
     "SubquestionModel",
-    "WorkerResourceLimits",
+    "WorkerPermissions",
     "create_jinja2_environment",
     "get_qpy_environment",
     "i18n",
