@@ -264,7 +264,7 @@ class QuestionUIRenderer:
             # them after replacing QPy elements.
             self._resolve_placeholders()
 
-            self._html = etree.tostring(self._xml, pretty_print=True, method="html").decode()
+            self._html = etree.tostring(self._xml, encoding="unicode", pretty_print=True, method="html")
             self._error_collector.collect()
 
         return self._html, self._error_collector.errors
