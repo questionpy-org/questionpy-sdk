@@ -105,7 +105,7 @@ class AttemptScoredProtocol(AttemptProtocol, Protocol):
         pass
 
     @property
-    def score_final(self) -> float | None:
+    def score_adjusted(self) -> float | None:
         pass
 
     def to_plain_scoring_state(self) -> Mapping[str, JsonValue] | None:
@@ -145,25 +145,29 @@ class Attempt(ABC):
 
         This is set by [score_response][questionpy.Attempt.score_response] depending on if
         [_compute_score][questionpy.Attempt._compute_score] and
-        [_compute_final_score][questionpy.Attempt._compute_final_score] raise any errors.
+        [_compute_adjusted_score][questionpy.Attempt._compute_adjusted_score] raise any errors.
 
         Note that when rescoring an attempt, the previous scoring information is not filled in and this field should
         only be viewed as an output.
         """
+
         self.scored_inputs: dict[str, ScoredInputModel] = {}
         """Optionally, granular scores for the attempt's input fields can be added to this dict.
 
         Note that when rescoring an attempt, the previous scoring information is not filled in and this field should
         only be viewed as an output.
         """
+
         self.score: float | None = None
         """Score calculated by [_score_response][questionpy.Attempt._score_response].
 
         Note that when rescoring an attempt, the previous scoring information is not filled in and this field should
         only be viewed as an output.
         """
-        self.score_final: float | None = None
-        """Score calculated by [_score_final_response][questionpy.Attempt._score_response].
+
+        self.score_adjusted: float | None = None
+        """Adjusted score based on previous submissions calculated by
+        [_score_response][questionpy.Attempt._score_response].
 
         Note that when rescoring an attempt, the previous scoring information is not filled in and this field should
         only be viewed as an output.
@@ -191,10 +195,10 @@ class Attempt(ABC):
     def right_answer_description(self) -> str | TranslatableString | None:
         return None
 
-    def score_response(self, *, try_scoring_with_countback: bool = False, try_giving_hint: bool = False) -> None:
+    def score_response(self, *, compute_adjusted_score: bool = False, generate_hint: bool = False) -> None:
         try:
             self.score = self._compute_score()
-            self.score_final = self._compute_final_score()
+            self.score_adjusted = self._compute_adjusted_score() if compute_adjusted_score else None
         except _ScoringError as e:
             self.scoring_code = e.scoring_code
         else:
@@ -219,8 +223,8 @@ class Attempt(ABC):
     def _compute_score(self) -> float:
         pass
 
-    def _compute_final_score(self) -> float:
-        return self._compute_score() if self.score is None else self.score
+    def _compute_adjusted_score(self) -> float:
+        raise NotImplementedError
 
     @cached_property
     def jinja2(self) -> jinja2.Environment:

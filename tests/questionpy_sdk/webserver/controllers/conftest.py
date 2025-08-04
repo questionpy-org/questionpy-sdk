@@ -19,7 +19,7 @@ def mock_state_manager() -> AsyncMock:
     state_manager.read_attempt_seed.return_value = 1234
     state_manager.read_last_attempt_data.return_value = {"answer": "42"}
     state_manager.read_score.return_value = ScoreModel(
-        scoring_code=ScoringCode.AUTOMATICALLY_SCORED, score=1.0, score_final=None
+        scoring_code=ScoringCode.AUTOMATICALLY_SCORED, score=1.0, score_adjusted=None
     )
     return state_manager
 

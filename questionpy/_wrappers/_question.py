@@ -62,7 +62,7 @@ def _export_score(attempt: AttemptScoredProtocol) -> dict:
         "scoring_state": None if plain_scoring_state is None else json.dumps(plain_scoring_state),
         "scoring_code": attempt.scoring_code,
         "score": attempt.score,
-        "score_final": attempt.score_final,
+        "score_adjusted": attempt.score_adjusted,
         "scored_inputs": attempt.scored_inputs,
         "scored_subquestions": {},
     }
@@ -94,8 +94,8 @@ class QuestionWrapper(QuestionInterface):
         scoring_state: str | None = None,
         response: dict[str, JsonValue] | None = None,
         *,
-        try_scoring_with_countback: bool = False,
-        try_giving_hint: bool = False,
+        compute_adjusted_score: bool = False,
+        generate_hint: bool = False,
     ) -> AttemptScoredModel:
         parsed_attempt_state = json.loads(attempt_state)
         parsed_scoring_state = None
@@ -106,8 +106,8 @@ class QuestionWrapper(QuestionInterface):
             parsed_attempt_state,
             parsed_scoring_state,
             response,
-            try_scoring_with_countback=try_scoring_with_countback,
-            try_giving_hint=try_giving_hint,
+            compute_adjusted_score=compute_adjusted_score,
+            generate_hint=generate_hint,
         )
         return AttemptScoredModel(**_export_attempt(attempt), **_export_score(attempt))
 

@@ -54,7 +54,7 @@ def test_score_attempt_should_return_automatically_scored(package: Package) -> N
         ui=AttemptUi(formulation=""),
         scoring_code=ScoringCode.AUTOMATICALLY_SCORED,
         score=1,
-        score_final=1,
+        score_adjusted=None,
     )
 
 
@@ -83,7 +83,7 @@ def test_score_attempt_should_handle_scoring_error(
         ui=AttemptUi(formulation=""),
         scoring_code=expected_scoring_code,
         score=None,
-        score_final=None,
+        score_adjusted=None,
     )
 
 
