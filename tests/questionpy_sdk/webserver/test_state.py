@@ -40,7 +40,7 @@ async def test_write_read_attempt_seed(tmp_path: Path) -> None:
 
 async def test_write_read_score(tmp_path: Path) -> None:
     sm = StateManager(tmp_path)
-    original_score = ScoreModel(scoring_code=ScoringCode.AUTOMATICALLY_SCORED, score=None, score_final=None)
+    original_score = ScoreModel(scoring_code=ScoringCode.AUTOMATICALLY_SCORED, score=None, score_adjusted=None)
     await sm.write_score(original_score)
     read_score = await sm.read_score()
     assert read_score == original_score
@@ -58,7 +58,7 @@ async def test_delete_state_removes_files(tmp_path: Path) -> None:
     sm = StateManager(tmp_path)
     await sm.write_attempt_state("attempt")
     await sm.write_attempt_seed(123)
-    await sm.write_score(ScoreModel(scoring_code=ScoringCode.AUTOMATICALLY_SCORED, score=None, score_final=None))
+    await sm.write_score(ScoreModel(scoring_code=ScoringCode.AUTOMATICALLY_SCORED, score=None, score_adjusted=None))
     await sm.write_question_state("question")
 
     await sm.delete_state()

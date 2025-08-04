@@ -126,7 +126,7 @@ async def test_score_attempt(
         lang="en",
         ui=AttemptUi(formulation=""),
         score=0.9,
-        score_final=None,
+        score_adjusted=None,
         scoring_code=ScoringCode.AUTOMATICALLY_SCORED,
     )
     await controller.score_attempt()
