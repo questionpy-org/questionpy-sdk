@@ -5,6 +5,7 @@ import shutil
 import subprocess
 import tempfile
 import zipfile
+from collections.abc import Iterator
 from mimetypes import guess_type
 from pathlib import Path
 
@@ -28,6 +29,24 @@ from questionpy_server.hash import calculate_hash
 _log = logging.getLogger(__name__)
 
 _PYTHON_TEMP_PATHS = GitIgnoreSpec.from_lines(("*.pyc", "__pycache__"))
+
+
+def _iterate_recursive_dependencies(
+    package_root: zipfile.Path,
+    *,
+    stack: tuple[str, ...] = (),
+    manifest: Manifest | None = None,
+) -> Iterator[tuple[str, ...]]:
+    if not manifest:
+        manifest = Manifest.model_validate_json((package_root / DIST_DIR / MANIFEST_FILENAME).read_text())
+
+    stack = (*stack, manifest.identifier)
+    yield stack
+
+    for dep in manifest.dependencies.qpy:
+        yield from _iterate_recursive_dependencies(
+            package_root / DIST_DIR / "dependencies" / "qpy" / dep.dir_name, stack=stack
+        )
 
 
 class PackageBuilder:
@@ -126,6 +145,8 @@ class PackageBuilder:
 
             dependency_paths.add(dep_path)
 
+        installed_deps: dict[str, tuple[str, ...]] = {}
+
         # Then, we copy all of their contents into a directory in dist/dependencies/qpy.
         for dep_path in dependency_paths:
             _log.info("Copying static QPy dependency '%s'", dep_path)
@@ -133,8 +154,25 @@ class PackageBuilder:
             with dep_path.open("rb+") as dep_package_file, zipfile.ZipFile(dep_package_file) as dep_package_zf:
                 dep_hash = calculate_hash(dep_package_file)
                 dep_manifest = Manifest.model_validate_json(dep_package_zf.read(f"{DIST_DIR}/{MANIFEST_FILENAME}"))
-                dep_dir_name = f"{dep_manifest.namespace}-{dep_manifest.short_name}-{dep_manifest.version}"
 
+                # Any duplicate dependencies in the tree, even if the same version, would lead to an error at runtime,
+                # so we prevent them here.
+                for nested_dep_stack in _iterate_recursive_dependencies(
+                    zipfile.Path(dep_package_zf), manifest=dep_manifest, stack=(self._source.config.identifier,)
+                ):
+                    already_installed_through = installed_deps.get(nested_dep_stack[-1])
+                    if already_installed_through is not None:
+                        msg = (
+                            f"The dependency '{nested_dep_stack[-1]}' is required through "
+                            f"'{' -> '.join(nested_dep_stack)}', but has already been installed though "
+                            f"'{' -> '.join(already_installed_through)}'. This is not allowed even when both "
+                            f"require the same version."
+                        )
+                        raise PackageBuildError(msg)
+
+                    installed_deps[nested_dep_stack[-1]] = nested_dep_stack
+
+                dep_dir_name = f"{dep_manifest.namespace}-{dep_manifest.short_name}-{dep_manifest.version}"
                 dest_path = self._target.dist / "dependencies" / "qpy" / dep_dir_name
                 dep_package_zf.extractall(dest_path)
 
