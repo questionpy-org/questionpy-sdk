@@ -42,11 +42,15 @@ class ZipBuildTarget(BuildTarget):
             self._zipfile = zipfile.ZipFile(self._temp_dir / "package.qpy", mode="x")
         return self
 
-    def __exit__(self, *_: object) -> None:
+    def __exit__(self, exc_type: type[BaseException] | None, *_: object) -> None:
         if not self._zipfile or not self._temp_dir:
             self._raise_not_entered()
 
         try:
+            if exc_type:
+                # There was an error during the build. Let's not build the ZIP from a likely broken dist dir.
+                return
+
             self._mkdir(DIST_DIR)
             for entry in self.dist.glob("**/*"):
                 path_in_pkg = DIST_DIR / entry.relative_to(self.dist)
