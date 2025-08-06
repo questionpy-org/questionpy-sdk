@@ -9,5 +9,5 @@ name:
 languages: [de, en]
 build_hooks:
   pre:
-    - npm ci
-    - npm run build
+    - npm --prefix $QPY_SOURCE/ts ci
+    - npm --prefix $QPY_SOURCE/ts run build
