@@ -26,6 +26,10 @@ if TYPE_CHECKING:
     from ._qtype import Question
 
 
+_UNSET: list[JsonValue] = []
+"""Used as a sentinel value."""
+
+
 class BaseAttemptState(BaseModel):
     variant: int
 
@@ -266,7 +270,7 @@ class Attempt(ABC):
         self,
         module: str,
         function: str,
-        data: JsonValue = None,
+        data: JsonValue = _UNSET,
         *,
         if_role: DisplayRole | None = None,
         if_feedback_type: FeedbackType | None = None,
@@ -289,7 +293,7 @@ class Attempt(ABC):
             package = get_package_by_attempt(self)
             module = f"@{package.manifest.namespace}/{package.manifest.short_name}/{module.lstrip('/')}"
 
-        data_json = None if data is None else json.dumps(data)
+        data_json = None if data is _UNSET else json.dumps(data)
         call = JsModuleCall(
             module=module, function=function, data=data_json, if_role=if_role, if_feedback_type=if_feedback_type
         )

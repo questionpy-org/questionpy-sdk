@@ -360,7 +360,11 @@
 
         {% for javascript_call in javascript_calls %}
             import("{{ javascript_call.module|safe }}").then(module => {
-                module["{{ javascript_call.function|safe }}"](attempt, {{ javascript_call.data|safe }});
+                {% if javascript_call.data is not none %}
+                    module["{{ javascript_call.function|safe }}"](attempt, {{ javascript_call.data|safe }});
+                {% else %}
+                    module["{{ javascript_call.function|safe }}"](attempt);
+                {% endif %}
             })
         {% endfor %}
     </script>
