@@ -5,7 +5,7 @@ import logging
 import random
 import re
 from enum import StrEnum
-from typing import TYPE_CHECKING, Any, Literal, TypedDict, overload
+from typing import Any, Literal, TypedDict, overload
 
 import jinja2
 from pydantic import JsonValue
@@ -19,10 +19,6 @@ from questionpy_sdk.webserver.controllers.errors import MissingAttemptDataError,
 
 from .errors import SectionErrorMap, log_render_errors
 from .question_ui import QuestionDisplayOptions, QuestionFormulationUIRenderer, QuestionUIRenderer
-
-if TYPE_CHECKING:
-    from questionpy_server.worker import Worker
-
 
 _log = logging.getLogger(__name__)
 _QPY_URL_PATTERN = re.compile(r"^qpy://static/([a-z_]\w{0,126})/([a-z_]\w{0,126})((?:/[\w\-@:%+.~=]+)+)$")
@@ -102,11 +98,10 @@ class AttemptController(BaseController):
         self, attempt_state: str | None, last_attempt_data: dict[str, JsonValue] | None, score: ScoreModel | None
     ) -> tuple[AttemptModel, str]:
         question_state = await self._get_question_state()
-        worker: Worker
 
         # Display a previously started attempt...
         if attempt_state:
-            async with self._worker_pool.get_worker(self._package_location, 0, None) as worker:
+            async with self.get_worker() as worker:
                 attempt = await worker.get_attempt(
                     request_user=DEFAULT_REQUEST_USER,
                     question_state=question_state,
@@ -120,7 +115,7 @@ class AttemptController(BaseController):
 
         # ...or start a new attempt.
         else:
-            async with self._worker_pool.get_worker(self._package_location, 0, None) as worker:
+            async with self.get_worker() as worker:
                 attempt = await worker.start_attempt(DEFAULT_REQUEST_USER, question_state, variant=1)
                 attempt_state = attempt.attempt_state
                 await self._state_manager.write_attempt_state(attempt_state)
@@ -188,8 +183,7 @@ class AttemptController(BaseController):
         return data
 
     async def _get_import_map(self) -> dict[str, str]:
-        worker: Worker
-        async with self._worker_pool.get_worker(self._package_location, 0, None) as worker:
+        async with self.get_worker() as worker:
             dependencies = worker.get_loaded_packages(only_with_hash=False)
 
         return {
@@ -255,8 +249,7 @@ class AttemptController(BaseController):
         """Scores the attempt."""
         score = await self._get_score()
 
-        worker: Worker
-        async with self._worker_pool.get_worker(self._package_location, 0, None) as worker:
+        async with self.get_worker() as worker:
             attempt_scored = await worker.score_attempt(
                 request_user=DEFAULT_REQUEST_USER,
                 question_state=await self._get_question_state(),

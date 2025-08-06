@@ -10,6 +10,7 @@ from typing import ClassVar, NotRequired, Self, TypedDict, Unpack
 from aiohttp import web
 
 from questionpy_common.constants import MiB
+from questionpy_common.environment import WorkerPermissions
 from questionpy_common.manifest import Manifest
 from questionpy_sdk.webserver.middlewares.controller import inject_controller_middleware
 from questionpy_sdk.webserver.middlewares.error import api_error_middleware, error_middleware
@@ -17,6 +18,7 @@ from questionpy_sdk.webserver.routes import api_routes
 from questionpy_sdk.webserver.routes.frontend import routes as frontend_routes
 from questionpy_sdk.webserver.state import StateManager
 from questionpy_server import WorkerPool
+from questionpy_server.settings import CompleteWorkerPermissions
 from questionpy_server.worker import Worker
 from questionpy_server.worker.impl.subprocess import SubprocessWorker
 from questionpy_server.worker.runtime.package_location import PackageLocation
@@ -51,15 +53,25 @@ class WebServer:
         self._manifest: Manifest
         self._state_manager: StateManager
         self._worker_pool: WorkerPool
+        self._worker_permissions: WorkerPermissions
 
     async def __aenter__(self) -> Self:
         # Add worker pool
         self._worker_pool = await WorkerPool(1, 500 * MiB, worker_type=self._worker_class).__aenter__()
 
         # Load manifest
-        worker: Worker
-        async with self._worker_pool.get_worker(self.package_location, 0, None) as worker:
+        # TODO: when we can load the manifest without using a worker, we should set the maximum memory of the worker
+        #       pool to at least manifest->permissions->memory.
+        read_manifest_permissions = WorkerPermissions(
+            cpus=1, memory=200 * MiB, request_timeout=10, bootstrap_timeout=4, main_process_execution_modes={"trusted"}
+        )
+        async with self._worker_pool.get_worker(self.package_location, 0, None, read_manifest_permissions) as worker:
             self._manifest = await worker.get_manifest()
+
+        permissions = CompleteWorkerPermissions()
+        if self._manifest.permissions:
+            permissions.model_copy(update=self._manifest.permissions.model_dump(exclude_none=True))
+        self._worker_permissions = WorkerPermissions(**permissions.model_dump())
 
         # Initialize state manager
         pkg_dirname = f"{self._manifest.namespace}-{self._manifest.short_name}-{self._manifest.version}"
@@ -137,6 +149,10 @@ class WebServer:
     @property
     def worker_pool(self) -> WorkerPool:
         return self._worker_pool
+
+    @property
+    def worker_permissions(self) -> WorkerPermissions:
+        return self._worker_permissions
 
     @property
     def state_manager(self) -> StateManager:

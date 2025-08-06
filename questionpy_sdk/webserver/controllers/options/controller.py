@@ -10,22 +10,19 @@ from questionpy_sdk.webserver.controllers.options._form_data import flatten_form
 
 if TYPE_CHECKING:
     from questionpy_common.elements import OptionsFormDefinition
-    from questionpy_server.worker import Worker
 
 
 class OptionsController(BaseController):
     async def get_form_definition(self) -> "OptionsFormDefinition":
         state = await self._get_question_state(allow_missing=True)
 
-        worker: Worker
-        async with self._worker_pool.get_worker(self._package_location, 0, None) as worker:
+        async with self.get_worker() as worker:
             return (await worker.get_options_form(DEFAULT_REQUEST_USER, state))[0]
 
     async def get_options_state(self) -> dict[str, Any]:
         state = await self._get_question_state(allow_missing=True)
 
-        worker: Worker
-        async with self._worker_pool.get_worker(self._package_location, 0, None) as worker:
+        async with self.get_worker() as worker:
             form_definition, form_data = await worker.get_options_form(DEFAULT_REQUEST_USER, state)
 
         section_names = [section.name for section in form_definition.sections]
@@ -35,8 +32,7 @@ class OptionsController(BaseController):
         form_data = parse_form_data(data)
         old_state = await self._get_question_state(allow_missing=True)
 
-        worker: Worker
-        async with self._worker_pool.get_worker(self._package_location, 0, None) as worker:
+        async with self.get_worker() as worker:
             question = await worker.create_question_from_options(DEFAULT_REQUEST_USER, old_state, form_data=form_data)
 
         await self._state_manager.write_question_state(question.question_state)
