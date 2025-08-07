@@ -6,7 +6,7 @@ import asyncio
 import logging
 from collections.abc import Iterator
 from pathlib import Path
-from unittest.mock import ANY, AsyncMock, MagicMock, Mock
+from unittest.mock import AsyncMock, MagicMock, Mock
 
 import pytest
 from aiohttp import web
@@ -16,6 +16,7 @@ from questionpy.form import FormModel
 from questionpy_common.api.qtype import QuestionTypeInterface
 from questionpy_common.constants import DIST_DIR
 from questionpy_sdk._package import build_qpy_package
+from questionpy_sdk._package._helper import create_normalized_filename
 from questionpy_sdk._package.source import PackageSource
 from questionpy_sdk.webserver.server import WebServer
 from questionpy_server.hash import calculate_hash
@@ -44,17 +45,17 @@ async def test_webserver_startup(
     mock_worker_pool_cls, mock_worker_pool_instance = mock_worker_pool
     mock_app_runner, mock_tcp_site = mock_web_components
 
-    package_location = Mock()
+    package_location = FunctionPackageLocation("test")
     state_storage_path = Path("/tmp/storage")
 
     async with WebServer(package_location=package_location, state_storage_path=state_storage_path):
         mock_worker_pool_cls.assert_called_once()
 
-        mock_worker_pool_instance.get_worker.assert_called_once_with(package_location, 0, "sdk", ANY)
-        mock_worker.get_manifest.assert_awaited_once()
+        mock_worker_pool_instance.get_worker.assert_not_called()
 
-        expected_path = state_storage_path / "local-my_short_name-7.3.1"
-        mock_state_manager.assert_called_once_with(expected_path)
+        file_name = create_normalized_filename(package_location.manifest)
+        expected_path = state_storage_path / file_name
+        mock_state_manager.assert_called_once_with(expected_path.with_suffix(""))
 
         mock_app_runner.setup.assert_awaited_once()
         mock_tcp_site.return_value.start.assert_awaited_once()
@@ -66,7 +67,8 @@ async def test_webserver_shutdown(
     _, mock_worker_pool_instance = mock_worker_pool
     mock_app_runner, _ = mock_web_components
 
-    async with WebServer(package_location=Mock(), state_storage_path=Path("/tmp")):
+    location = FunctionPackageLocation("test")
+    async with WebServer(package_location=location, state_storage_path=Path("/tmp")):
         pass
 
     mock_app_runner.cleanup.assert_awaited_once()

@@ -9,6 +9,7 @@ import pytest
 
 from questionpy_sdk.webserver import WebServer
 from questionpy_sdk.webserver.controllers.base import BaseController
+from questionpy_server.worker.runtime.package_location import FunctionPackageLocation
 
 
 @pytest.mark.parametrize(
@@ -34,6 +35,7 @@ async def test_generate_api_url(
     mock_worker_pool: tuple[Mock, MagicMock],
     mock_web_components: tuple[Mock, AsyncMock],
 ) -> None:
-    async with WebServer(package_location=Mock(), state_storage_path=Path("/foo/bar")) as server:
+    location = FunctionPackageLocation("test")
+    async with WebServer(package_location=location, state_storage_path=Path("/foo/bar")) as server:
         url = BaseController(server).generate_api_url(name, **route_kwargs)
         assert str(url) == expected
