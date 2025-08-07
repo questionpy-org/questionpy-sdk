@@ -65,7 +65,7 @@ class WebServer:
         read_manifest_permissions = WorkerPermissions(
             cpus=1, memory=200 * MiB, request_timeout=10, bootstrap_timeout=4, main_process_execution_modes={"trusted"}
         )
-        async with self._worker_pool.get_worker(self.package_location, 0, None, read_manifest_permissions) as worker:
+        async with self._worker_pool.get_worker(self.package_location, 0, "sdk", read_manifest_permissions) as worker:
             self._manifest = await worker.get_manifest()
 
         permissions = CompleteWorkerPermissions()

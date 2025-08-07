@@ -26,7 +26,7 @@ class BaseController:
     @asynccontextmanager
     async def get_worker(self) -> AsyncIterator[Worker]:
         async with self._webserver.worker_pool.get_worker(
-            self._webserver.package_location, 0, None, self._webserver.worker_permissions
+            self._webserver.package_location, 0, "sdk", self._webserver.worker_permissions
         ) as worker:
             yield worker
 

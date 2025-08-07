@@ -50,7 +50,7 @@ async def test_webserver_startup(
     async with WebServer(package_location=package_location, state_storage_path=state_storage_path):
         mock_worker_pool_cls.assert_called_once()
 
-        mock_worker_pool_instance.get_worker.assert_called_once_with(package_location, 0, None, ANY)
+        mock_worker_pool_instance.get_worker.assert_called_once_with(package_location, 0, "sdk", ANY)
         mock_worker.get_manifest.assert_awaited_once()
 
         expected_path = state_storage_path / "local-my_short_name-7.3.1"
