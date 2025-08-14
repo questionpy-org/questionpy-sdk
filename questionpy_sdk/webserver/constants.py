@@ -8,7 +8,7 @@ from typing import TYPE_CHECKING
 
 from aiohttp import web
 
-from questionpy_common.environment import RequestUser
+from questionpy_common.environment import RequestInfo
 from questionpy_common.manifest import Bcp47LanguageTag
 
 if TYPE_CHECKING:
@@ -20,6 +20,6 @@ ID_RE = r"[A-Za-z0-9_-]{8}"
 WEBSERVER_KEY: web.AppKey["WebServer"] = web.AppKey("qpy_webserver")
 REQUEST_CONTROLLER_KEY = "qpy_controller"
 
-DEFAULT_REQUEST_USER = RequestUser([Bcp47LanguageTag("de"), Bcp47LanguageTag("en")])
+DEFAULT_REQUEST_INFO = RequestInfo([Bcp47LanguageTag("de"), Bcp47LanguageTag("en")])
 USE_VITE_DEV_SERVER = os.getenv("USE_VITE_DEV_SERVER") in {"true", "TRUE", "1"}
 STATIC_DIR = Path(__file__).parent / "static"
