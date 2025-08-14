@@ -31,7 +31,7 @@ export interface Manifest {
     icon: string | null
     type: PackageType
     license: string | null
-    permissions: PartialWorkerPermissions | null
+    permissions: PartialPackagePermissions | null
     tags: string[]
     requirements: string | string[] | null
     static_files: StaticFiles
@@ -43,7 +43,7 @@ export interface Name {
 export interface Description {
     [k: string]: string
 }
-export interface PartialWorkerPermissions {
+export interface PartialPackagePermissions {
     cpus: number | null
     memory: number | null
     request_timeout: number | null
