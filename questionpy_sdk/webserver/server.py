@@ -9,7 +9,7 @@ from typing import ClassVar, NotRequired, Self, TypedDict, Unpack
 
 from aiohttp import web
 
-from questionpy_common.environment import WorkerPermissions
+from questionpy_common.environment import PackagePermissions
 from questionpy_common.manifest import Manifest
 from questionpy_sdk.webserver.middlewares.controller import inject_controller_middleware
 from questionpy_sdk.webserver.middlewares.error import api_error_middleware, error_middleware
@@ -17,7 +17,7 @@ from questionpy_sdk.webserver.routes import api_routes
 from questionpy_sdk.webserver.routes.frontend import routes as frontend_routes
 from questionpy_sdk.webserver.state import FilesystemStateManager, StateManager
 from questionpy_server import WorkerPool
-from questionpy_server.settings import CompleteWorkerPermissions
+from questionpy_server.settings import CompletePackagePermissions
 from questionpy_server.worker import Worker
 from questionpy_server.worker.impl.subprocess import SubprocessWorker
 from questionpy_server.worker.runtime.package_location import PackageLocation
@@ -53,21 +53,21 @@ class WebServer:
         self._manifest: Manifest
         self._state_manager: StateManager
         self._worker_pool: WorkerPool
-        self._worker_permissions: WorkerPermissions
+        self._package_permissions: PackagePermissions
 
     async def __aenter__(self) -> Self:
         # Read manifest
         self._manifest = await read_manifest(self.package_location)
 
         # Assemble worker permissions
-        permissions = CompleteWorkerPermissions()
+        permissions = CompletePackagePermissions()
         if self._manifest.permissions:
-            permissions.model_copy(update=self._manifest.permissions.model_dump(exclude_none=True))
-        self._worker_permissions = WorkerPermissions(**permissions.model_dump())
+            permissions = permissions.model_copy(update=self._manifest.permissions.model_dump(exclude_none=True))
+        self._package_permissions = PackagePermissions(**permissions.model_dump())
 
         # Add worker pool
         self._worker_pool = await WorkerPool(
-            max_workers=1, max_memory=self._worker_permissions.memory, worker_type=self._worker_class
+            max_workers=1, max_memory=self._package_permissions.memory, worker_type=self._worker_class
         ).__aenter__()
 
         # Initialize state manager
@@ -148,8 +148,8 @@ class WebServer:
         return self._worker_pool
 
     @property
-    def worker_permissions(self) -> WorkerPermissions:
-        return self._worker_permissions
+    def package_permissions(self) -> PackagePermissions:
+        return self._package_permissions
 
     @property
     def state_manager(self) -> StateManager:

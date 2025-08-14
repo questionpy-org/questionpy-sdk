@@ -10,7 +10,7 @@ import pytest
 from questionpy import Attempt, BaseAttemptState, BaseQuestionState, Question
 from questionpy.form import FormModel, text_input
 from questionpy_common.constants import MiB
-from questionpy_common.environment import Environment, WorkerPermissions, set_qpy_environment
+from questionpy_common.environment import Environment, PackagePermissions, set_qpy_environment
 from questionpy_common.manifest import Bcp47LanguageTag, Manifest, PackageFile
 from questionpy_sdk.webserver.constants import DEFAULT_REQUEST_INFO
 from questionpy_server.worker.runtime.manager import EnvironmentImpl
@@ -45,7 +45,7 @@ def package() -> ImportablePackage:
 def environment(package: ImportablePackage) -> Generator[Environment, None, None]:
     env = EnvironmentImpl(
         _type="test",
-        _permissions=WorkerPermissions(1, 200 * MiB, 10, 4, {"trusted"}),
+        _permissions=PackagePermissions(1, 200 * MiB, 10, 4, {"trusted"}),
         _request_info=DEFAULT_REQUEST_INFO,
         _main_package=package,
         _packages={},
