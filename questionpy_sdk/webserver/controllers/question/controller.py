@@ -6,7 +6,7 @@ from pydantic import ConfigDict
 from pydantic.dataclasses import dataclass
 
 from questionpy_common.elements import OptionsFormDefinition
-from questionpy_sdk.webserver.constants import DEFAULT_REQUEST_USER
+from questionpy_sdk.webserver.constants import DEFAULT_REQUEST_INFO
 from questionpy_sdk.webserver.controllers.base import BaseController
 from questionpy_sdk.webserver.controllers.question._form_data import OptionsFormData, flatten_form_data, parse_form_data
 from questionpy_sdk.webserver.errors import MissingQuestionStateError
@@ -31,7 +31,7 @@ class QuestionController(BaseController):
             state = None
 
         async with self.get_worker() as worker:
-            form_definition, _ = await worker.get_options_form(DEFAULT_REQUEST_USER, state)
+            form_definition, _ = await worker.get_options_form(DEFAULT_REQUEST_INFO, state)
 
         return form_definition
 
@@ -43,7 +43,7 @@ class QuestionController(BaseController):
             async with self.get_worker() as worker:
                 for question_id in states_str:
                     state = states_str[question_id]
-                    form_definition, form_data = await worker.get_options_form(DEFAULT_REQUEST_USER, state)
+                    form_definition, form_data = await worker.get_options_form(DEFAULT_REQUEST_INFO, state)
                     flat_form_data = flatten_form_data(form_data, self._section_names_from_definition(form_definition))
                     states[question_id] = flat_form_data
 
@@ -58,7 +58,7 @@ class QuestionController(BaseController):
             is_new = True
 
         async with self.get_worker() as worker:
-            form_definition, form_data = await worker.get_options_form(DEFAULT_REQUEST_USER, state)
+            form_definition, form_data = await worker.get_options_form(DEFAULT_REQUEST_INFO, state)
 
         return OptionsStateResponse(
             data=flatten_form_data(form_data, self._section_names_from_definition(form_definition)),
@@ -74,7 +74,7 @@ class QuestionController(BaseController):
             old_state = None
 
         async with self.get_worker() as worker:
-            question = await worker.create_question_from_options(DEFAULT_REQUEST_USER, old_state, form_data=form_data)
+            question = await worker.create_question_from_options(DEFAULT_REQUEST_INFO, old_state, form_data=form_data)
 
         await self._state_manager.write_question_state(question_id, question.question_state)
 

@@ -16,7 +16,7 @@ from yarl import URL
 import questionpy_sdk.webserver.errors as webserver_errors
 from questionpy import AttemptModel, AttemptScoredModel, ScoreModel
 from questionpy_common.api.attempt import FeedbackType, JsModuleCall
-from questionpy_sdk.webserver.constants import DEFAULT_REQUEST_USER
+from questionpy_sdk.webserver.constants import DEFAULT_REQUEST_INFO
 from questionpy_sdk.webserver.controllers.base import BaseController
 from questionpy_server.worker import Worker
 
@@ -86,7 +86,7 @@ class AttemptController(BaseController):
 
         async with self.get_worker() as worker:
             attempt_scored = await worker.score_attempt(
-                request_user=DEFAULT_REQUEST_USER,
+                request_info=DEFAULT_REQUEST_INFO,
                 question_state=await self._state_manager.read_question_state(question_id),
                 attempt_state=await self._state_manager.read_attempt_state(question_id, attempt_id),
                 response=await self._state_manager.read_attempt_data(question_id, attempt_id),
@@ -109,7 +109,7 @@ class AttemptController(BaseController):
         # Get previously started attempt...
         if attempt_state:
             attempt = await worker.get_attempt(
-                request_user=DEFAULT_REQUEST_USER,
+                request_info=DEFAULT_REQUEST_INFO,
                 question_state=question_state,
                 attempt_state=attempt_state,
                 scoring_state=score.scoring_state if score else None,
@@ -122,7 +122,7 @@ class AttemptController(BaseController):
             return attempt, attempt_state
 
         # ...or start a new attempt.
-        attempt = await worker.start_attempt(DEFAULT_REQUEST_USER, question_state, variant=1)
+        attempt = await worker.start_attempt(DEFAULT_REQUEST_INFO, question_state, variant=1)
         attempt_state = attempt.attempt_state
         await self._state_manager.write_attempt_state(question_id, attempt_id, attempt_state)
         return attempt, attempt_state

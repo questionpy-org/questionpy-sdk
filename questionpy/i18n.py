@@ -37,7 +37,7 @@ from questionpy_common.environment import (
     Environment,
     Package,
     PackageNamespaceAndShortName,
-    RequestUser,
+    RequestInfo,
     get_qpy_environment,
 )
 from questionpy_common.manifest import Bcp47LanguageTag, SourceManifest
@@ -65,7 +65,7 @@ GettextDomain = NewType("GettextDomain", str)
 
 @dataclass
 class _RequestState:
-    user: RequestUser
+    info: RequestInfo
     primary_lang: Bcp47LanguageTag
     translations: NullTranslations
 
@@ -463,11 +463,11 @@ def _require_request_state(domain: GettextDomain, domain_state: _DomainState | N
             raise RuntimeError(msg)
 
     env = get_qpy_environment()
-    if not env.request_user:
+    if not env.request_info:
         msg = "No request is currently being processed."
         raise RuntimeError(msg)
 
-    if not domain_state.request_state or domain_state.request_state.user != env.request_user:
+    if not domain_state.request_state or domain_state.request_state.info != env.request_info:
         msg = f"i18n domain '{domain}' was not initialized for the current request."
         raise RuntimeError(msg)
 
@@ -503,8 +503,8 @@ def _ensure_initialized(domain: GettextDomain, package: Package, env: Environmen
 
     domain_state = states_by_domain[domain] = _DomainState(untranslated_lang, available_mos, domain_logger)
 
-    def initialize_for_request(request_user: RequestUser) -> None:
-        langs_to_use = [lang for lang in request_user.preferred_languages if lang in domain_state.available_mos]
+    def initialize_for_request(request_info: RequestInfo) -> None:
+        langs_to_use = [lang for lang in request_info.preferred_languages if lang in domain_state.available_mos]
 
         if langs_to_use:
             domain_logger.debug("Using the following languages for this request: %s", langs_to_use)
@@ -518,11 +518,11 @@ def _ensure_initialized(domain: GettextDomain, package: Package, env: Environmen
             primary_lang = domain_state.untranslated_lang
 
         translations = _build_translations([domain_state.available_mos[lang] for lang in langs_to_use])
-        domain_state.request_state = _RequestState(request_user, primary_lang, translations)
+        domain_state.request_state = _RequestState(request_info, primary_lang, translations)
 
-    if env.request_user:
+    if env.request_info:
         # In case we are called during a request.
-        initialize_for_request(env.request_user)
+        initialize_for_request(env.request_info)
 
     env.register_on_request_callback(initialize_for_request)
 
