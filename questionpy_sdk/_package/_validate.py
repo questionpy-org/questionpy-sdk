@@ -1,4 +1,5 @@
 import logging
+import re
 from itertools import chain
 from pathlib import Path
 
@@ -6,6 +7,29 @@ from questionpy_common.constants import MANIFEST_FILENAME
 from questionpy_common.manifest import Manifest, PackageType
 
 _log = logging.getLogger(__name__)
+
+
+KNOWN_LMS_ATTRIBUTES: set[str] = {
+    # LMS
+    "course_id",
+    "attempt_id",
+    "attempt_started_at",
+    "submissions_at",
+    # Group
+    "group_id",
+    "group_name",
+    # User
+    "user_id",
+    "login_identifier",
+    "emaildisplay_name",
+    "first_name",
+    "last_name",
+}
+
+KNOWN_CUSTOM_LMS_ATTRIBUTE_PATTERNS: list[re.Pattern[str]] = [
+    re.compile(r"^lms_[a-z\d]+_[a-z\d_]+$"),
+    re.compile(r"^profile_field_[a-z\d_]+$"),
+]
 
 
 def _get_required_file_globs(manifest: Manifest) -> dict[str, str]:
@@ -57,6 +81,9 @@ def _get_allowed_dir_globs(manifest: Manifest) -> tuple[str, ...]:
 
 
 def validate_dist_structure(manifest: Manifest, dist: Path) -> None:
+    if not _log.isEnabledFor(logging.WARNING):
+        return
+
     required_file_globs = _get_required_file_globs(manifest)
     allowed_file_globs = {*required_file_globs.keys(), *_get_allowed_file_globs()}
     allowed_dir_globs = _get_allowed_dir_globs(manifest)
@@ -74,7 +101,7 @@ def validate_dist_structure(manifest: Manifest, dist: Path) -> None:
         if allowed_path.is_dir():
             extra_paths.discard(allowed_path)
 
-    if extra_paths and _log.isEnabledFor(logging.WARNING):
+    if extra_paths:
         path_list = "\n".join(f"\t- {path.relative_to(dist)}" for path in extra_paths)
         _log.warning(
             "The following files and dirs are unexpected in the built package.\n"
@@ -82,3 +109,22 @@ def validate_dist_structure(manifest: Manifest, dist: Path) -> None:
             "This may indicate a bad build script.",
             path_list,
         )
+
+
+def _is_known_attribute(attribute: str) -> bool:
+    return attribute in KNOWN_LMS_ATTRIBUTES or any(
+        pattern.fullmatch(attribute) for pattern in KNOWN_CUSTOM_LMS_ATTRIBUTE_PATTERNS
+    )
+
+
+def validate_requested_lms_attributes(manifest: Manifest) -> None:
+    if not (_log.isEnabledFor(logging.WARNING) and manifest.permissions and manifest.permissions.lms_attributes):
+        return
+
+    unknown_attributes = [
+        attribute for attribute in manifest.permissions.lms_attributes if not _is_known_attribute(attribute)
+    ]
+
+    if unknown_attributes:
+        unknown_attribute_list = "\n\t- " + "\n\t- ".join(unknown_attributes)
+        _log.warning("The following LMS attributes are requested but unknown:%s", unknown_attribute_list)
