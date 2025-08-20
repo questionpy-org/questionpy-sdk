@@ -31,14 +31,12 @@ _PYTHON_TEMP_PATHS = GitIgnoreSpec.from_lines(("*.pyc", "__pycache__"))
 
 class PackageBuilder:
     STATIC_FILE_GLOBS: ClassVar[set[str]] = {"css/**/*", "js/**/*", "assets/**/*"}
-    STATIC_LOGO_GLOBS: ClassVar[set[str]] = {"logo.svg", "logo.png", "logo.jpg"}
 
     def __init__(self, source: PackageSource, target: BuildTarget, *, copy_sources: bool) -> None:
         self._source = source
         self._target = target
 
         self._static_path = self._target.dist / "static"
-        self._assets_path = self._static_path / "assets"
 
         self._copy_sources = copy_sources
 
@@ -123,8 +121,6 @@ class PackageBuilder:
 
         for glob in self.STATIC_FILE_GLOBS:
             self._copy_glob(self._source.path, glob, self._static_path, add_to_static_files=True)
-        for glob in self.STATIC_LOGO_GLOBS:
-            self._copy_glob(self._source.path, glob, self._assets_path, add_to_static_files=True)
 
     def _add_to_static_files(self, path: Path) -> bool:
         """Adds a file to the static files list in the manifest."""
@@ -147,12 +143,6 @@ class PackageBuilder:
                 if self._add_to_static_files(path) and _log.isEnabledFor(logging.DEBUG):
                     relative_path = path.relative_to(self._target.dist)
                     _log.debug("Added generated static file to manifest: %s", relative_path)
-
-        for glob in self.STATIC_LOGO_GLOBS:
-            for path in self._assets_path.glob(glob):
-                if self._add_to_static_files(path) and _log.isEnabledFor(logging.DEBUG):
-                    relative_path = path.relative_to(self._target.dist)
-                    _log.debug("Added generated logo file to manifest: %s", relative_path)
 
     def _write_manifest(self) -> None:
         """Writes package manifest."""
