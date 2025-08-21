@@ -8,6 +8,7 @@ import zipfile
 from collections.abc import Iterator
 from mimetypes import guess_type
 from pathlib import Path
+from typing import ClassVar
 
 import babel
 import babel.messages.frontend
@@ -50,9 +51,13 @@ def _iterate_recursive_dependencies(
 
 
 class PackageBuilder:
+    STATIC_FILE_GLOBS: ClassVar[set[str]] = {"css/**/*", "js/**/*", "assets/**/*"}
+
     def __init__(self, source: PackageSource, target: BuildTarget, *, copy_sources: bool) -> None:
         self._source = source
         self._target = target
+
+        self._static_path = self._target.dist / "static"
 
         self._copy_sources = copy_sources
 
@@ -73,10 +78,11 @@ class PackageBuilder:
         self._install_static_qpy_dependencies()
         self._write_package_files()
         self._compile_pos()
-        self._write_manifest()
         if self._copy_sources:
             self._copy_source_files()
         self._run_build_hooks("post")
+        self._handle_generated_static_files()
+        self._write_manifest()
 
         validate_dist_structure(self._manifest, self._target.dist)
 
@@ -183,13 +189,30 @@ class PackageBuilder:
         self._copy_glob(self._source.path, "python/**/*", self._target.dist)
         self._copy_glob(self._source.path, "templates/**/*", self._target.dist)
 
-        static_path = self._target.dist / "static"
-        self._copy_glob(self._source.path, "css/**/*", static_path, add_to_static_files=True)
-        self._copy_glob(self._source.path, "js/**/*", static_path, add_to_static_files=True)
-        self._copy_glob(self._source.path, "assets/**/*", static_path, add_to_static_files=True)
-        self._copy_glob(self._source.path, "logo.svg", static_path / "assets", add_to_static_files=True)
-        self._copy_glob(self._source.path, "logo.png", static_path / "assets", add_to_static_files=True)
-        self._copy_glob(self._source.path, "logo.jpg", static_path / "assets", add_to_static_files=True)
+        for glob in self.STATIC_FILE_GLOBS:
+            self._copy_glob(self._source.path, glob, self._static_path, add_to_static_files=True)
+
+    def _add_to_static_files(self, path: Path) -> bool:
+        """Adds a file to the static files list in the manifest."""
+        if not path.is_file():
+            return False
+
+        path_in_dist = str(path.relative_to(self._target.dist))
+        if path_in_dist in self._manifest.static_files:
+            return False
+
+        mime_type = guess_type(path)[0]
+        file_size = path.stat().st_size
+        self._manifest.static_files[path_in_dist] = PackageFile(mime_type=mime_type, size=file_size)
+        return True
+
+    def _handle_generated_static_files(self) -> None:
+        """Handles generated package files."""
+        for glob in self.STATIC_FILE_GLOBS:
+            for path in self._static_path.glob(glob):
+                if self._add_to_static_files(path) and _log.isEnabledFor(logging.DEBUG):
+                    relative_path = path.relative_to(self._target.dist)
+                    _log.debug("Added generated static file to manifest: %s", relative_path)
 
     def _write_manifest(self) -> None:
         """Writes package manifest."""
@@ -289,11 +312,8 @@ class PackageBuilder:
                 shutil.copy2(source_file, dest_path)
 
             # register as static file in build manifest
-            if source_file.is_file() and add_to_static_files:
-                mime_type = guess_type(source_file)[0]
-                file_size = source_file.stat().st_size
-                path_in_dist = str(dest_path.relative_to(self._target.dist))
-                self._manifest.static_files[path_in_dist] = PackageFile(mime_type=mime_type, size=file_size)
+            if add_to_static_files:
+                self._add_to_static_files(dest_path)
 
 
 def build_qpy_package(source: PackageSource, target: BuildTarget | None = None, *, copy_sources: bool = True) -> None:
