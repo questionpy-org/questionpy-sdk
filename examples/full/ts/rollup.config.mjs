@@ -12,7 +12,7 @@ export default defineConfig({
     input: "src/main.ts",
     output: {
         file: `${jsOutputPath}/main.js`,
-        format: "amd",
+        format: "es",
     },
     plugins: [typescript(), sass({ output: `${cssOutputPath}/styles.css` }), terser()],
 });

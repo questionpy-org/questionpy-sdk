@@ -9,6 +9,7 @@ class ExampleAttempt(Attempt):
 
     @property
     def formulation(self) -> str:
+        self.call_js("main.js", "init", "QuestionPy")
         return self.jinja2.get_template("formulation.xhtml.j2").render()
 
 
