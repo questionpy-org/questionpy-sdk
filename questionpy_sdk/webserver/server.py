@@ -9,7 +9,6 @@ from typing import ClassVar, NotRequired, Self, TypedDict, Unpack
 
 from aiohttp import web
 
-from questionpy_common.constants import MiB
 from questionpy_common.environment import WorkerPermissions
 from questionpy_common.manifest import Manifest
 from questionpy_sdk.webserver.middlewares.controller import inject_controller_middleware
@@ -24,6 +23,7 @@ from questionpy_server.worker.impl.subprocess import SubprocessWorker
 from questionpy_server.worker.runtime.package_location import PackageLocation
 
 from .constants import API_PATH_PREFIX, USE_VITE_DEV_SERVER, WEBSERVER_KEY
+from .manifest import read_manifest
 
 log = logging.getLogger("questionpy-sdk:web-server")
 
@@ -56,22 +56,19 @@ class WebServer:
         self._worker_permissions: WorkerPermissions
 
     async def __aenter__(self) -> Self:
-        # Add worker pool
-        self._worker_pool = await WorkerPool(1, 500 * MiB, worker_type=self._worker_class).__aenter__()
+        # Read manifest
+        self._manifest = await read_manifest(self.package_location)
 
-        # Load manifest
-        # TODO: when we can load the manifest without using a worker, we should set the maximum memory of the worker
-        #       pool to at least manifest->permissions->memory.
-        read_manifest_permissions = WorkerPermissions(
-            cpus=1, memory=200 * MiB, request_timeout=10, bootstrap_timeout=4, main_process_execution_modes={"trusted"}
-        )
-        async with self._worker_pool.get_worker(self.package_location, 0, "sdk", read_manifest_permissions) as worker:
-            self._manifest = await worker.get_manifest()
-
+        # Assemble worker permissions
         permissions = CompleteWorkerPermissions()
         if self._manifest.permissions:
             permissions.model_copy(update=self._manifest.permissions.model_dump(exclude_none=True))
         self._worker_permissions = WorkerPermissions(**permissions.model_dump())
+
+        # Add worker pool
+        self._worker_pool = await WorkerPool(
+            max_workers=1, max_memory=self._worker_permissions.memory, worker_type=self._worker_class
+        ).__aenter__()
 
         # Initialize state manager
         pkg_dirname = f"{self._manifest.namespace}-{self._manifest.short_name}-{self._manifest.version}"

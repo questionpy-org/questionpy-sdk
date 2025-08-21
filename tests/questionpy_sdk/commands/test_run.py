@@ -1,7 +1,6 @@
 #  This file is part of the QuestionPy SDK. (https://questionpy.org)
 #  The QuestionPy SDK is free software released under terms of the MIT license. See LICENSE.md.
 #  (c) Technische Universität Berlin, innoCampus <info@isis.tu-berlin.de>
-
 from pathlib import Path
 
 import psutil
@@ -81,8 +80,8 @@ async def test_run_explicit_subprocess_worker_with_qpy_file(
 ) -> None:
     async with long_running_cmd(("run", "-Wsubprocess", "--port", str(port), str(source_path))) as proc:
         await assert_webserver_is_up(client_session, port)
-
-        assert len(psutil.Process(proc.pid).children()) == 1
+        async with await client_session.get(f"http://localhost:{port}/api/options"):
+            assert len(psutil.Process(proc.pid).children()) == 1
 
 
 async def test_run_explicit_thread_worker_with_qpy_file(
@@ -91,6 +90,8 @@ async def test_run_explicit_thread_worker_with_qpy_file(
     async with long_running_cmd(("run", "-Wthread", "--port", str(port), str(source_path))) as proc:
         await assert_webserver_is_up(client_session, port)
 
-        assert len(psutil.Process(proc.pid).children()) == 0
+        await assert_webserver_is_up(client_session, port)
+        async with await client_session.get(f"http://localhost:{port}/api/options"):
+            assert len(psutil.Process(proc.pid).children()) == 0
         # Python doesn't call pthread_setname_np, so we have no way of getting the thread names of subprocess to check
         # for the existence of worker threads.
