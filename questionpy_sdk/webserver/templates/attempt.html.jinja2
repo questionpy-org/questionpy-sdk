@@ -344,7 +344,7 @@
             }
         }
 
-        const attempt = new Attempt(
+        window.attempt = new Attempt(
             {{ display_options.readonly|tojson }},
             {{ display_options.general_feedback|tojson }},
             {{ display_options.specific_feedback|tojson }},
