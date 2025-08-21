@@ -1106,6 +1106,18 @@ files = [
 ]
 
 [[package]]
+name = "pip"
+version = "25.2"
+description = "The PyPA recommended tool for installing Python packages."
+optional = false
+python-versions = ">=3.9"
+groups = ["main"]
+files = [
+    {file = "pip-25.2-py3-none-any.whl", hash = "sha256:6d67a2b4e7f14d8b31b8b52648866fa717f45a1eb70e83002f4331d07e953717"},
+    {file = "pip-25.2.tar.gz", hash = "sha256:578283f006390f85bb6282dffb876454593d637f5d1be494b5202ce4877e71f2"},
+]
+
+[[package]]
 name = "playwright"
 version = "1.52.0"
 description = "A high-level API to automate web browsers"
@@ -2028,4 +2040,4 @@ propcache = ">=0.2.1"
 [metadata]
 lock-version = "2.1"
 python-versions = ">=3.12, <4.0"
-content-hash = "4789251067b022a65ff793cb713e32b18e353ac01086accec388a34a53bb7216"
+content-hash = "563f752282614c3d7366dda62310e95fc1c9edcae516330f41bc1d5d8f69389d"

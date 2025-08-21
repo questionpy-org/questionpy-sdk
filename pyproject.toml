@@ -7,13 +7,15 @@ name = "questionpy-sdk"
 description = "Library and toolset for the development of QuestionPy packages"
 license = "MIT"
 urls = { homepage = "https://questionpy.org" }
-version = "0.6.0"
+version = "0.6.1"
 authors = [
     { name = "TU Berlin innoCampus" },
     { email = "info@isis.tu-berlin.de" }
 ]
 requires-python = ">=3.12, <4.0"
 dependencies = [
+    # uv (and maybe other dependency managers) doesn't install pip by default.
+    "pip (>=25.2)",
     "click >=8.2.0, <9.0.0",
     "aiohttp >=3.11.18, <4.0.0",
     "pydantic >=2.11.4, <3.0.0",
