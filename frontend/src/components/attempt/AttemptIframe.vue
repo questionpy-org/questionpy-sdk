@@ -5,10 +5,25 @@
 -->
 
 <template>
-    <iframe class="iframe" ref="iframeEl" :srcdoc="srcDoc" @load="onIframeLoad"></iframe>
+    <div :class="{ maximized: isMaximized }">
+        <div v-if="isMaximized">
+            <IconButton variant="link" :iconComponent="IMdiFullscreenExit" @click="isMaximized = false">
+                Return question to normal size
+            </IconButton>
+        </div>
+        <div v-else>
+            <IconButton variant="link" :iconComponent="IMdiFullscreen" @click="isMaximized = true"
+                >Maximize question</IconButton
+            >
+        </div>
+
+        <iframe class="iframe" ref="iframeEl" :srcdoc="srcDoc" @load="onIframeLoad"></iframe>
+    </div>
 </template>
 
 <script setup lang="ts">
+import IMdiFullscreen from '~icons/mdi/fullscreen'
+import IMdiFullscreenExit from '~icons/mdi/fullscreen-exit'
 import { storeToRefs } from 'pinia'
 import { onBeforeUnmount, onMounted, ref, watch } from 'vue'
 import type { BasicColorMode } from '@vueuse/core'
@@ -20,6 +35,25 @@ defineProps<{ srcDoc: string }>()
 const { colorMode } = storeToRefs(useAppStateStore())
 
 const iframeEl = ref<HTMLIFrameElement | null>(null)
+
+const isMaximized = ref(false)
+watch(isMaximized, async (newValue) => {
+    if (!iframeEl.value) {
+        return
+    }
+    if (newValue) {
+        // We've entered maximized mode.
+        iframeEl.value.style.height = '100%'
+    } else {
+        // We've exited it.
+        iframeEl.value.style.removeProperty('height')
+    }
+
+    iframeEl.value.contentWindow?.postMessage({
+        type: 'UPDATE_DISPLAY_MODE',
+        newDisplayMode: newValue ? 'maximized' : 'default',
+    })
+})
 
 /** Retrieves form data from the iframe via `postMessage` communication. */
 function getFormData(): Promise<Record<string, unknown>> {
@@ -60,6 +94,12 @@ watch(colorMode, (newColorMode) => {
 // Handle iframe messages
 
 function handleMessage({ data, origin }: MessageEvent) {
+    if (isMaximized.value) {
+        // If the question is maximized, we don't care how large its content is, the container is always as large as it
+        // can be.
+        return
+    }
+
     if (origin === window.origin && data?.type === 'RESIZE_EVENT') {
         const newHeight = `${data.height + 1}px`
         if (iframeEl.value && iframeEl.value.style.height !== newHeight) {
@@ -83,6 +123,17 @@ onBeforeUnmount(() => {
     border: 0;
     padding: 0;
     width: 100%;
-    height: 0;
+    height: 100%;
+}
+
+.maximized {
+    position: fixed;
+    box-sizing: border-box;
+    width: 100vw;
+    height: 100vw;
+    top: 0;
+    left: 0;
+    background-color: var(--bs-body-bg);
+    z-index: 100;
 }
 </style>

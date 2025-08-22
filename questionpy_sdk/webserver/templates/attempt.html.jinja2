@@ -18,12 +18,21 @@
         }
 
         body {
-            height: auto; /* Make iframe body grow and shrink with page content. */
             display: flow-root; /* Prevent margin-collapse across bottom boundary. */
             background-color: transparent;
             padding: 0;
             margin: 0;
             color: var(--text-color);
+
+            &:not(.qpy-maximized, .qpy-fullscreen) {
+                /* Make iframe body grow and shrink with page content. */
+                height: auto;
+            }
+
+            &:is(.qpy-maximized, .qpy-fullscreen) {
+                width: 100vw;
+                height: 100vh;
+            }
         }
 
         :is(input, select, textarea):invalid {
@@ -32,7 +41,7 @@
     </style>
 
     {% for stylesheet_url in stylesheet_urls %}
-        <link rel="stylesheet" href="{{ stylesheet_url|safe }}" />
+        <link rel="stylesheet" href="{{ stylesheet_url|safe }}"/>
     {% endfor %}
 {% endblock %}
 
@@ -75,7 +84,7 @@
                 }
                 rafId = requestAnimationFrame(() => {
                     rafId = null
-                    const msg = { type: 'RESIZE_EVENT', height: entry.contentRect.height }
+                    const msg = {type: 'RESIZE_EVENT', height: entry.contentRect.height}
                     window.parent.postMessage(msg, window.origin)
                 })
             }
@@ -97,7 +106,7 @@
                     }
                 }
 
-                for (var entry in formData) {
+                for (const entry in formData) {
                     if (entry.endsWith('_[]')) {
                         formData[entry.substring(0, entry.length - 3)] = formData[entry]
                         delete formData[entry]
@@ -110,6 +119,27 @@
                 return formData
             }
 
+            function updateDisplayMode(newDisplayMode) {
+                // TODO: Do we need to distinguish between maximized and fullscreen? Is there a sensible reason for
+                //       packages to style themselves differently in the two cases?
+                switch (newDisplayMode) {
+                    case 'maximized':
+                        document.body.classList.remove("qpy-fullscreen")
+                        document.body.classList.add("qpy-maximized")
+                        break
+                    case 'fullscreen':
+                        document.body.classList.remove("qpy-maximized")
+                        document.body.classList.add("qpy-fullscreen")
+                        break
+                    default:
+                        if (newDisplayMode !== "default") {
+                            console.warn(`Unrecognized display mode: '${newDisplayMode}'`)
+                        }
+                        document.body.classList.remove("qpy-maximized", "qpy-fullscreen")
+                        break
+                }
+            }
+
             // Handle incoming messages
             window.addEventListener('message', (event) => {
                 if (event.origin === window.origin) {
@@ -118,7 +148,10 @@
                             document.documentElement.setAttribute('data-theme', event.data.mode)
                             break
                         case 'GET_FORM_DATA':
-                            event.source.postMessage({ type: 'FORM_DATA', formData: getFormData() }, window.origin)
+                            event.source.postMessage({type: 'FORM_DATA', formData: getFormData()}, window.origin)
+                            break
+                        case 'UPDATE_DISPLAY_MODE':
+                            updateDisplayMode(event.data.newDisplayMode)
                             break
                     }
                 }
