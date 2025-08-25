@@ -45,7 +45,7 @@ def package() -> ImportablePackage:
 def environment(package: ImportablePackage) -> Generator[Environment, None, None]:
     env = EnvironmentImpl(
         _type="test",
-        _permissions=PackagePermissions(1, 200 * MiB, 10, 4, {"trusted"}),
+        _permissions=PackagePermissions(1, 200 * MiB, 10, 4, {"trusted"}, set()),
         _request_info=DEFAULT_REQUEST_INFO,
         _main_package=package,
         _packages={},

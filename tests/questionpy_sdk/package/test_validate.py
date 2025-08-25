@@ -6,9 +6,9 @@ import pytest
 from _pytest.logging import LogCaptureFixture
 
 from questionpy_common.constants import MANIFEST_FILENAME
-from questionpy_common.manifest import Manifest
+from questionpy_common.manifest import Manifest, PartialPackagePermissions
 from questionpy_sdk._package import DirBuildTarget, build_qpy_package
-from questionpy_sdk._package._validate import validate_dist_structure
+from questionpy_sdk._package._validate import validate_dist_structure, validate_requested_lms_attributes
 from questionpy_sdk._package.source import PackageSource
 
 
@@ -64,3 +64,26 @@ def test_warn_when_dist_is_missing_python_dir(dist_dir: Path, manifest: Manifest
     validate_dist_structure(manifest, dist_dir)
 
     assert "does not contain any Python code" in caplog.text
+
+
+def test_should_not_warn_when_requesting_no_lms_attributes(manifest: Manifest, caplog: LogCaptureFixture) -> None:
+    validate_requested_lms_attributes(manifest)
+    for record in caplog.records:
+        assert record.levelno < logging.WARNING
+
+
+def test_should_not_warn_when_requesting_known_lms_attributes(manifest: Manifest, caplog: LogCaptureFixture) -> None:
+    manifest.permissions = PartialPackagePermissions(lms_attributes={"attempt_id", "lms_sdk_xyz", "profile_field_xyz"})
+    validate_requested_lms_attributes(manifest)
+    for record in caplog.records:
+        assert record.levelno < logging.WARNING
+
+
+def test_warn_when_requesting_unknown_lms_attributes(manifest: Manifest, caplog: LogCaptureFixture) -> None:
+    manifest.permissions = PartialPackagePermissions(lms_attributes={"foo", "bar"})
+    validate_requested_lms_attributes(manifest)
+
+    warn_messages = [record.message for record in caplog.records if record.levelno == logging.WARNING]
+    assert len(warn_messages) == 1
+    assert "- foo" in warn_messages[0]
+    assert "- bar" in warn_messages[0]

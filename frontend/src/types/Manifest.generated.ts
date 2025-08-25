@@ -49,6 +49,7 @@ export interface PartialPackagePermissions {
     request_timeout: number | null
     bootstrap_timeout: number | null
     main_process_execution_modes: [string, ...string[]] | null
+    lms_attributes: string[] | null
 }
 export interface StaticFiles {
     [k: string]: PackageFile
