@@ -47,7 +47,7 @@ import { storeToRefs } from 'pinia'
 import { computed } from 'vue'
 import { useLink } from 'vue-router'
 
-import useDeleteQuestion from '@/composables/question/useDeleteQuestion'
+import { useDeleteQuestion } from '@/composables/question'
 import useAppStateStore from '@/stores/useAppStateStore'
 import type { OptionsFormData } from '@/types'
 
