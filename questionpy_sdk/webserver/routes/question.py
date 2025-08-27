@@ -44,6 +44,11 @@ class QuestionListView(QuestionBaseView):
         """Gets a list of all saved questions for the current package."""
         return web.json_response(await self.controller.get_questions())
 
+    async def delete(self) -> web.Response:
+        """Deletes all questions and its attempts from the state storage."""
+        await self.controller.delete_all_questions()
+        return web.json_response()
+
 
 @routes.view(f"/question/{{question_id:{ID_RE}}}/state", name="question.state")
 class QuestionStateView(QuestionBaseView):

@@ -23,6 +23,26 @@ const useQuestionStatesQuery = () =>
     })
 
 /**
+ * Delete all question options form data.
+ *
+ * @returns A mutation return object.
+ */
+function useDeleteAllOptionsFormDataMutation() {
+    const { invalidateQueries } = useQueryCache()
+
+    const invalidateKeys = [QUERY_KEYS.question.root, QUERY_KEYS.attempt.root]
+
+    return useMutation({
+        mutation: () => delete_('questions'),
+        onSettled: () => {
+            for (const key of invalidateKeys) {
+                invalidateQueries({ key })
+            }
+        },
+    })
+}
+
+/**
  * Get question form data by question ID.
  *
  * @param questionId The ID of the question.
@@ -98,6 +118,7 @@ function useDeleteOptionsFormDataMutation(questionId: string) {
 }
 
 export {
+    useDeleteAllOptionsFormDataMutation,
     useDeleteOptionsFormDataMutation,
     useOptionsFormDataQuery,
     useOptionsFormDefinitionQuery,

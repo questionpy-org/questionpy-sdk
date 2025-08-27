@@ -53,6 +53,19 @@ async def test_delete_question(state_manager: StateManager, tmp_path: Path) -> N
     assert not (tmp_path / "myuQ2JWl").exists()
 
 
+async def test_delete_all_questions(state_manager: StateManager, tmp_path: Path) -> None:
+    await state_manager.write_question_state("myuQ2JWl", "data1")
+    await state_manager.write_attempt_state("myuQ2JWl", "UY9ryXzq", "attempt data")
+    await state_manager.write_question_state("nYKEjBaA", "data2")
+    await state_manager.write_question_state("5YfGRyRs", "data3")
+
+    await state_manager.delete_all_questions()
+
+    assert not (tmp_path / "myuQ2JWl").exists()
+    assert not (tmp_path / "nYKEjBaA").exists()
+    assert not (tmp_path / "5YfGRyRs").exists()
+
+
 async def test_delete_question_leaves_other_files(state_manager: StateManager, tmp_path: Path) -> None:
     await state_manager.write_question_state("myuQ2JWl", "data")
     (tmp_path / "myuQ2JWl" / "some_file").touch()
