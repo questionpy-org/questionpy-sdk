@@ -14,6 +14,7 @@ export {
 export { FetchError } from './fetch'
 export { useManifestQuery } from './package'
 export {
+    useDeleteAllOptionsFormDataMutation,
     useDeleteOptionsFormDataMutation,
     useOptionsFormDataQuery,
     useOptionsFormDefinitionQuery,

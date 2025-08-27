@@ -83,6 +83,9 @@ class QuestionController(BaseController):
     async def delete_question(self, question_id: str) -> None:
         await self._state_manager.delete_question(question_id)
 
+    async def delete_all_questions(self) -> None:
+        await self._state_manager.delete_all_questions()
+
     @staticmethod
     def _section_names_from_definition(form_definition: OptionsFormDefinition) -> list[str]:
         return [section.name for section in form_definition.sections]

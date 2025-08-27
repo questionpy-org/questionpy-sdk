@@ -6,6 +6,8 @@
 
 <template>
     <h5>{{ fetchError.message }} ({{ fetchError.status }}: {{ fetchError.statusText }})</h5>
+    <InvalidQuestionStateError v-if="fetchError.message === 'InvalidQuestionStateError'" />
+    <h6>Stacktrace</h6>
     <code v-if="typeof fetchError.details === 'string'">
         <pre>{{ fetchError.details }}</pre>
     </code>

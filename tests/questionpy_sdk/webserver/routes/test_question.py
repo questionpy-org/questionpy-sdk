@@ -41,6 +41,13 @@ async def test_get_questions(client: TestClient, mock_controller: AsyncMock) -> 
 
 
 @pytest.mark.app_routes(routes)
+async def test_delete_questions(client: TestClient, mock_controller: AsyncMock) -> None:
+    async with client.delete("/questions") as resp:
+        assert resp.status == HTTPOk.status_code
+    mock_controller.delete_all_questions.assert_awaited_once()
+
+
+@pytest.mark.app_routes(routes)
 async def test_get_question_state(client: TestClient, mock_controller: AsyncMock) -> None:
     mock_controller.get_options_state.return_value = {"foo": "bar"}
 

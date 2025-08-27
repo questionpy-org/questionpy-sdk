@@ -35,6 +35,7 @@ class StateManager(Protocol):
     async def write_question_state(self, question_id: str, question_state: str) -> None: ...
 
     async def delete_question(self, question_id: str) -> None: ...
+    async def delete_all_questions(self) -> None: ...
 
     async def read_attempts(self, question_id: str) -> dict[str, Attempt]: ...
     async def read_attempt_state(self, question_id: str, attempt_id: str) -> str: ...
@@ -75,51 +76,53 @@ class FilesystemStateManager:
     async def read_question_states(self) -> dict[str, str]:
         def _read_question_states() -> dict[str, str]:
             try:
-                dir_entries = list(self._package_state_dir.iterdir())
-            except FileNotFoundError:
-                # Package dir might not have been created yet
-                return {}
-
-            return {
-                path.name: (path / self.StateFilename.QUESTION_STATE).read_text()
-                for path in dir_entries
-                if path.is_dir() and re.match(ID_RE, path.name)
-            }
+                return {
+                    path.name: (path / self.StateFilename.QUESTION_STATE).read_text()
+                    for path in self._get_question_state_paths()
+                }
+            except FileNotFoundError as err:
+                raise webserver_errors.MissingQuestionStateError from err
 
         return await asyncio.to_thread(_read_question_states)
 
     async def read_question_state(self, question_id: str) -> str:
         try:
-            return await self._read_state_file(self._question_path(question_id), self.StateFilename.QUESTION_STATE)
+            return await self._read_state_file(self._get_question_path(question_id), self.StateFilename.QUESTION_STATE)
         except FileNotFoundError as err:
             raise webserver_errors.MissingQuestionStateError from err
 
     async def write_question_state(self, question_id: str, question_state: str) -> None:
-        path = self._question_path(question_id)
+        path = self._get_question_path(question_id)
         await self._write_state_file(path, self.StateFilename.QUESTION_STATE, question_state)
 
     async def delete_question(self, question_id: str) -> None:
-        def _delete_question() -> None:
-            question_path = self._question_path(question_id)
-            try:
-                (question_path / self.StateFilename.QUESTION_STATE).unlink()
-            except FileNotFoundError as err:
-                raise webserver_errors.MissingQuestionStateError from err
+        await asyncio.to_thread(self._delete_question_sync, question_id)
 
-            try:
-                dir_entries = list(question_path.iterdir())
-            except FileNotFoundError:
-                return
-            else:
-                for path in dir_entries:
-                    if path.is_dir() and re.match(ID_RE, path.name):
-                        self._delete_attempt_data_sync(question_id, path.name)
+    def _delete_question_sync(self, question_id: str) -> None:
+        question_path = self._get_question_path(question_id)
+        try:
+            (question_path / self.StateFilename.QUESTION_STATE).unlink()
+        except FileNotFoundError as err:
+            raise webserver_errors.MissingQuestionStateError from err
 
-            with contextlib.suppress(OSError):
-                # Ignore in case of non-empty directory
-                question_path.rmdir()
+        try:
+            dir_entries = list(question_path.iterdir())
+        except FileNotFoundError:
+            return
+        for path in dir_entries:
+            if self._is_id_dir(path):
+                self._delete_attempt_data_sync(question_id, path.name)
 
-        await asyncio.to_thread(_delete_question)
+        with contextlib.suppress(OSError):
+            # Ignore in case of non-empty directory
+            question_path.rmdir()
+
+    async def delete_all_questions(self) -> None:
+        def _delete_all_questions() -> None:
+            for path in self._get_question_state_paths():
+                self._delete_question_sync(path.name)
+
+        await asyncio.to_thread(_delete_all_questions)
 
     async def read_attempts(self, question_id: str) -> dict[str, Attempt]:
         return await asyncio.to_thread(self._read_attempts_sync, question_id)
@@ -128,14 +131,13 @@ class FilesystemStateManager:
         attempts: dict[str, Attempt] = {}
 
         try:
-            dir_entries = list(self._question_path(question_id).iterdir())
+            dir_entries = list(self._get_question_path(question_id).iterdir())
         except FileNotFoundError:
             # Question dir might not have been created yet
             return attempts
 
         for path in dir_entries:
-            attempt_id = path.name
-            if path.is_dir() and re.match(ID_RE, attempt_id):
+            if self._is_id_dir(path):
                 state = (path / self.StateFilename.ATTEMPT_STATE).read_text()
                 try:
                     seed = int((path / self.StateFilename.ATTEMPT_SEED).read_text())
@@ -150,23 +152,23 @@ class FilesystemStateManager:
                     data = json.loads((path / self.StateFilename.ATTEMPT_DATA).read_text())
                 except FileNotFoundError:
                     data = None
-                attempts[attempt_id] = Attempt(state, seed, score, data)
+                attempts[path.name] = Attempt(state, seed, score, data)
 
         return attempts
 
     async def read_attempt_state(self, question_id: str, attempt_id: str) -> str:
-        path = self._attempt_path(question_id, attempt_id)
+        path = self._get_attempt_path(question_id, attempt_id)
         try:
             return await self._read_state_file(path, self.StateFilename.ATTEMPT_STATE)
         except FileNotFoundError as err:
             raise webserver_errors.MissingAttemptStateError from err
 
     async def write_attempt_state(self, question_id: str, attempt_id: str, attempt_state: str) -> None:
-        path = self._attempt_path(question_id, attempt_id)
+        path = self._get_attempt_path(question_id, attempt_id)
         await self._write_state_file(path, self.StateFilename.ATTEMPT_STATE, attempt_state)
 
     async def read_attempt_seed(self, question_id: str, attempt_id: str) -> int:
-        path = self._attempt_path(question_id, attempt_id)
+        path = self._get_attempt_path(question_id, attempt_id)
         try:
             seed_str = await self._read_state_file(path, self.StateFilename.ATTEMPT_SEED)
         except FileNotFoundError as err:
@@ -175,11 +177,11 @@ class FilesystemStateManager:
 
     async def write_attempt_seed(self, question_id: str, attempt_id: str, seed: int) -> None:
         await self._write_state_file(
-            self._attempt_path(question_id, attempt_id), self.StateFilename.ATTEMPT_SEED, str(seed)
+            self._get_attempt_path(question_id, attempt_id), self.StateFilename.ATTEMPT_SEED, str(seed)
         )
 
     async def read_attempt_score(self, question_id: str, attempt_id: str) -> ScoreModel:
-        path = self._attempt_path(question_id, attempt_id)
+        path = self._get_attempt_path(question_id, attempt_id)
         try:
             score_json = await self._read_state_file(path, self.StateFilename.ATTEMPT_SCORE)
         except FileNotFoundError as err:
@@ -189,11 +191,11 @@ class FilesystemStateManager:
     async def write_attempt_score(self, question_id: str, attempt_id: str, score: ScoreModel) -> None:
         score_json = TypeAdapter(ScoreModel).dump_json(score).decode()
         await self._write_state_file(
-            self._attempt_path(question_id, attempt_id), self.StateFilename.ATTEMPT_SCORE, score_json
+            self._get_attempt_path(question_id, attempt_id), self.StateFilename.ATTEMPT_SCORE, score_json
         )
 
     async def read_attempt_data(self, question_id: str, attempt_id: str) -> dict[str, JsonValue]:
-        path = self._attempt_path(question_id, attempt_id)
+        path = self._get_attempt_path(question_id, attempt_id)
         try:
             attempt_data_json = await self._read_state_file(path, self.StateFilename.ATTEMPT_DATA)
         except FileNotFoundError as err:
@@ -201,14 +203,14 @@ class FilesystemStateManager:
         return json.loads(attempt_data_json)
 
     async def write_attempt_data(self, question_id: str, attempt_id: str, data: dict[str, JsonValue]) -> None:
-        path = self._attempt_path(question_id, attempt_id)
+        path = self._get_attempt_path(question_id, attempt_id)
         await self._write_state_file(path, self.StateFilename.ATTEMPT_DATA, json.dumps(data))
 
     async def delete_attempt(self, question_id: str, attempt_id: str) -> None:
         await asyncio.to_thread(self._delete_attempt_data_sync, question_id, attempt_id)
 
     def _delete_attempt_data_sync(self, question_id: str, attempt_id: str) -> None:
-        attempt_path = self._attempt_path(question_id, attempt_id)
+        attempt_path = self._get_attempt_path(question_id, attempt_id)
         if not attempt_path.exists():
             raise webserver_errors.MissingAttemptStateError
         for fname in (
@@ -232,8 +234,19 @@ class FilesystemStateManager:
 
         await asyncio.to_thread(_write_state_file)
 
-    def _question_path(self, question_id: str) -> Path:
+    def _get_question_path(self, question_id: str) -> Path:
         return self._package_state_dir / question_id
 
-    def _attempt_path(self, question_id: str, attempt_id: str) -> Path:
-        return self._question_path(question_id) / attempt_id
+    def _get_attempt_path(self, question_id: str, attempt_id: str) -> Path:
+        return self._get_question_path(question_id) / attempt_id
+
+    def _get_question_state_paths(self) -> list[Path]:
+        try:
+            return [p for p in self._package_state_dir.iterdir() if self._is_id_dir(p)]
+        except FileNotFoundError:
+            # Package dir might not have been created yet
+            return []
+
+    @staticmethod
+    def _is_id_dir(path: Path) -> bool:
+        return path.is_dir() and bool(re.match(ID_RE, path.name))
