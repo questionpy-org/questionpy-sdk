@@ -17,7 +17,7 @@
 import IMdiAdd from '~icons/mdi/add'
 import IMdiImport from '~icons/mdi/import'
 
-import useCreateQuestion from '@/composables/question/useCreateQuestion'
+import { useCreateQuestion } from '@/composables/question'
 
 const createQuestion = useCreateQuestion()
 
