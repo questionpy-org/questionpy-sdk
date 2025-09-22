@@ -22,9 +22,19 @@ from questionpy_common.elements import (
     StaticTextElement,
     TextAreaElement,
     TextInputElement,
+    WysiwygEditorElement,
 )
 
-from ._model import FormModel, OptionEnum, _FieldInfo, _OptionInfo, _SectionInfo, _StaticElementInfo
+from ._model import (
+    FormModel,
+    OptionEnum,
+    RichTextEditor,
+    WithHtml,
+    _FieldInfo,
+    _OptionInfo,
+    _SectionInfo,
+    _StaticElementInfo,
+)
 
 # TODO: - Add support for numeric inputs (and maybe others?)
 #       - Make labels optional
@@ -42,6 +52,16 @@ def _wrap_in[T](coll_type: type[list], value: T | Collection[T] | None) -> list[
 
 
 def _wrap_in[T](coll_type: type[set] | type[list], value: T | Collection[T] | None) -> Collection[T]:
+    """Converts collections to and wraps non-collections in the given collection type.
+
+    Examples:
+        >>> _wrap_in(list, ("I'm", "a", "tuple"))
+        ["I'm", 'a', 'tuple']
+        >>> _wrap_in(set, "I'm not in a collection at all!")
+        {"I'm not in a collection at all!"}
+        >>> _wrap_in(list, None)
+        []
+    """
     if value is None:
         return coll_type()
     if isinstance(value, coll_type):
@@ -656,6 +676,38 @@ def hidden[S: str](value: S, *, disable_if: _ZeroOrMoreConditions = None, hide_i
             ),
             pydantic_field_info=FieldInfo(default=None if disable_if or hide_if else PydanticUndefined),
         ),
+    )
+
+
+@overload
+def rich_text_editor(
+    label: str | TranslatableString,
+    *,
+    include_html: Literal[False] = False,
+    help: str | TranslatableString | None = None,
+) -> RichTextEditor:
+    pass
+
+
+@overload
+def rich_text_editor(
+    label: str | TranslatableString,
+    *,
+    include_html: Literal[True],
+    help: str | TranslatableString | None = None,
+) -> RichTextEditor[WithHtml]:
+    pass
+
+
+def rich_text_editor(
+    label: str | TranslatableString,
+    *,
+    include_html: bool = False,
+    help: str | TranslatableString | None = None,
+) -> Any:
+    return _FieldInfo(
+        type=RichTextEditor[WithHtml] if include_html else RichTextEditor,
+        build=lambda name: WysiwygEditorElement(name=name, label=label, help=help, include_html=include_html),
     )
 
 

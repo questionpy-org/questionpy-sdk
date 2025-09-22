@@ -71,13 +71,14 @@ from ._dsl import (
     option,
     radio_group,
     repeat,
+    rich_text_editor,
     section,
     select,
     static_text,
     text_area,
     text_input,
 )
-from ._model import FormModel, OptionEnum
+from ._model import FormModel, OptionEnum, OptionsFile, RichTextEditor, WithHtml
 
 __all__ = [
     "CanHaveConditions",
@@ -90,13 +91,16 @@ __all__ = [
     "HiddenElement",
     "Option",
     "OptionEnum",
+    "OptionsFile",
     "OptionsFormDefinition",
     "RadioGroupElement",
     "RepetitionElement",
+    "RichTextEditor",
     "SelectElement",
     "StaticTextElement",
     "TextAreaElement",
     "TextInputElement",
+    "WithHtml",
     "checkbox",
     "does_not_equal",
     "equals",
@@ -109,6 +113,7 @@ __all__ = [
     "option",
     "radio_group",
     "repeat",
+    "rich_text_editor",
     "section",
     "select",
     "static_text",
