@@ -1,19 +1,61 @@
 #  This file is part of the QuestionPy SDK. (https://questionpy.org)
 #  The QuestionPy SDK is free software released under terms of the MIT license. See LICENSE.md.
 #  (c) Technische Universität Berlin, innoCampus <info@isis.tu-berlin.de>
-from collections.abc import Callable, Sequence
+from collections.abc import Callable, Mapping, Sequence
 from dataclasses import dataclass
+from datetime import datetime
 from enum import Enum
 from itertools import starmap
-from typing import TYPE_CHECKING, Annotated, Any, ClassVar, Literal, get_args, get_origin
+from typing import TYPE_CHECKING, Annotated, Any, ClassVar, Generic, Literal, NewType, get_args, get_origin
 
-from pydantic import BaseModel, Field
+from pydantic import BaseModel, Field, model_validator
 from pydantic._internal._model_construction import ModelMetaclass  # noqa: PLC2701
 from pydantic.fields import FieldInfo
 from pydantic_core import CoreSchema, core_schema
+from typing_extensions import TypeVar
 
 from questionpy_common import TranslatableString
 from questionpy_common.elements import FormElement, FormSection, OptionsFormDefinition
+
+
+class OptionsFile(BaseModel):
+    file_ref: str
+    uploaded_at: datetime
+    mime_type: str
+
+
+WithHtml = NewType("WithHtml", str)
+# TypeVar defaults are only introduced in Python 3.13, hence typing_extensions.TypeVar.
+_HtmlT = TypeVar("_HtmlT", WithHtml, WithHtml | None, default=WithHtml | None)
+
+
+class RichTextEditor(BaseModel, Generic[_HtmlT]):
+    markup: str
+    markup_format: str
+    """Known values: `html`, `markdown` and `plain`."""
+    html: Annotated[_HtmlT, Field(default=None, validate_default=True)]
+    """If included, the HTML rendered from the markup.
+
+    Required if [questionpy.form.rich_text_editor][](include_html=True) is used.
+
+    If the markup format is already HTML, `markup` and `html` should contain the same text. When validating, `html` can
+    be omitted and will be inferred from `markup`.
+    """
+    files: dict[str, OptionsFile] = {}
+    """Files referenced by the markup."""
+
+    @model_validator(mode="before")
+    @classmethod
+    def __infer_html(cls, data: object) -> object:
+        """When the markup format is HTML, set `markup` from `html` and vice versa."""
+        if (
+            isinstance(data, Mapping)
+            and data.get("markup_format") == "html"
+            and data.get("markup") is not None
+            and data.get("html") is None
+        ):
+            return {**data, "html": data["markup"]}
+        return data
 
 
 @dataclass
