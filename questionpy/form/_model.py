@@ -23,6 +23,10 @@ class OptionsFile(BaseModel):
     uploaded_at: datetime
     mime_type: str
 
+    @property
+    def uri(self) -> str:
+        return f"qpy://options/{self.file_ref}"
+
 
 WithHtml = NewType("WithHtml", str)
 # TypeVar defaults are only introduced in Python 3.13, hence typing_extensions.TypeVar.
