@@ -12,6 +12,7 @@ from questionpy_common import TranslatableString
 from questionpy_common.conditions import Condition, DoesNotEqual, Equals, In, IsChecked, IsNotChecked
 from questionpy_common.elements import (
     CheckboxElement,
+    FileUploadElement,
     GeneratedIdElement,
     GroupElement,
     HiddenElement,
@@ -28,6 +29,7 @@ from questionpy_common.elements import (
 from ._model import (
     FormModel,
     OptionEnum,
+    OptionsFile,
     RichTextEditor,
     WithHtml,
     _FieldInfo,
@@ -708,6 +710,29 @@ def rich_text_editor(
     return _FieldInfo(
         type=RichTextEditor[WithHtml] if include_html else RichTextEditor,
         build=lambda name: WysiwygEditorElement(name=name, label=label, help=help, include_html=include_html),
+    )
+
+
+def file_upload(
+    label: str | TranslatableString,
+    *,
+    min_files: int = 0,
+    max_files: int | None = None,
+    help: str | TranslatableString | None = None,
+) -> dict[str, OptionsFile]:
+    return cast(
+        "dict[str, OptionsFile]",
+        _FieldInfo(
+            type=dict[str, OptionsFile],
+            build=lambda name: FileUploadElement(
+                name=name, label=label, help=help, min_files=min_files, max_files=max_files
+            ),
+            pydantic_field_info=FieldInfo(
+                default={} if min_files == 0 else PydanticUndefined,
+                min_length=min_files,
+                max_length=max_files,
+            ),
+        ),
     )
 
 
