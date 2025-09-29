@@ -83,7 +83,7 @@ function createFormDataValues(data: OptionsFormData, elems: FormElement[], pathP
                         }
                     }
                 } else {
-                    data[name] = elem.options.find((opt) => opt.selected)?.value ?? elem.options.at(0)?.value ?? ''
+                    data[name] = elem.options.find((opt) => opt.selected)?.value ?? elem.options[0]?.value ?? ''
                 }
                 break
             }
