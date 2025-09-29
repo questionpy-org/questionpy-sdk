@@ -31,10 +31,8 @@ export default defineConfig({
         preprocessorOptions: {
             scss: {
                 additionalData: additionalScss,
-                // use sass-embedded
-                api: 'modern-compiler',
                 // make console readable again
-                silenceDeprecations: ['color-functions', 'global-builtin', 'import', 'mixed-decls'],
+                silenceDeprecations: ['color-functions', 'global-builtin', 'import'],
             },
         },
     },
