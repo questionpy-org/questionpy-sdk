@@ -5,31 +5,31 @@
 -->
 
 <template>
-    <BModalOrchestrator />
+    <BApp>
+        <BNavbar v-b-color-mode="inverseColorMode" :variant="inverseColorMode">
+            <BNavbarBrand>
+                <img alt="QuestionPy logo" class="d-inline-block logo pe-4" src="@/assets/logo.svg" />
+                <span class="text-truncate">{{ appStateStore.displayPageTitle }}</span>
+            </BNavbarBrand>
+            <BButton
+                class="d-flex align-items-center"
+                pill
+                size="lg"
+                title="Switch color mode"
+                :variant="inverseColorMode"
+                @click="switchColorMode"
+            >
+                <i-mdi-white-balance-sunny v-if="mode === 'light'" />
+                <i-mdi-weather-night v-else />
+            </BButton>
+        </BNavbar>
 
-    <BNavbar v-b-color-mode="inverseColorMode" :variant="inverseColorMode">
-        <BNavbarBrand>
-            <img alt="QuestionPy logo" class="d-inline-block logo pe-4" src="@/assets/logo.svg" />
-            <span class="text-truncate">{{ appStateStore.displayPageTitle }}</span>
-        </BNavbarBrand>
-        <BButton
-            class="d-flex align-items-center"
-            pill
-            size="lg"
-            title="Switch color mode"
-            :variant="inverseColorMode"
-            @click="switchColorMode"
-        >
-            <i-mdi-white-balance-sunny v-if="mode === 'light'" />
-            <i-mdi-weather-night v-else />
-        </BButton>
-    </BNavbar>
+        <BContainer class="pt-4" fluid="md">
+            <RouterView />
+        </BContainer>
 
-    <BContainer class="pt-4" fluid="md">
-        <RouterView />
-    </BContainer>
-
-    <ErrorModal />
+        <ErrorModal />
+    </BApp>
 </template>
 
 <script setup lang="ts">
