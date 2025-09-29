@@ -16,7 +16,7 @@
     "dependencies": {
         "@pinia/colada": "^0.17.6",
         "bootstrap": "^5.3.8",
-        "bootstrap-vue-next": "^0.26.30",
+        "bootstrap-vue-next": "^0.40.5",
         "core-js": "^3.45.1",
         "pinia": "^3.0.3",
         "pinia-plugin-persistedstate": "^4.5.0",
