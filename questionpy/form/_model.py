@@ -19,6 +19,7 @@ from questionpy_common.elements import FormElement, FormSection, OptionsFormDefi
 
 
 class OptionsFile(BaseModel):
+    filename: str
     file_ref: str
     uploaded_at: datetime
     mime_type: str
@@ -45,7 +46,7 @@ class RichTextEditor(BaseModel, Generic[_HtmlT]):
     If the markup format is already HTML, `markup` and `html` should contain the same text. When validating, `html` can
     be omitted and will be inferred from `markup`.
     """
-    files: dict[str, OptionsFile] = {}
+    files: list[OptionsFile] = []
     """Files referenced by the markup."""
 
     @model_validator(mode="before")
