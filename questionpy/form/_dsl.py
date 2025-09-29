@@ -719,16 +719,16 @@ def file_upload(
     min_files: int = 0,
     max_files: int | None = None,
     help: str | TranslatableString | None = None,
-) -> dict[str, OptionsFile]:
+) -> list[OptionsFile]:
     return cast(
-        "dict[str, OptionsFile]",
+        "list[OptionsFile]",
         _FieldInfo(
-            type=dict[str, OptionsFile],
+            type=list[OptionsFile],
             build=lambda name: FileUploadElement(
                 name=name, label=label, help=help, min_files=min_files, max_files=max_files
             ),
             pydantic_field_info=FieldInfo(
-                default={} if min_files == 0 else PydanticUndefined,
+                default=[] if min_files == 0 else PydanticUndefined,
                 min_length=min_files,
                 max_length=max_files,
             ),
