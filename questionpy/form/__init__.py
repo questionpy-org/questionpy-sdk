@@ -40,6 +40,8 @@ References:
 #  The QuestionPy SDK is free software released under terms of the MIT license. See LICENSE.md.
 #  (c) Technische Universität Berlin, innoCampus <info@isis.tu-berlin.de>
 
+# We reexport these for them to be used in file upload elements.
+from questionpy_common.constants import GiB, KiB, MiB
 from questionpy_common.elements import (
     CanHaveConditions,
     CheckboxElement,
@@ -88,8 +90,11 @@ __all__ = [
     "FormModel",
     "FormSection",
     "GeneratedIdElement",
+    "GiB",
     "GroupElement",
     "HiddenElement",
+    "KiB",
+    "MiB",
     "Option",
     "OptionEnum",
     "OptionsFile",

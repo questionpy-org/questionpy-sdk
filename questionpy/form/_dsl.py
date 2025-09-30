@@ -13,6 +13,7 @@ from questionpy_common.conditions import Condition, DoesNotEqual, Equals, In, Is
 from questionpy_common.elements import (
     CheckboxElement,
     FileUploadElement,
+    FileUploadOptions,
     GeneratedIdElement,
     GroupElement,
     HiddenElement,
@@ -686,6 +687,10 @@ def rich_text_editor(
     label: str | TranslatableString,
     *,
     include_html: Literal[False] = False,
+    disable_uploads: bool = False,
+    upload_max_files: int | None = None,
+    upload_max_bytes_per_file: int | None = None,
+    upload_max_bytes_total: int | None = None,
     help: str | TranslatableString | None = None,
 ) -> RichTextEditor:
     pass
@@ -696,6 +701,10 @@ def rich_text_editor(
     label: str | TranslatableString,
     *,
     include_html: Literal[True],
+    disable_uploads: bool = False,
+    upload_max_files: int | None = None,
+    upload_max_bytes_per_file: int | None = None,
+    upload_max_bytes_total: int | None = None,
     help: str | TranslatableString | None = None,
 ) -> RichTextEditor[WithHtml]:
     pass
@@ -705,6 +714,10 @@ def rich_text_editor(
     label: str | TranslatableString,
     *,
     include_html: bool = False,
+    disable_uploads: bool = False,
+    upload_max_files: int | None = None,
+    upload_max_bytes_per_file: int | None = None,
+    upload_max_bytes_total: int | None = None,
     help: str | TranslatableString | None = None,
 ) -> Any:
     """Adds a rich text editor element, usually a WYSIWYG-style editor, depending on what the LMS provides.
@@ -713,20 +726,39 @@ def rich_text_editor(
     similar to [questionpy.form.file_upload][]. Link in the markup to those files will take the form of
     `qpy://options/<opaque file reference>` and will be automatically resolved when used in the question UI.
 
+    Note that for arguments restricting upload count and size, the LMS override the limits you set.
+
     Args:
         label: Text describing the element, shown verbatim.
         include_html: Whether to "translate" the markup used into HTML, populating the `html` attribute in the form
                       data. The editor used by the LMS might use HTML anyway, in which case `markup` and `html` will
                       contain the same text.
+        disable_uploads: Whether to disable uploading of files. Setting `upload_max_files` to `0` has the same effect.
+        upload_max_files: The maximum number of files the user can upload. If `None`, there is no limit. Setting this to
+                          `0` will disable uploading of files altogether.
+        upload_max_bytes_per_file: The maximum size of a single file in bytes. If `None`, there is no limit.
+        upload_max_bytes_total: The maximum total size of all uploaded files in bytes. If `None`, there is no limit.
         help: Element help text.
 
     See Also:
         - [questionpy.form.RichTextEditor][]
         - [questionpy.form.file_upload][]
     """
+    upload_options: Literal["disabled"] | FileUploadOptions
+    if disable_uploads or upload_max_files == 0:
+        upload_options = "disabled"
+    else:
+        upload_options = FileUploadOptions(
+            max_files=upload_max_files,
+            max_bytes_per_file=upload_max_bytes_per_file,
+            max_bytes_total=upload_max_bytes_total,
+        )
+
     return _FieldInfo(
         type=RichTextEditor[WithHtml] if include_html else RichTextEditor,
-        build=lambda name: WysiwygEditorElement(name=name, label=label, help=help, include_html=include_html),
+        build=lambda name: WysiwygEditorElement(
+            name=name, label=label, help=help, include_html=include_html, file_uploads=upload_options
+        ),
     )
 
 
@@ -735,6 +767,8 @@ def file_upload(
     *,
     min_files: int = 0,
     max_files: int | None = None,
+    max_bytes_per_file: int | None = None,
+    max_bytes_total: int | None = None,
     help: str | TranslatableString | None = None,
 ) -> list[OptionsFile]:
     """Allows the user to upload files as part of the question options.
@@ -743,10 +777,14 @@ def file_upload(
     be retrieved using the [`file_ref`][questionpy.form.OptionsFile.file_ref]. The filenames can be freely changed
     without informing the LMS.
 
+    Note that for arguments restricting upload count and size, the LMS override the limits you set.
+
     Args:
         label: Text describing the element, shown verbatim.
         min_files: The minimum number of files the user must upload for the form to pass validation.
         max_files: The maximum number of files the user can upload. If `None`, there is no limit.
+        max_bytes_per_file: The maximum size of a single file in bytes. If `None`, there is no limit.
+        max_bytes_total: The maximum total size of all uploaded files in bytes. If `None`, there is no limit.
         help: Element help text.
 
     See Also:
@@ -758,7 +796,13 @@ def file_upload(
         _FieldInfo(
             type=list[OptionsFile],
             build=lambda name: FileUploadElement(
-                name=name, label=label, help=help, min_files=min_files, max_files=max_files
+                name=name,
+                label=label,
+                help=help,
+                min_files=min_files,
+                max_files=max_files,
+                max_bytes_per_file=max_bytes_per_file,
+                max_bytes_total=max_bytes_total,
             ),
             pydantic_field_info=FieldInfo(
                 default=[] if min_files == 0 else PydanticUndefined,
