@@ -707,6 +707,23 @@ def rich_text_editor(
     include_html: bool = False,
     help: str | TranslatableString | None = None,
 ) -> Any:
+    """Adds a rich text editor element, usually a WYSIWYG-style editor, depending on what the LMS provides.
+
+    If the LMS supports uploading and embedding files in its editor, they will be available in the `files` attribute,
+    similar to [questionpy.form.file_upload][]. Link in the markup to those files will take the form of
+    `qpy://options/<opaque file reference>` and will be automatically resolved when used in the question UI.
+
+    Args:
+        label: Text describing the element, shown verbatim.
+        include_html: Whether to "translate" the markup used into HTML, populating the `html` attribute in the form
+                      data. The editor used by the LMS might use HTML anyway, in which case `markup` and `html` will
+                      contain the same text.
+        help: Element help text.
+
+    See Also:
+        - [questionpy.form.RichTextEditor][]
+        - [questionpy.form.file_upload][]
+    """
     return _FieldInfo(
         type=RichTextEditor[WithHtml] if include_html else RichTextEditor,
         build=lambda name: WysiwygEditorElement(name=name, label=label, help=help, include_html=include_html),
@@ -720,6 +737,22 @@ def file_upload(
     max_files: int | None = None,
     help: str | TranslatableString | None = None,
 ) -> list[OptionsFile]:
+    """Allows the user to upload files as part of the question options.
+
+    The uploaded files' metadata will be available in the `files` attribute. Their content is stored by the LMS and can
+    be retrieved using the [`file_ref`][questionpy.form.OptionsFile.file_ref]. The filenames can be freely changed
+    without informing the LMS.
+
+    Args:
+        label: Text describing the element, shown verbatim.
+        min_files: The minimum number of files the user must upload for the form to pass validation.
+        max_files: The maximum number of files the user can upload. If `None`, there is no limit.
+        help: Element help text.
+
+    See Also:
+        - [questionpy.form.OptionsFile][]
+        - [questionpy.form.rich_text_editor][]
+    """
     return cast(
         "list[OptionsFile]",
         _FieldInfo(
