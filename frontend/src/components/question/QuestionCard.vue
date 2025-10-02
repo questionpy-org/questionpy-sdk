@@ -8,14 +8,14 @@
     <BCard :variant="cardVariant">
         <BCardText>
             <!-- TODO: Show Question -->
-            <CollapsibleCard v-if="isDetailedServerError(data)" variant="danger">
-                <template #button-title>{{ data.error }}</template>
+            <CollapsibleCard v-if="isDetailedServerError(error)" variant="danger">
+                <template #button-title>{{ error.error }}</template>
                 <p>The package could not parse the question state.</p>
                 <code>
-                    <pre>{{ data.details }}</pre>
+                    <pre>{{ error.details }}</pre>
                 </code>
             </CollapsibleCard>
-            <pre v-else>{{ data }}</pre>
+            <pre v-if="data">{{ data }}</pre>
         </BCardText>
         <ButtonGroup>
             <!-- TODO: Implement clone -->
@@ -59,9 +59,10 @@ import useAppStateStore from '@/stores/useAppStateStore'
 import { isDetailedServerError } from '@/types'
 import type { DetailedServerError, OptionsFormData } from '@/types'
 
-const { questionId } = defineProps<{
+const { data, questionId } = defineProps<{
     questionId: string
-    data: OptionsFormData | DetailedServerError
+    data?: OptionsFormData
+    error?: DetailedServerError
 }>()
 
 const questionLocation = { name: 'question', params: { questionId } } as const

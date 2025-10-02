@@ -11,12 +11,13 @@
         <template #button-title>Saved questions ({{ questionCount }})</template>
         <InvalidQuestionStateError v-if="hasInvalidStates" class="mb-3" />
         <QuestionCard
-            v-for="[questionId, data] in Object.entries(questions)"
+            v-for="[questionId, question] in Object.entries(questions)"
             class="question-card"
             :id="`question-${questionId}`"
             :key="questionId"
             :questionId="questionId"
-            :data="data"
+            :data="question.data"
+            :error="question.error"
         />
         <BAlert v-if="questionCount === 0" :model-value="true" class="mb-0" variant="info"
             >This package has no questions yet.</BAlert
@@ -29,12 +30,23 @@ import { computed } from 'vue'
 
 import { useQuestionStatesQuery } from '@/queries'
 import { isDetailedServerError } from '@/types'
+import type { DetailedServerError, OptionsFormData } from '@/types'
 
 const { asyncStatus, error, data } = useQuestionStatesQuery()
 
-const questions = computed(() => data.value ?? {})
+const questions = computed<Record<string, { data?: OptionsFormData; error?: DetailedServerError }>>(() => {
+    if (data.value === undefined) {
+        return {}
+    }
+    const entries = Object.entries(data.value).map(([questionId, value]) => [
+        questionId,
+        isDetailedServerError(value) ? { data: undefined, error: value } : { data: value, error: undefined },
+    ])
+    return Object.fromEntries(entries)
+})
+
 const questionCount = computed(() => Object.keys(questions.value).length)
-const hasInvalidStates = computed(() => Object.values(questions.value).some(isDetailedServerError))
+const hasInvalidStates = computed(() => Object.values(questions.value).some((q) => q.error))
 </script>
 
 <style lang="scss" scoped>
