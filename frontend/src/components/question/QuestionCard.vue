@@ -8,7 +8,14 @@
     <BCard :variant="cardVariant">
         <BCardText>
             <!-- TODO: Show Question -->
-            <pre>{{ formData }}</pre>
+            <CollapsibleCard v-if="isDetailedServerError(data)" variant="danger">
+                <template #button-title>{{ data.error }}</template>
+                <p>The package could not parse the question state.</p>
+                <code>
+                    <pre>{{ data.details }}</pre>
+                </code>
+            </CollapsibleCard>
+            <pre v-else>{{ data }}</pre>
         </BCardText>
         <ButtonGroup>
             <!-- TODO: Implement clone -->
@@ -49,11 +56,12 @@ import { useLink } from 'vue-router'
 
 import { useDeleteQuestion } from '@/composables/question'
 import useAppStateStore from '@/stores/useAppStateStore'
-import type { OptionsFormData } from '@/types'
+import { isDetailedServerError } from '@/types'
+import type { DetailedServerError, OptionsFormData } from '@/types'
 
 const { questionId } = defineProps<{
     questionId: string
-    formData: OptionsFormData
+    data: OptionsFormData | DetailedServerError
 }>()
 
 const questionLocation = { name: 'question', params: { questionId } } as const

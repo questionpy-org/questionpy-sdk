@@ -8,12 +8,12 @@
     <BAlert :model-value="true" variant="warning">
         The package could not parse one or more question states. If you renamed or added required fields, delete the
         existing states and create a new question. Otherwise, this may be a bug in the package.
+        <ButtonGroup>
+            <IconButton @click="deleteQuestionStates" :icon-component="IMdiDelete" variant="danger" size="sm"
+                >Delete question states</IconButton
+            ></ButtonGroup
+        >
     </BAlert>
-    <ButtonGroup>
-        <IconButton @click="deleteQuestionStates" :icon-component="IMdiDelete" variant="danger" size="sm"
-            >Delete question states</IconButton
-        ></ButtonGroup
-    >
 </template>
 
 <script lang="ts" setup>

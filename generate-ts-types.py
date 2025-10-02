@@ -20,7 +20,7 @@ from questionpy_sdk.webserver.controllers.attempt.data import AttemptRenderData
 from questionpy_sdk.webserver.controllers.attempt.errors import ErrorSectionKey
 from questionpy_sdk.webserver.controllers.attempt.question_ui import ClientQuestionDisplayOptions
 from questionpy_sdk.webserver.controllers.question.controller import OptionsStateResponse
-from questionpy_sdk.webserver.middlewares.error import DetailedServerError
+from questionpy_sdk.webserver.errors import DetailedServerError
 
 logging.basicConfig(level=logging.INFO, format="")
 logger = logging.getLogger(__name__)

@@ -5,11 +5,12 @@
 from pydantic import ConfigDict
 from pydantic.dataclasses import dataclass
 
+from questionpy_common.api.qtype import InvalidQuestionStateError
 from questionpy_common.elements import OptionsFormDefinition
 from questionpy_sdk.webserver.constants import DEFAULT_REQUEST_INFO
 from questionpy_sdk.webserver.controllers.base import BaseController
 from questionpy_sdk.webserver.controllers.question._form_data import OptionsFormData, flatten_form_data, parse_form_data
-from questionpy_sdk.webserver.errors import MissingQuestionStateError
+from questionpy_sdk.webserver.errors import DetailedServerError, MissingQuestionStateError, format_error
 
 
 @dataclass(config=ConfigDict(use_attribute_docstrings=True))
@@ -35,17 +36,22 @@ class QuestionController(BaseController):
 
         return form_definition
 
-    async def get_questions(self) -> dict[str, OptionsFormData]:
+    async def get_questions(self) -> dict[str, OptionsFormData | DetailedServerError]:
         states_str = await self._state_manager.read_question_states()
-        states: dict[str, OptionsFormData] = {}
+        states: dict[str, OptionsFormData | DetailedServerError] = {}
 
         if len(states_str) > 0:
             async with self.get_worker() as worker:
                 for question_id in states_str:
                     state = states_str[question_id]
-                    form_definition, form_data = await worker.get_options_form(DEFAULT_REQUEST_INFO, state)
-                    flat_form_data = flatten_form_data(form_data, self._section_names_from_definition(form_definition))
-                    states[question_id] = flat_form_data
+                    try:
+                        form_definition, form_data = await worker.get_options_form(DEFAULT_REQUEST_INFO, state)
+                    except InvalidQuestionStateError as err:
+                        states[question_id] = DetailedServerError(type(err).__name__, format_error(err))
+                    else:
+                        section_names = self._section_names_from_definition(form_definition)
+                        flat_form_data = flatten_form_data(form_data, section_names)
+                        states[question_id] = flat_form_data
 
         return states
 

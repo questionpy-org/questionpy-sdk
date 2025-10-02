@@ -42,7 +42,8 @@ class QuestionView(QuestionBaseView):
 class QuestionListView(QuestionBaseView):
     async def get(self) -> web.Response:
         """Gets a list of all saved questions for the current package."""
-        return web.json_response(await self.controller.get_questions())
+        data = await self.controller.get_questions()
+        return self.json_model_response(RootModel(data))
 
     async def delete(self) -> web.Response:
         """Deletes all questions and its attempts from the state storage."""
