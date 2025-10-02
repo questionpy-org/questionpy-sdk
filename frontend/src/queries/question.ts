@@ -6,7 +6,13 @@
 
 import { useMutation, useQuery, useQueryCache } from '@pinia/colada'
 
-import type { OptionsFormData, OptionsFormDefinition, OptionsStateResponse, ServerValidationErrors } from '@/types'
+import type {
+    DetailedServerError,
+    OptionsFormData,
+    OptionsFormDefinition,
+    OptionsStateResponse,
+    ServerValidationErrors,
+} from '@/types'
 
 import { delete_, get, post } from './fetch'
 import QUERY_KEYS from './queryKeys'
@@ -19,7 +25,7 @@ import QUERY_KEYS from './queryKeys'
 const useQuestionStatesQuery = () =>
     useQuery({
         key: QUERY_KEYS.question.list(),
-        query: () => get<Record<string, OptionsFormData>>('questions'),
+        query: () => get<Record<string, OptionsFormData | DetailedServerError>>('questions'),
     })
 
 /**

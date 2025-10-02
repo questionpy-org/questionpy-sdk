@@ -8,7 +8,7 @@
     <IconButton :to="{ name: 'index' }" :icon-component="IMdiArrowLeft" class="ps-0 mb-2" variant="link"
         >Back to Package Preview</IconButton
     >
-    <QuestionCard class="mb-3" :question-id="params.questionId" :form-data="formData?.data ?? {}" />
+    <QuestionCard class="mb-3" :question-id="params.questionId" :data="formData?.data ?? {}" />
     <ButtonGroup class="mb-4">
         <IconButton :icon-component="IMdiImport" variant="link" @click="importAttempt">Import attempt</IconButton>
         <IconButton :icon-component="IMdiAdd" @click="createAttempt" variant="primary">New attempt</IconButton>

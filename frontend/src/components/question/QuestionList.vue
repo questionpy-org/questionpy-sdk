@@ -9,13 +9,14 @@
     <ErrorCard v-if="error" :error="error" />
     <CollapsibleCard v-else expanded>
         <template #button-title>Saved questions ({{ questionCount }})</template>
+        <InvalidQuestionStateError v-if="hasInvalidStates" class="mb-3" />
         <QuestionCard
-            v-for="[questionId, formData] in Object.entries(questions)"
+            v-for="[questionId, data] in Object.entries(questions)"
             class="question-card"
             :id="`question-${questionId}`"
             :key="questionId"
             :questionId="questionId"
-            :formData="formData"
+            :data="data"
         />
         <BAlert v-if="questionCount === 0" :model-value="true" class="mb-0" variant="info"
             >This package has no questions yet.</BAlert
@@ -27,11 +28,13 @@
 import { computed } from 'vue'
 
 import { useQuestionStatesQuery } from '@/queries'
+import { isDetailedServerError } from '@/types'
 
 const { asyncStatus, error, data } = useQuestionStatesQuery()
 
 const questions = computed(() => data.value ?? {})
 const questionCount = computed(() => Object.keys(questions.value).length)
+const hasInvalidStates = computed(() => Object.values(questions.value).some(isDetailedServerError))
 </script>
 
 <style lang="scss" scoped>

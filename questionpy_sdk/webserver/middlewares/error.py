@@ -3,31 +3,16 @@
 #  (c) Technische Universität Berlin, innoCampus <info@isis.tu-berlin.de>
 
 import logging
-import traceback
 
 from aiohttp import web
 from aiohttp.typedefs import Handler
 from aiohttp.web_exceptions import HTTPBadRequest, HTTPInternalServerError
-from pydantic import ConfigDict, RootModel, ValidationError
-from pydantic.dataclasses import dataclass
+from pydantic import RootModel, ValidationError
 from pydantic_core import ErrorDetails
 
+from questionpy_sdk.webserver.errors import DetailedServerError, format_error
+
 log = logging.getLogger("questionpy-sdk:web-server")
-
-
-@dataclass(config=ConfigDict(use_attribute_docstrings=True))
-class DetailedServerError:
-    """Represents a server-side error serialized for client display."""
-
-    error: str
-    """The name of the exception."""
-
-    details: str | list[ErrorDetails] | None = None
-    """Optional detailed error information, which may include a stack trace or Pydantic validation errors."""
-
-
-def format_error(err: Exception) -> str:
-    return "".join(traceback.format_exception(err))
 
 
 def dump_detailed_server_error_text(exc: Exception, details: str | list[ErrorDetails] | None = None) -> str:

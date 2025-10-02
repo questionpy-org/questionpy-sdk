@@ -41,8 +41,14 @@ async def test_get_questions(
     )
     questions = await controller.get_questions()
 
-    assert questions["svyhZCg8"]["general[foo]"] == "Bar"
-    assert questions["tKVJTdsv"]["general[foo]"] == "Bar"
+    question_1 = questions["svyhZCg8"]
+    assert isinstance(question_1, dict)
+    assert question_1["general[foo]"] == "Bar"
+
+    question_2 = questions["tKVJTdsv"]
+    assert isinstance(question_2, dict)
+    assert question_2["general[foo]"] == "Bar"
+
     assert len(questions) == 2
 
 
