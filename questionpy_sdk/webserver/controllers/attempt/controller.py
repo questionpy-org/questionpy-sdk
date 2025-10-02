@@ -36,6 +36,7 @@ class AttemptController(BaseController):
         data: dict[str, JsonValue] | None = None
         state: str | None = None
         score: ScoreModel | None = None
+        new_seed: bool = False
 
         with contextlib.suppress(webserver_errors.MissingAttemptDataError):
             data = await self._state_manager.read_attempt_data(question_id, attempt_id)
@@ -47,12 +48,15 @@ class AttemptController(BaseController):
             seed = await self._state_manager.read_attempt_seed(question_id, attempt_id)
         except webserver_errors.MissingAttemptSeedError:
             seed = random.randint(0, 1000)
-            await self._state_manager.write_attempt_seed(question_id, attempt_id, seed)
+            new_seed = True
 
         async with self.get_worker() as worker:
             attempt, state = await self._get_or_start_attempt(question_id, attempt_id, state, data, score, worker)
             renderer = _AttemptRenderer(attempt, display_options, self.generate_api_url, worker)
-            return await renderer.render_ui(data, state, score, seed)
+            render_data = await renderer.render_ui(data, state, score, seed)
+            if new_seed:
+                await self._state_manager.write_attempt_seed(question_id, attempt_id, seed)
+            return render_data
 
     async def get_attempts(self, question_id: str) -> dict[str, AttemptData]:
         """Gets all saved attempts."""
