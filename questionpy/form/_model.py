@@ -29,11 +29,14 @@ class OptionsFile(BaseModel):
         - [questionpy.form.file_upload][]
     """
 
+    path: str
+    """The folder path of this files. Must begin and end in `/`. Top-level files have a path of `/`."""
     filename: str
     file_ref: str
     """An opaque reference that can be used to retrieve the file content from the LMS."""
     uploaded_at: datetime
     mime_type: str
+    size: ByteSize
 
     @property
     def uri(self) -> str:
