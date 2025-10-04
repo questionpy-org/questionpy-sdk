@@ -81,7 +81,7 @@ from ._dsl import (
     text_area,
     text_input,
 )
-from ._model import FormModel, OptionEnum, OptionsFile, RichTextEditor, WithHtml
+from ._model import FormModel, OptionEnum, OptionsFile, RichTextEditor
 
 __all__ = [
     "CanHaveConditions",
@@ -106,7 +106,6 @@ __all__ = [
     "StaticTextElement",
     "TextAreaElement",
     "TextInputElement",
-    "WithHtml",
     "checkbox",
     "does_not_equal",
     "equals",

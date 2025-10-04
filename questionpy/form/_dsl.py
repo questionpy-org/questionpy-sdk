@@ -32,7 +32,6 @@ from ._model import (
     OptionEnum,
     OptionsFile,
     RichTextEditor,
-    WithHtml,
     _FieldInfo,
     _OptionInfo,
     _SectionInfo,
@@ -682,57 +681,25 @@ def hidden[S: str](value: S, *, disable_if: _ZeroOrMoreConditions = None, hide_i
     )
 
 
-@overload
 def rich_text_editor(
     label: str | TranslatableString,
     *,
-    include_html: Literal[False] = False,
     disable_uploads: bool = False,
     upload_max_files: int | None = None,
     upload_max_bytes_per_file: int | None = None,
     upload_max_bytes_total: int | None = None,
     help: str | TranslatableString | None = None,
 ) -> RichTextEditor:
-    pass
-
-
-@overload
-def rich_text_editor(
-    label: str | TranslatableString,
-    *,
-    include_html: Literal[True],
-    disable_uploads: bool = False,
-    upload_max_files: int | None = None,
-    upload_max_bytes_per_file: int | None = None,
-    upload_max_bytes_total: int | None = None,
-    help: str | TranslatableString | None = None,
-) -> RichTextEditor[WithHtml]:
-    pass
-
-
-def rich_text_editor(
-    label: str | TranslatableString,
-    *,
-    include_html: bool = False,
-    disable_uploads: bool = False,
-    upload_max_files: int | None = None,
-    upload_max_bytes_per_file: int | None = None,
-    upload_max_bytes_total: int | None = None,
-    help: str | TranslatableString | None = None,
-) -> Any:
     """Adds a rich text editor element, usually a WYSIWYG-style editor, depending on what the LMS provides.
 
     If the LMS supports uploading and embedding files in its editor, they will be available in the `files` attribute,
-    similar to [questionpy.form.file_upload][]. Link in the markup to those files will take the form of
+    similar to [questionpy.form.file_upload][]. Links in the markup to those files will take the form of
     `qpy://options/<opaque file reference>` and will be automatically resolved when used in the question UI.
 
-    Note that for arguments restricting upload count and size, the LMS override the limits you set.
+    Note that for arguments restricting upload count and size, the LMS may override the limits you set.
 
     Args:
         label: Text describing the element, shown verbatim.
-        include_html: Whether to "translate" the markup used into HTML, populating the `html` attribute in the form
-                      data. The editor used by the LMS might use HTML anyway, in which case `markup` and `html` will
-                      contain the same text.
         disable_uploads: Whether to disable uploading of files. Setting `upload_max_files` to `0` has the same effect.
         upload_max_files: The maximum number of files the user can upload. If `None`, there is no limit. Setting this to
                           `0` will disable uploading of files altogether.
@@ -744,9 +711,9 @@ def rich_text_editor(
         - [questionpy.form.RichTextEditor][]
         - [questionpy.form.file_upload][]
     """
-    upload_options: Literal["disabled"] | FileUploadOptions
+    upload_options: FileUploadOptions | None
     if disable_uploads or upload_max_files == 0:
-        upload_options = "disabled"
+        upload_options = None
     else:
         upload_options = FileUploadOptions(
             max_files=upload_max_files,
@@ -754,10 +721,11 @@ def rich_text_editor(
             max_bytes_total=upload_max_bytes_total,
         )
 
-    return _FieldInfo(
-        type=RichTextEditor[WithHtml] if include_html else RichTextEditor,
-        build=lambda name: WysiwygEditorElement(
-            name=name, label=label, help=help, include_html=include_html, file_uploads=upload_options
+    return cast(
+        "RichTextEditor",
+        _FieldInfo(
+            type=RichTextEditor,
+            build=lambda name: WysiwygEditorElement(name=name, label=label, help=help, file_uploads=upload_options),
         ),
     )
 
