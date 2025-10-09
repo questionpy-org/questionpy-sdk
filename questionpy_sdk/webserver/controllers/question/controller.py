@@ -74,7 +74,9 @@ class QuestionController(BaseController):
             old_state = None
 
         async with self.get_worker() as worker:
-            question = await worker.create_question_from_options(DEFAULT_REQUEST_INFO, old_state, form_data=form_data)
+            question = await worker.create_question_from_options(
+                DEFAULT_REQUEST_INFO, old_state, form_data=form_data, lms_permissions=None
+            )
 
         await self._state_manager.write_question_state(question_id, question.question_state)
 

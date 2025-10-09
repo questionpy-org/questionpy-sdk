@@ -18,7 +18,7 @@ dependencies = [
     "aiohttp >=3.11.18, <4.0.0",
     "pydantic >=2.11.4, <3.0.0",
     "PyYAML >=6.0.2, <7.0.0",
-    "questionpy-server @ git+https://github.com/questionpy-org/questionpy-server.git@325185bcb58ddece43094db221404bd80430df12",
+    "questionpy-server @ git+https://github.com/questionpy-org/questionpy-server.git@0ae8f6e61d6f170eb429f6edd7d648afcd9e5ced",
     "jinja2 >=3.1.6, <4.0.0",
     "aiohttp-jinja2 >=1.6, <2.0",
     "lxml[html-clean] >=5.4.0, <5.5.0",
