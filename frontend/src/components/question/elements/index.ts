@@ -47,6 +47,10 @@ function mapElementKindToComponent(kind: FormElement['kind']): Component {
             return StaticTextElement
         case 'textarea':
             return TextAreaElement
+        case 'file_upload':
+        case 'wysiwyg_editor':
+            // TODO: Implement.
+            throw new Error('Form element not yet implemented: ' + kind)
         default:
             assertNever(kind)
     }

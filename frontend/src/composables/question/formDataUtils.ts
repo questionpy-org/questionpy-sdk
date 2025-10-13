@@ -121,6 +121,11 @@ function createFormDataValues(data: OptionsFormData, elems: FormElement[], pathP
                 // no form data
                 break
 
+            case 'file_upload':
+            case 'wysiwyg_editor':
+                // TODO: Implement.
+                throw new Error('Form element not yet implemented: ' + elem.kind)
+
             default:
                 assertNever(elem)
         }
