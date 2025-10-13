@@ -16,6 +16,8 @@ export type LeafFormElement =
     | StaticTextElement
     | TextInputElement
     | TextAreaElement
+    | WysiwygEditorElement
+    | FileUploadElement
 export type Condition = IsChecked | IsNotChecked | Equals | DoesNotEqual | In
 export type ContainerFormElement = GroupElement | RadioGroupElement | RepetitionElement
 export type Elements = (LeafFormElement | RadioGroupElement | GroupElement)[]
@@ -132,6 +134,32 @@ export interface TextAreaElement {
     required: boolean
     default: string | null
     placeholder: string | null
+}
+export interface WysiwygEditorElement {
+    help: string | null
+    label: string
+    kind: 'wysiwyg_editor'
+    name: string
+    file_uploads: FileUploadOptions | null
+}
+/**
+ * Options for elements that can upload files.
+ */
+export interface FileUploadOptions {
+    min_files: number
+    max_files: number | null
+    max_bytes_per_file: number | null
+    max_bytes_total: number | null
+}
+export interface FileUploadElement {
+    min_files: number
+    max_files: number | null
+    max_bytes_per_file: number | null
+    max_bytes_total: number | null
+    help: string | null
+    label: string
+    kind: 'file_upload'
+    name: string
 }
 /**
  * Groups multiple elements horizontally with a common label.
