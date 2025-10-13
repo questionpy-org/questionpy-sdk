@@ -45,7 +45,7 @@ function getErrorKey(path: string[]): string {
             // Remove 'general' prefix
             .slice(path[0] === 'general' ? 1 : 0)
             // Backend validation uses 0-based index
-            .map((part) => (part.match(/\d+/) ? String(Number(part) - 1) : part))
+            .map((part) => (part.match(/^\d+$/) ? String(Number(part) - 1) : part))
             .join('.')
     )
 }
