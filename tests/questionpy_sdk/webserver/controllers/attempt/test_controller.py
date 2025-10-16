@@ -147,3 +147,44 @@ async def test_score_attempt(
     args, _ = mock_state_manager.write_attempt_score.call_args
     attempt_scored = args[2]
     assert attempt_scored.score == 0.9
+
+
+@pytest.mark.parametrize(
+    ("data_missing", "score_missing"),
+    [
+        (False, False),
+        (True, False),
+        (False, True),
+        (True, True),
+    ],
+)
+async def test_clone_attempt(
+    data_missing: bool, score_missing: bool, controller: AttemptController, mock_state_manager: AsyncMock
+) -> None:
+    if data_missing:
+        mock_state_manager.read_attempt_data.side_effect = webserver_errors.MissingAttemptDataError
+    if score_missing:
+        mock_state_manager.read_attempt_score.side_effect = webserver_errors.MissingAttemptScoreError
+
+    await controller.clone_attempt("QaKxpanc", "AepM0AFN", "Pei2ohya")
+
+    args, _ = mock_state_manager.write_attempt_state.call_args
+    assert args == ("QaKxpanc", "Pei2ohya", "attempt_state")
+
+    args, _ = mock_state_manager.write_attempt_seed.call_args
+    assert args == ("QaKxpanc", "Pei2ohya", 1234)
+
+    if data_missing:
+        mock_state_manager.write_attempt_data.assert_not_called()
+    else:
+        args, _ = mock_state_manager.write_attempt_data.call_args
+        assert args == ("QaKxpanc", "Pei2ohya", {"answer": "42"})
+
+    if score_missing:
+        mock_state_manager.write_attempt_score.assert_not_called()
+    else:
+        args, _ = mock_state_manager.write_attempt_score.call_args
+        assert args[0] == "QaKxpanc"
+        assert args[1] == "Pei2ohya"
+        assert args[2].scoring_code == ScoringCode.AUTOMATICALLY_SCORED
+        assert args[2].score == 1.0
