@@ -99,6 +99,31 @@ class AttemptController(BaseController):
 
         await self._state_manager.write_attempt_score(question_id, attempt_id, attempt_scored)
 
+    async def clone_attempt(self, question_id: str, attempt_id: str, new_attempt_id: str) -> None:
+        """Clones the attempt."""
+        data: dict[str, JsonValue] | None = None
+        score: ScoreModel | None = None
+
+        state = await self._state_manager.read_attempt_state(question_id, attempt_id)
+        seed = await self._state_manager.read_attempt_seed(question_id, attempt_id)
+
+        await self._state_manager.write_attempt_state(question_id, new_attempt_id, state)
+        await self._state_manager.write_attempt_seed(question_id, new_attempt_id, seed)
+
+        try:
+            data = await self._state_manager.read_attempt_data(question_id, attempt_id)
+        except webserver_errors.MissingAttemptDataError:
+            pass
+        else:
+            await self._state_manager.write_attempt_data(question_id, new_attempt_id, data)
+
+        try:
+            score = await self._state_manager.read_attempt_score(question_id, attempt_id)
+        except webserver_errors.MissingAttemptScoreError:
+            pass
+        else:
+            await self._state_manager.write_attempt_score(question_id, new_attempt_id, score)
+
     async def _get_or_start_attempt(
         self,
         question_id: str,

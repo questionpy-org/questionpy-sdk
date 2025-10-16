@@ -97,3 +97,10 @@ async def test_post_attempt_score(client: TestClient, mock_controller: AsyncMock
     async with client.post("/question/myuQ2JWl/attempt/UY9ryXzq/score") as resp:
         assert resp.status == HTTPOk.status_code
         mock_controller.score_attempt.assert_awaited_once_with("myuQ2JWl", "UY9ryXzq")
+
+
+@pytest.mark.app_routes(attempt.routes)
+async def test_post_attempt_clone(client: TestClient, mock_controller: AsyncMock) -> None:
+    async with client.post("/question/myuQ2JWl/attempt/UY9ryXzq/clone/Bu2boh5u") as resp:
+        assert resp.status == HTTPOk.status_code
+        mock_controller.clone_attempt.assert_awaited_once_with("myuQ2JWl", "UY9ryXzq", "Bu2boh5u")

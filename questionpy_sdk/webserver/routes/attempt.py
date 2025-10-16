@@ -87,3 +87,18 @@ class AttemptScoreView(AttemptBaseView):
         ) as err:
             raise web.HTTPBadRequest(text=str(err)) from err
         return web.Response()
+
+
+@routes.view(
+    f"/question/{{question_id:{ID_RE}}}/attempt/{{attempt_id:{ID_RE}}}/clone/{{new_attempt_id:{ID_RE}}}",
+    name="attempt.clone",
+)
+class AttemptCloneView(AttemptBaseView):
+    async def post(self) -> web.Response:
+        """Clones an attempt."""
+        question_id = self.request.match_info["question_id"]
+        attempt_id = self.request.match_info["attempt_id"]
+        new_attempt_id = self.request.match_info["new_attempt_id"]
+
+        await self.controller.clone_attempt(question_id, attempt_id, new_attempt_id)
+        return web.Response()
