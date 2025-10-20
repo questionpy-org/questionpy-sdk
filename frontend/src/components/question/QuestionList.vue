@@ -12,12 +12,13 @@
         <InvalidQuestionStateError v-if="hasInvalidStates" class="mb-3" />
         <QuestionCard
             v-for="[questionId, question] in Object.entries(questions)"
-            class="question-card"
-            :id="`question-${questionId}`"
+            :class="['question-card', { highlight: highlightedIds.has(questionId) }]"
+            :id="generateHtmlId(questionId)"
             :key="questionId"
             :questionId="questionId"
             :data="question.data"
             :error="question.error"
+            @cloned="handleNewItem"
         />
         <BAlert v-if="questionCount === 0" :model-value="true" class="mb-0" variant="info"
             >This package has no questions yet.</BAlert
@@ -28,11 +29,14 @@
 <script lang="ts" setup>
 import { computed } from 'vue'
 
+import { useHighlightOnInsert } from '@/composables/common'
 import { useQuestionStatesQuery } from '@/queries'
 import { isDetailedServerError } from '@/types'
 import type { DetailedServerError, OptionsFormData } from '@/types'
 
 const { asyncStatus, error, data } = useQuestionStatesQuery()
+
+const generateHtmlId = (questionId: string) => `question-${questionId}`
 
 const questions = computed<Record<string, { data?: OptionsFormData; error?: DetailedServerError }>>(() => {
     if (data.value === undefined) {
@@ -47,6 +51,10 @@ const questions = computed<Record<string, { data?: OptionsFormData; error?: Deta
 
 const questionCount = computed(() => Object.keys(questions.value).length)
 const hasInvalidStates = computed(() => Object.values(questions.value).some((q) => q.error))
+
+const { handleNewItem, highlightedIds } = useHighlightOnInsert(questions, generateHtmlId, {
+    historyStateKey: 'highlightQuestionId',
+})
 </script>
 
 <style lang="scss" scoped>
@@ -55,6 +63,10 @@ const hasInvalidStates = computed(() => Object.values(questions.value).some((q) 
 
     &:last-of-type {
         margin-bottom: 0;
+    }
+
+    &.highlight {
+        @include highlight-pulse;
     }
 }
 </style>

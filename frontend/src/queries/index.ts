@@ -20,5 +20,6 @@ export {
     useOptionsFormDataQuery,
     useOptionsFormDefinitionQuery,
     usePostOptionsFormDataMutation,
+    usePostQuestionCloneMutation,
     useQuestionStatesQuery,
 } from './question'

@@ -5,3 +5,4 @@
  */
 
 export { default as useConfirmModal } from './useConfirmModal'
+export { default as useHighlightOnInsert } from './useHighlightOnInsert'

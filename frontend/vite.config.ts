@@ -10,7 +10,7 @@ import VueRouter from 'unplugin-vue-router/vite'
 import { defineConfig } from 'vite'
 import vueDevTools from 'vite-plugin-vue-devtools'
 
-// Expose Bootstrap utilities and variables for use in SCSS style blocks.
+// Expose Bootstrap utilities/variables, and custom app import for use in component SCSS style blocks.
 // DO NOT include SCSS that compiles to actual CSS here, as it results in duplicate styles.
 const additionalScss = `
 @import "bootstrap/scss/functions";
@@ -19,6 +19,7 @@ const additionalScss = `
 @import "bootstrap/scss/maps";
 @import "bootstrap/scss/mixins";
 @import "bootstrap/scss/utilities";
+@import "@/styles/_global";
 `
 
 // https://vite.dev/config/

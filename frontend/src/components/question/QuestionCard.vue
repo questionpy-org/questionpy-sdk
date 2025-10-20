@@ -18,8 +18,9 @@
             <pre v-if="data">{{ data }}</pre>
         </BCardText>
         <ButtonGroup>
-            <!-- TODO: Implement clone -->
-            <IconButton :icon-component="IMdiContentCopy" variant="secondary" size="sm">Clone</IconButton>
+            <IconButton @click="cloneClick" :icon-component="IMdiContentCopy" variant="secondary" size="sm"
+                >Clone</IconButton
+            >
             <!-- TODO: Implement export -->
             <IconButton :icon-component="IMdiExport" variant="secondary" size="sm">Export</IconButton>
             <IconButton @click="deleteQuestion" :icon-component="IMdiDelete" variant="danger" size="sm"
@@ -54,7 +55,7 @@ import { storeToRefs } from 'pinia'
 import { computed } from 'vue'
 import { useLink } from 'vue-router'
 
-import { useDeleteQuestion } from '@/composables/question'
+import { useCloneQuestion, useDeleteQuestion } from '@/composables/question'
 import useAppStateStore from '@/stores/useAppStateStore'
 import { isDetailedServerError } from '@/types'
 import type { DetailedServerError, OptionsFormData } from '@/types'
@@ -65,11 +66,23 @@ const { data, questionId } = defineProps<{
     error?: DetailedServerError
 }>()
 
+const emit = defineEmits<{
+    cloned: [newQuestionId: string]
+}>()
+
 const questionLocation = { name: 'question', params: { questionId } } as const
 
 const { colorMode } = storeToRefs(useAppStateStore())
 const deleteQuestion = useDeleteQuestion(questionId)
+const cloneQuestion = useCloneQuestion(questionId)
 const { isActive: isCurrentPreviewActive } = useLink({ to: questionLocation })
 
 const cardVariant = computed(() => (colorMode.value === 'dark' ? 'dark' : 'light'))
+
+const cloneClick = async () => {
+    const newQuestionId = await cloneQuestion()
+    if (newQuestionId) {
+        emit('cloned', newQuestionId)
+    }
+}
 </script>
