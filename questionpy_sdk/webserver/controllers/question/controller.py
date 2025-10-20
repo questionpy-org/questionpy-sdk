@@ -92,6 +92,10 @@ class QuestionController(BaseController):
     async def delete_all_questions(self) -> None:
         await self._state_manager.delete_all_questions()
 
+    async def clone_question(self, question_id: str, new_question_id: str) -> None:
+        state = await self._state_manager.read_question_state(question_id)
+        await self._state_manager.write_question_state(new_question_id, state)
+
     @staticmethod
     def _section_names_from_definition(form_definition: OptionsFormDefinition) -> list[str]:
         return [section.name for section in form_definition.sections]

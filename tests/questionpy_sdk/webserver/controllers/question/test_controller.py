@@ -89,3 +89,12 @@ async def test_save_options_state(
 
     mock_state_manager.read_question_state.assert_called_once()
     mock_state_manager.write_question_state.assert_called_once_with("QaKxpanc", "question_state")
+
+
+async def test_clone_question(
+    controller: QuestionController, mock_state_manager: AsyncMock, mock_worker: AsyncMock
+) -> None:
+    await controller.clone_question("QaKxpanc", "Bu2boh5u")
+
+    mock_state_manager.read_question_state.assert_called_once()
+    mock_state_manager.write_question_state.assert_called_once_with("Bu2boh5u", "question_state")

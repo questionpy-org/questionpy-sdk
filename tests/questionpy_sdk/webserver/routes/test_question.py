@@ -6,10 +6,11 @@ from unittest.mock import AsyncMock
 
 import pytest
 from aiohttp.test_utils import TestClient
-from aiohttp.web_exceptions import HTTPOk, HTTPUnprocessableEntity
+from aiohttp.web_exceptions import HTTPNotFound, HTTPOk, HTTPUnprocessableEntity
 
 from questionpy import OptionsFormValidationError
 from questionpy_common.elements import OptionsFormDefinition
+from questionpy_sdk.webserver.errors import MissingQuestionStateError
 from questionpy_sdk.webserver.routes.question import routes
 
 
@@ -72,3 +73,18 @@ async def test_post_question_state_validation_error(client: TestClient, mock_con
         assert resp.status == HTTPUnprocessableEntity.status_code
         data = await resp.json()
         assert data["some"] == "error"
+
+
+@pytest.mark.app_routes(routes)
+async def test_post_question_clone(client: TestClient, mock_controller: AsyncMock) -> None:
+    async with client.post("/question/myuQ2JWl/clone/Bu2boh5u") as resp:
+        assert resp.status == HTTPOk.status_code
+        mock_controller.clone_question.assert_awaited_once_with("myuQ2JWl", "Bu2boh5u")
+
+
+@pytest.mark.app_routes(routes)
+async def test_post_question_clone_not_found(client: TestClient, mock_controller: AsyncMock) -> None:
+    mock_controller.clone_question.side_effect = MissingQuestionStateError
+
+    async with client.post("/question/myuQ2JWl/clone/Bu2boh5u") as resp:
+        assert resp.status == HTTPNotFound.status_code
