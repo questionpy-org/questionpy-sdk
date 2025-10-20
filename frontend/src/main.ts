@@ -8,6 +8,7 @@ import 'bootstrap/scss/bootstrap.scss'
 import 'bootstrap-vue-next/dist/bootstrap-vue-next.css'
 // Poly-fill `Regexp.escape()` (https://caniuse.com/mdn-javascript_builtins_regexp_escape)
 import 'core-js/actual/regexp/escape'
+import './styles/global-styles.scss'
 
 import { PiniaColada } from '@pinia/colada'
 import { createBootstrap } from 'bootstrap-vue-next'

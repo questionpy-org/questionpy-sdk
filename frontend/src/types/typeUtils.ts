@@ -7,7 +7,6 @@
 import type { DetailedServerError, EditableElement, FormElement, HasElements } from '.'
 
 /** Utility function to be used as exhaustion check. */
-
 function assertNever(value: never): never {
     throw new Error(`This code should never be reached. Value='${value}'`)
 }

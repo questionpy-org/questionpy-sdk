@@ -13,12 +13,14 @@ import type { AttemptData, AttemptRenderData } from '@/types'
 import { delete_, get, post } from './fetch'
 import QUERY_KEYS from './queryKeys'
 
-type InvalidateQueries = ReturnType<typeof useQueryCache>['invalidateQueries']
+function useInvalidateAttempt(questionId: string, attemptId?: string) {
+    const { invalidateQueries } = useQueryCache()
 
-function makeAttemptInvalidator(questionId: string, attemptId: string, invalidateQueries: InvalidateQueries) {
     return () => {
         invalidateQueries({ key: QUERY_KEYS.attempt.list(questionId) })
-        invalidateQueries({ key: QUERY_KEYS.attempt.byId(questionId, attemptId) })
+        if (attemptId) {
+            invalidateQueries({ key: QUERY_KEYS.attempt.byId(questionId, attemptId) })
+        }
     }
 }
 
@@ -44,14 +46,14 @@ const useAttemptListQuery = (questionId: string) =>
  * @returns An query return object.
  */
 function useAttemptQuery(questionId: string, attemptId: string) {
-    const { invalidateQueries } = useQueryCache()
+    const invalidateAttempt = useInvalidateAttempt(questionId)
     const { displayOptions } = storeToRefs(useDisplayOptionsStore())
 
     return useQuery({
         key: () => QUERY_KEYS.attempt.renderedbyId(questionId, attemptId, displayOptions.value),
         query: () =>
             get<AttemptRenderData>(`question/${questionId}/attempt/${attemptId}`, displayOptions.value).then((data) => {
-                invalidateQueries({ key: QUERY_KEYS.attempt.list(questionId) })
+                invalidateAttempt()
                 return data
             }),
     })
@@ -65,11 +67,11 @@ function useAttemptQuery(questionId: string, attemptId: string) {
  * @returns A mutation return object.
  */
 function useDeleteAttemptMutation(questionId: string, attemptId: string) {
-    const { invalidateQueries } = useQueryCache()
+    const invalidateAttempt = useInvalidateAttempt(questionId, attemptId)
 
     return useMutation({
         mutation: () => delete_(`question/${questionId}/attempt/${attemptId}`),
-        onSettled: makeAttemptInvalidator(questionId, attemptId, invalidateQueries),
+        onSettled: invalidateAttempt,
     })
 }
 
@@ -81,12 +83,12 @@ function useDeleteAttemptMutation(questionId: string, attemptId: string) {
  * @returns An mutation return object.
  */
 function usePostAttemptMutation(questionId: string, attemptId: string) {
-    const { invalidateQueries } = useQueryCache()
+    const invalidateAttempt = useInvalidateAttempt(questionId, attemptId)
 
     return useMutation({
         mutation: (formData: Record<string, unknown>) =>
             post(`question/${questionId}/attempt/${attemptId}`, JSON.stringify(formData)),
-        onSettled: makeAttemptInvalidator(questionId, attemptId, invalidateQueries),
+        onSettled: invalidateAttempt,
     })
 }
 
@@ -98,11 +100,28 @@ function usePostAttemptMutation(questionId: string, attemptId: string) {
  * @returns An mutation return object.
  */
 function usePostAttemptScoreMutation(questionId: string, attemptId: string) {
-    const { invalidateQueries } = useQueryCache()
+    const invalidateAttempt = useInvalidateAttempt(questionId, attemptId)
 
     return useMutation({
         mutation: () => post(`question/${questionId}/attempt/${attemptId}/score`),
-        onSettled: makeAttemptInvalidator(questionId, attemptId, invalidateQueries),
+        onSettled: invalidateAttempt,
+    })
+}
+
+/**
+ * Clone an attempt.
+ *
+ * @param questionId The ID of the question.
+ * @param attemptId The ID of the attempt.
+ * @param newAttemptId The ID of the new attempt.
+ * @returns An mutation return object.
+ */
+function usePostAttemptCloneMutation(questionId: string, attemptId: string, newAttemptId: string) {
+    const invalidateAttempt = useInvalidateAttempt(questionId, attemptId)
+
+    return useMutation({
+        mutation: () => post(`question/${questionId}/attempt/${attemptId}/clone/${newAttemptId}`),
+        onSettled: invalidateAttempt,
     })
 }
 
@@ -110,6 +129,7 @@ export {
     useAttemptListQuery,
     useAttemptQuery,
     useDeleteAttemptMutation,
+    usePostAttemptCloneMutation,
     usePostAttemptMutation,
     usePostAttemptScoreMutation,
 }
