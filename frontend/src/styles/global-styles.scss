@@ -1,0 +1,11 @@
+@keyframes highlight-pulse {
+    0% {
+        box-shadow: 0 0 0 0 rgba($primary-border-subtle, 0);
+    }
+    50% {
+        box-shadow: 0 0 0 $spacer * 0.5 $primary-border-subtle;
+    }
+    100% {
+        box-shadow: 0 0 0 0 rgba($primary-border-subtle, 0);
+    }
+}

@@ -53,8 +53,9 @@
             </template>
         </BContainer>
         <ButtonGroup>
-            <!-- TODO: Implement clone -->
-            <IconButton :icon-component="IMdiContentCopy" variant="secondary" size="sm">Clone</IconButton>
+            <IconButton @click="cloneClick" :icon-component="IMdiContentCopy" variant="secondary" size="sm"
+                >Clone</IconButton
+            >
             <!-- TODO: Implement export -->
             <IconButton :icon-component="IMdiExport" variant="secondary" size="sm">Export</IconButton>
             <IconButton @click="deleteAttempt" :icon-component="IMdiDelete" variant="danger" size="sm"
@@ -82,8 +83,7 @@ import { computed } from 'vue'
 import { useLink } from 'vue-router'
 
 import CollapsibleCard from '@/components/common/CollapsibleCard.vue'
-import { useAttemptDisplay } from '@/composables/attempt'
-import { useDeleteAttempt } from '@/composables/attempt'
+import { useAttemptDisplay, useCloneAttempt, useDeleteAttempt } from '@/composables/attempt'
 import type { AttemptData } from '@/types'
 
 const {
@@ -98,11 +98,23 @@ const {
     questionId: string
 }>()
 
+const emit = defineEmits<{
+    cloned: [newAttemptId: string]
+}>()
+
 const attemptLocation = { name: 'question-attempt', params: { questionId, attemptId } } as const
 
 const deleteAttempt = useDeleteAttempt(questionId, attemptId)
+const cloneAttempt = useCloneAttempt(questionId, attemptId)
 const { isActive: isCurrentPreviewActive } = useLink({ to: attemptLocation })
 const { isScored, displayScore, displayStatus } = useAttemptDisplay(attemptData)
 
 const cardComponent = computed(() => (collapsible ? CollapsibleCard : BCard))
+
+const cloneClick = async () => {
+    const newAttemptId = await cloneAttempt()
+    if (newAttemptId) {
+        emit('cloned', newAttemptId)
+    }
+}
 </script>

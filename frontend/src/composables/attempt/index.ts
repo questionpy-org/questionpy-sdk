@@ -6,5 +6,6 @@
 
 export { default as useAttempt, type UseAttemptReturn } from './useAttempt'
 export { default as useAttemptDisplay } from './useAttemptDisplay'
+export { default as useCloneAttempt } from './useCloneAttempt'
 export { default as useCreateAttempt } from './useCreateAttempt'
 export { default as useDeleteAttempt } from './useDeleteAttempt'
