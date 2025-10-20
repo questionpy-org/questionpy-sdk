@@ -69,3 +69,18 @@ class QuestionStateView(QuestionBaseView):
             return web.json_response(err.errors, status=HTTPUnprocessableEntity.status_code)
 
         return web.json_response()
+
+
+@routes.view(f"/question/{{question_id:{ID_RE}}}/clone/{{new_question_id:{ID_RE}}}", name="question.clone")
+class QuestionCloneView(QuestionBaseView):
+    async def post(self) -> web.Response:
+        """Clones a question."""
+        question_id = self.request.match_info["question_id"]
+        new_question_id = self.request.match_info["new_question_id"]
+
+        try:
+            await self.controller.clone_question(question_id, new_question_id)
+        except MissingQuestionStateError as err:
+            raise HTTPNotFound from err
+
+        return web.Response()
