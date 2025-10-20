@@ -91,7 +91,7 @@ allow-dunder-method-names = ["__get_pydantic_core_schema__"]
 addopts = "--doctest-modules --ignore examples"
 markers = ["app_routes", "render_params", "source_pkg", "ui_file"]
 # We run E2E tests separately
-norecursedirs = "e2e"
+norecursedirs = "e2e frontend"
 # https://github.com/pytest-dev/pytest-asyncio#auto-mode
 asyncio_mode = "auto"
 # Module scope is recommended: https://pytest-asyncio.readthedocs.io/en/stable/concepts.html#asyncio-event-loops
