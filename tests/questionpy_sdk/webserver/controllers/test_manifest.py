@@ -6,7 +6,7 @@ from unittest.mock import Mock
 
 import pytest
 
-from questionpy import Manifest
+from questionpy_common.manifest import Bcp47LanguageTag, Manifest
 from questionpy_sdk.webserver.controllers.manifest import ManifestController
 
 
@@ -21,7 +21,8 @@ def test_get_manifest(controller: ManifestController, mock_webserver: Mock) -> N
         version="0.0.1",
         api_version="0.1",
         author="Jane Doe <jane.doe@example.org>",
-        languages=["de", "en"],
+        name={Bcp47LanguageTag("en"): "Test Package"},
+        languages=[Bcp47LanguageTag("de"), Bcp47LanguageTag("en")],
     )
     mock_webserver.manifest = test_manifest
     manifest = controller.get_manifest()

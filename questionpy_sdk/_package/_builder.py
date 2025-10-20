@@ -21,7 +21,11 @@ from questionpy_common.manifest import DistStaticQPyDependency, Manifest, Packag
 from questionpy_sdk._i18n_utils import bcp47_to_posix
 from questionpy_sdk._package._ignores import create_ignore_spec
 from questionpy_sdk._package._targets import BuildTarget, DirBuildTarget
-from questionpy_sdk._package._validate import validate_dist_structure, validate_requested_lms_attributes
+from questionpy_sdk._package._validate import (
+    validate_dist_structure,
+    validate_package_name_and_description,
+    validate_requested_lms_attributes,
+)
 from questionpy_sdk._package.errors import PackageBuildError
 from questionpy_sdk._package.source import PackageSource
 from questionpy_sdk.models import BuildHookName, SourceStaticQPyDependency
@@ -86,6 +90,7 @@ class PackageBuilder:
 
         validate_dist_structure(self._manifest, self._target.dist)
         validate_requested_lms_attributes(self._manifest)
+        validate_package_name_and_description(self._manifest)
 
     def _run_build_hooks(self, hook_name: BuildHookName) -> None:
         commands = self._source.config.build_hooks.get(hook_name, [])
