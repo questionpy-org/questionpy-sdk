@@ -4,6 +4,7 @@
  * (c) Technische Universität Berlin, innoCampus <info@isis.tu-berlin.de>
  */
 
+export { default as useCloneQuestion } from './useCloneQuestion'
 export { default as useCreateQuestion } from './useCreateQuestion'
 export { default as useDeleteAllQuestions } from './useDeleteAllQuestions'
 export { default as useDeleteQuestion } from './useDeleteQuestion'

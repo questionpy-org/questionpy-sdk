@@ -8,7 +8,13 @@
     <IconButton :to="{ name: 'index' }" :icon-component="IMdiArrowLeft" class="ps-0 mb-2" variant="link"
         >Back to Package Preview</IconButton
     >
-    <QuestionCard class="mb-3" :question-id="params.questionId" :data="formData?.data" :error="detailedServerError" />
+    <QuestionCard
+        class="mb-3"
+        :question-id="params.questionId"
+        :data="formData?.data"
+        :error="detailedServerError"
+        @cloned="handleAttemptCloned"
+    />
     <ButtonGroup class="mb-4">
         <IconButton :icon-component="IMdiImport" variant="link" @click="importAttempt">Import attempt</IconButton>
         <IconButton :icon-component="IMdiAdd" @click="createAttempt" variant="primary">New attempt</IconButton>
@@ -27,7 +33,7 @@ import { useCreateAttempt } from '@/composables/attempt'
 import { FetchError, useOptionsFormDataQuery } from '@/queries'
 import type { DetailedServerError } from '@/types'
 
-const route = useRouter()
+const router = useRouter()
 const { params } = useRoute('question')
 const { data: formData, error } = useOptionsFormDataQuery(params.questionId)
 const createAttempt = useCreateAttempt(params.questionId)
@@ -37,7 +43,7 @@ watch(
     formData,
     (value) => {
         if (value?.is_new) {
-            route.replace({ name: 'index' })
+            router.replace({ name: 'index' })
         }
     },
     { immediate: true },
@@ -52,6 +58,14 @@ const detailedServerError = computed(() =>
         ? ({ error: error.value.message, details: error.value.details } satisfies DetailedServerError)
         : undefined,
 )
+
+const handleAttemptCloned = async (questionId: string) => {
+    await router.push({
+        name: 'index',
+        // Tell QuestionList to scrollTo/highlight the new question
+        state: { highlightQuestionId: questionId },
+    })
+}
 </script>
 
 <route lang="json">

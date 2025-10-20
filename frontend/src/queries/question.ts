@@ -123,11 +123,32 @@ function useDeleteOptionsFormDataMutation(questionId: string) {
     })
 }
 
+/**
+ * Clone a question.
+ *
+ * @param questionId The ID of the question.
+ * @param newQuestionId The ID of the new question.
+ * @returns An mutation return object.
+ */
+function usePostQuestionCloneMutation(questionId: string, newQuestionId: string) {
+    const { invalidateQueries } = useQueryCache()
+
+    const invalidateKey = QUERY_KEYS.question.list()
+
+    return useMutation({
+        mutation: () => post(`question/${questionId}/clone/${newQuestionId}`),
+        onSettled: () => {
+            invalidateQueries({ key: invalidateKey })
+        },
+    })
+}
+
 export {
     useDeleteAllOptionsFormDataMutation,
     useDeleteOptionsFormDataMutation,
     useOptionsFormDataQuery,
     useOptionsFormDefinitionQuery,
     usePostOptionsFormDataMutation,
+    usePostQuestionCloneMutation,
     useQuestionStatesQuery,
 }

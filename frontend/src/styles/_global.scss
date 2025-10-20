@@ -1,0 +1,5 @@
+// WARNING: This file must not contain anything that compiles to actual CSS code!
+
+@mixin highlight-pulse {
+    animation: highlight-pulse 1500ms ease-in-out;
+}

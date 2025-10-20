@@ -12,12 +12,12 @@
         <AttemptCard
             v-for="[attemptId, attemptData] in Object.entries(attempts)"
             :class="['attempt-card', { highlight: highlightedIds.has(attemptId) }]"
-            :id="`attempt-${questionId}-${attemptId}`"
+            :id="generateHtmlId(attemptId)"
             :key="attemptId"
             :question-id="questionId"
             :attempt-id="attemptId"
             :attempt-data="attemptData"
-            @cloned="handleAttemptCloned"
+            @cloned="handleNewItem"
         />
         <BAlert v-if="attemptCount === 0" :model-value="true" class="mb-0" variant="info"
             >This question has no attempts yet.</BAlert
@@ -26,54 +26,21 @@
 </template>
 
 <script lang="ts" setup>
-import { computed, nextTick, onMounted, ref, watch } from 'vue'
+import { computed } from 'vue'
 
+import { useHighlightOnInsert } from '@/composables/common'
 import { useAttemptListQuery } from '@/queries'
 
 const { questionId } = defineProps<{ questionId: string }>()
 
 const { asyncStatus, error, data: listData } = useAttemptListQuery(questionId)
 
+const generateHtmlId = (attemptId: string) => `attempt-${questionId}-${attemptId}`
+
 const attempts = computed(() => listData.value ?? {})
 const attemptCount = computed(() => Object.keys(attempts.value).length)
-
-const pendingClones = ref<Set<string>>(new Set())
-const highlightedIds = ref<Set<string>>(new Set())
-
-onMounted(() => {
-    // Handle clones coming in via route navigation
-    const hightlightId = history.state?.highlightAttemptId
-    if (typeof hightlightId === 'string') {
-        pendingClones.value.add(hightlightId)
-    }
-})
-
-const handleAttemptCloned = (newAttemptId: string) => {
-    pendingClones.value.add(newAttemptId)
-}
-
-// Watch for pending clones to appear
-watch(attempts, async (newAttempts, oldAttempts) => {
-    for (const attemptId of pendingClones.value) {
-        if (newAttempts[attemptId] && !oldAttempts?.[attemptId]) {
-            pendingClones.value.delete(attemptId)
-            await nextTick()
-            const el = document.getElementById(`attempt-${questionId}-${attemptId}`)
-            if (el) {
-                el.scrollIntoView({ behavior: 'smooth', block: 'center' })
-                setTimeout(() => {
-                    highlightedIds.value.add(attemptId)
-                    el.addEventListener(
-                        'animationend',
-                        () => {
-                            highlightedIds.value.delete(attemptId)
-                        },
-                        { once: true },
-                    )
-                }, 600)
-            }
-        }
-    }
+const { handleNewItem, highlightedIds } = useHighlightOnInsert(attempts, generateHtmlId, {
+    historyStateKey: 'highlightAttemptId',
 })
 </script>
 
@@ -86,7 +53,7 @@ watch(attempts, async (newAttempts, oldAttempts) => {
     }
 
     &.highlight {
-        animation: highlight-pulse 1500ms ease-in-out;
+        @include highlight-pulse;
     }
 }
 </style>
