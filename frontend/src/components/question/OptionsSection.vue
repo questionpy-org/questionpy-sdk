@@ -6,13 +6,14 @@
 
 <template>
     <h3>{{ header }}</h3>
-    <FormElement
-        v-for="element in elements"
-        :disabled="false"
-        :element="element"
-        :key="element.name"
-        :path-prefix="[name]"
-    />
+    <template v-for="element in elements" :key="element.name">
+        <ErrorBoundary>
+            <FormElement :disabled="false" :element="element" :path-prefix="[name]" />
+            <template #error="{ error }">
+                <ErrorCard :error="error" />
+            </template>
+        </ErrorBoundary>
+    </template>
 </template>
 
 <script lang="ts" setup>
