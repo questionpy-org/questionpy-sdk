@@ -5,12 +5,20 @@
 -->
 
 <template>
-    <h5>{{ fetchError.message }} ({{ fetchError.status }}: {{ fetchError.statusText }})</h5>
-    <h6>Stacktrace</h6>
-    <code v-if="typeof fetchError.details === 'string'">
-        <pre>{{ fetchError.details }}</pre>
-    </code>
-    <ValidationErrorDetails v-if="Array.isArray(fetchError.details)" :details="fetchError.details" />
+    <template v-if="fetchError">
+        <h5>{{ fetchError.message }} ({{ fetchError.status }}: {{ fetchError.statusText }})</h5>
+        <h6>Stacktrace</h6>
+        <code v-if="typeof fetchError.details === 'string'">
+            <pre>{{ fetchError.details }}</pre>
+        </code>
+        <ValidationErrorDetails v-if="Array.isArray(fetchError.details)" :details="fetchError.details" />
+    </template>
+    <template v-else>
+        <h5>{{ error.message }}</h5>
+        <code v-if="error.stack">
+            <pre class="mb-0">{{ error.stack }}</pre>
+        </code>
+    </template>
 </template>
 
 <script lang="ts" setup>
@@ -20,11 +28,5 @@ import { FetchError } from '@/queries'
 
 const props = defineProps<{ error: Error }>()
 
-const fetchError = computed(() => {
-    // The component only deals with FetchError
-    if (!(props.error instanceof FetchError)) {
-        throw props.error
-    }
-    return props.error
-})
+const fetchError = computed(() => (props.error instanceof FetchError ? props.error : null))
 </script>
