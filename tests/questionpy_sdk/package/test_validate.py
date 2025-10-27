@@ -106,6 +106,7 @@ def test_warn_when_name_translations_are_missing(manifest: Manifest, caplog: Log
 
     warn_messages = get_warnings(caplog)
     assert len(warn_messages) == 1
+    assert "translations are missing" in warn_messages[0]
     assert "- de" in warn_messages[0]
     assert "- en" not in warn_messages[0]
 
@@ -119,6 +120,7 @@ def test_warn_when_description_translations_are_missing(manifest: Manifest, capl
 
     warn_messages = get_warnings(caplog)
     assert len(warn_messages) == 1
+    assert "translations are missing" in warn_messages[0]
     assert "- de" in warn_messages[0]
     assert "- en" not in warn_messages[0]
 
@@ -131,6 +133,7 @@ def test_warn_when_name_translation_is_give_in_missing_language(manifest: Manife
 
     warn_messages = get_warnings(caplog)
     assert len(warn_messages) == 1
+    assert "translations are given but missing" in warn_messages[0]
     assert "- de" in warn_messages[0]
     assert "- en" not in warn_messages[0]
 
@@ -146,6 +149,7 @@ def test_warn_when_description_translation_is_give_in_missing_language(
 
     warn_messages = get_warnings(caplog)
     assert len(warn_messages) == 1
+    assert "translations are given but missing" in warn_messages[0]
     assert "- de" in warn_messages[0]
     assert "- en" not in warn_messages[0]
 
@@ -159,4 +163,5 @@ def test_warn_when_description_is_given_but_not_in_english(manifest: Manifest, c
 
     warn_messages = get_warnings(caplog)
     assert len(warn_messages) == 1
+    assert "translations are missing" in warn_messages[0]
     assert "description should be available in English" in warn_messages[0]
