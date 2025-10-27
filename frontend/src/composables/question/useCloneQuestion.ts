@@ -15,11 +15,11 @@ import useAppStateStore from '@/stores/useAppStateStore'
  * @returns The ID of the new question.
  */
 function useCloneQuestion(questionId: string) {
-    const newQuestionId = generateId()
-    const { mutateAsync } = usePostQuestionCloneMutation(questionId, newQuestionId)
     const { setError } = useAppStateStore()
 
     return async () => {
+        const newQuestionId = generateId()
+        const { mutateAsync } = usePostQuestionCloneMutation(questionId, newQuestionId)
         try {
             await mutateAsync()
             return newQuestionId
@@ -28,4 +28,5 @@ function useCloneQuestion(questionId: string) {
         }
     }
 }
+
 export default useCloneQuestion
