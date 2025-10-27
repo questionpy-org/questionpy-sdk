@@ -9,15 +9,23 @@ from pydantic.dataclasses import dataclass
 from pydantic_core import ErrorDetails
 
 
-class MissingStateError(Exception):
+class StateError(Exception):
     message: str
 
     def __init__(self) -> None:
         super().__init__(self.message)
 
 
+class MissingStateError(StateError):
+    pass
+
+
 class MissingQuestionStateError(MissingStateError):
     message = "The question state is missing."
+
+
+class DuplicateQuestionError(StateError):
+    message = "The question already exists."
 
 
 class MissingAttemptStateError(MissingStateError):
@@ -34,6 +42,10 @@ class MissingAttemptScoreError(MissingStateError):
 
 class MissingAttemptDataError(MissingStateError):
     message = "The attempt data is missing."
+
+
+class DuplicateAttemptError(StateError):
+    message = "The attempt already exists."
 
 
 @dataclass(config=ConfigDict(use_attribute_docstrings=True))

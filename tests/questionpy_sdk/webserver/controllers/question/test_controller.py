@@ -10,7 +10,7 @@ from questionpy_common.api.question import ScoringMethod
 from questionpy_common.elements import OptionsFormDefinition, TextInputElement
 from questionpy_sdk.webserver.controllers.question import QuestionController
 from questionpy_sdk.webserver.controllers.question.controller import OptionsStateResponse
-from questionpy_sdk.webserver.errors import MissingQuestionStateError
+from questionpy_sdk.webserver.errors import DuplicateQuestionError, MissingQuestionStateError
 from questionpy_server.models import QuestionCreated
 
 
@@ -32,9 +32,7 @@ async def test_get_form_definition(
     assert isinstance(form_definition.general[0], TextInputElement)
 
 
-async def test_get_questions(
-    controller: QuestionController, mock_state_manager: AsyncMock, mock_worker: AsyncMock
-) -> None:
+async def test_get_questions(controller: QuestionController, mock_worker: AsyncMock) -> None:
     mock_worker.get_options_form.return_value = (
         OptionsFormDefinition(general=[TextInputElement(label="Foo", name="foo")]),
         {"foo": "Bar"},
@@ -98,3 +96,8 @@ async def test_clone_question(
 
     mock_state_manager.read_question_state.assert_called_once()
     mock_state_manager.write_question_state.assert_called_once_with("Bu2boh5u", "question_state")
+
+
+async def test_clone_question_duplicate(controller: QuestionController, mock_state_manager: AsyncMock) -> None:
+    with pytest.raises(DuplicateQuestionError):
+        await controller.clone_question("QaKxpanc", "tKVJTdsv")

@@ -9,7 +9,7 @@ from pydantic import RootModel
 from questionpy import OptionsFormValidationError
 from questionpy_sdk.webserver.constants import ID_RE
 from questionpy_sdk.webserver.controllers.question import QuestionController
-from questionpy_sdk.webserver.errors import MissingQuestionStateError
+from questionpy_sdk.webserver.errors import DuplicateQuestionError, MissingQuestionStateError
 from questionpy_sdk.webserver.routes.base import BaseView
 
 routes = web.RouteTableDef()
@@ -82,5 +82,7 @@ class QuestionCloneView(QuestionBaseView):
             await self.controller.clone_question(question_id, new_question_id)
         except MissingQuestionStateError as err:
             raise HTTPNotFound from err
+        except DuplicateQuestionError as err:
+            raise web.HTTPConflict(text=str(err)) from err
 
         return web.Response()

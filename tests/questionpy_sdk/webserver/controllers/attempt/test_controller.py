@@ -107,9 +107,7 @@ async def test_get_attempt_render_errors(
             )
 
 
-async def test_get_attempts(
-    controller: AttemptController, mock_state_manager: AsyncMock, mock_jinja2_template: Mock
-) -> None:
+async def test_get_attempts(controller: AttemptController, mock_jinja2_template: Mock) -> None:
     mock_jinja2_template.render_async.return_value = "<html>Attempt</html>"
     attempts = await controller.get_attempts("QaKxpanc")
 
@@ -188,3 +186,8 @@ async def test_clone_attempt(
         assert args[1] == "Pei2ohya"
         assert args[2].scoring_code == ScoringCode.AUTOMATICALLY_SCORED
         assert args[2].score == 1.0
+
+
+async def test_clone_attempt_duplicate(controller: AttemptController) -> None:
+    with pytest.raises(webserver_errors.DuplicateAttemptError):
+        await controller.clone_attempt("QaKxpanc", "AepM0AFN", "eTCRKiod")
