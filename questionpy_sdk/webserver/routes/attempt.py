@@ -80,11 +80,7 @@ class AttemptScoreView(AttemptBaseView):
 
         try:
             await self.controller.score_attempt(question_id, attempt_id)
-        except (
-            webserver_errors.MissingQuestionStateError,
-            webserver_errors.MissingAttemptStateError,
-            webserver_errors.MissingAttemptDataError,
-        ) as err:
+        except webserver_errors.MissingStateError as err:
             raise web.HTTPBadRequest(text=str(err)) from err
         return web.Response()
 
@@ -100,5 +96,11 @@ class AttemptCloneView(AttemptBaseView):
         attempt_id = self.request.match_info["attempt_id"]
         new_attempt_id = self.request.match_info["new_attempt_id"]
 
-        await self.controller.clone_attempt(question_id, attempt_id, new_attempt_id)
+        try:
+            await self.controller.clone_attempt(question_id, attempt_id, new_attempt_id)
+        except webserver_errors.MissingStateError as err:
+            raise web.HTTPNotFound from err
+        except webserver_errors.DuplicateAttemptError as err:
+            raise web.HTTPConflict(text=str(err)) from err
+
         return web.Response()

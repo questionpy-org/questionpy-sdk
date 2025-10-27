@@ -104,12 +104,19 @@ class AttemptController(BaseController):
         data: dict[str, JsonValue] | None = None
         score: ScoreModel | None = None
 
+        # Ensure we're not overwriting an existing attempt
+        attempts = await self._state_manager.read_attempts(question_id)
+        if new_attempt_id in attempts:
+            raise webserver_errors.DuplicateAttemptError
+
+        # state and seed must exist...
         state = await self._state_manager.read_attempt_state(question_id, attempt_id)
         seed = await self._state_manager.read_attempt_seed(question_id, attempt_id)
 
         await self._state_manager.write_attempt_state(question_id, new_attempt_id, state)
         await self._state_manager.write_attempt_seed(question_id, new_attempt_id, seed)
 
+        # ...data and score might not
         try:
             data = await self._state_manager.read_attempt_data(question_id, attempt_id)
         except webserver_errors.MissingAttemptDataError:

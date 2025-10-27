@@ -6,8 +6,9 @@ from unittest.mock import AsyncMock
 
 import pytest
 from aiohttp.test_utils import TestClient
-from aiohttp.web_exceptions import HTTPOk
+from aiohttp.web_exceptions import HTTPConflict, HTTPNotFound, HTTPOk
 
+import questionpy_sdk.webserver.errors as webserver_errors
 from questionpy import DisplayRole
 from questionpy_sdk.webserver.controllers.attempt.controller import AttemptRenderData
 from questionpy_sdk.webserver.controllers.attempt.data import AttemptData, AttemptStatus
@@ -104,3 +105,28 @@ async def test_post_attempt_clone(client: TestClient, mock_controller: AsyncMock
     async with client.post("/question/myuQ2JWl/attempt/UY9ryXzq/clone/Bu2boh5u") as resp:
         assert resp.status == HTTPOk.status_code
         mock_controller.clone_attempt.assert_awaited_once_with("myuQ2JWl", "UY9ryXzq", "Bu2boh5u")
+
+
+@pytest.mark.parametrize(
+    "exception",
+    [
+        webserver_errors.MissingAttemptStateError,
+        webserver_errors.MissingAttemptSeedError,
+    ],
+)
+@pytest.mark.app_routes(attempt.routes)
+async def test_post_attempt_clone_not_found(
+    exception: webserver_errors.StateError, client: TestClient, mock_controller: AsyncMock
+) -> None:
+    mock_controller.clone_attempt.side_effect = exception
+
+    async with client.post("/question/myuQ2JWl/attempt/UY9ryXzq/clone/Bu2boh5u") as resp:
+        assert resp.status == HTTPNotFound.status_code
+
+
+@pytest.mark.app_routes(attempt.routes)
+async def test_post_attempt_clone_duplicate(client: TestClient, mock_controller: AsyncMock) -> None:
+    mock_controller.clone_attempt.side_effect = webserver_errors.DuplicateAttemptError
+
+    async with client.post("/question/myuQ2JWl/attempt/UY9ryXzq/clone/Bu2boh5u") as resp:
+        assert resp.status == HTTPConflict.status_code
