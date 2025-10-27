@@ -117,7 +117,7 @@ function usePostAttemptScoreMutation(questionId: string, attemptId: string) {
  * @returns An mutation return object.
  */
 function usePostAttemptCloneMutation(questionId: string, attemptId: string, newAttemptId: string) {
-    const invalidateAttempt = useInvalidateAttempt(questionId, attemptId)
+    const invalidateAttempt = useInvalidateAttempt(questionId)
 
     return useMutation({
         mutation: () => post(`question/${questionId}/attempt/${attemptId}/clone/${newAttemptId}`),
