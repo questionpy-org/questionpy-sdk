@@ -16,11 +16,11 @@ import useAppStateStore from '@/stores/useAppStateStore'
  * @returns The ID of the new attempt.
  */
 function useCloneAttempt(questionId: string, attemptId: string) {
-    const newAttemptId = generateId()
-    const { mutateAsync } = usePostAttemptCloneMutation(questionId, attemptId, newAttemptId)
     const { setError } = useAppStateStore()
 
     return async () => {
+        const newAttemptId = generateId()
+        const { mutateAsync } = usePostAttemptCloneMutation(questionId, attemptId, newAttemptId)
         try {
             await mutateAsync()
             return newAttemptId
