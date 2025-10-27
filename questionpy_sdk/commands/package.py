@@ -13,9 +13,10 @@ from questionpy_sdk.commands._helper import confirm_overwrite
 
 
 def validate_out_path(context: click.Context, _parameter: click.Parameter, value: Path | None) -> Path | None:
-    if value and value.suffix != ".qpy":
+    if value and not value.is_dir() and value.suffix != ".qpy":
         msg = "Packages need the extension '.qpy'."
         raise click.BadParameter(msg, ctx=context)
+
     return value
 
 
@@ -34,7 +35,7 @@ def validate_out_path(context: click.Context, _parameter: click.Parameter, value
     "out_path",
     callback=validate_out_path,
     type=click.Path(path_type=Path),
-    help="Output file path of QuestionPy package. [default: 'NAMESPACE-SHORT_NAME-VERSION.qpy']",
+    help="Output directory or file path of QuestionPy package. [default: 'NAMESPACE-SHORT_NAME-VERSION.qpy']",
 )
 @click.option(
     "--without-sources",
@@ -73,7 +74,12 @@ def package(
 
     else:
         if not out_path:
+            # Use default filename in current working directory.
             out_path = Path(package_source.normalized_filename)
+        elif out_path.is_dir():
+            # Use default filename inside the given directory.
+            out_path /= package_source.normalized_filename
+
         create_qpy_package(
             ctx, package_source, out_path, allow_overwrite=allow_overwrite, without_sources=without_sources
         )
