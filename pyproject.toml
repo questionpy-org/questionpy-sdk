@@ -88,7 +88,7 @@ extend-ignore-names = ["mcs", "test_*"]
 allow-dunder-method-names = ["__get_pydantic_core_schema__"]
 
 [tool.pytest.ini_options]
-addopts = "--doctest-modules --ignore examples"
+addopts = "--doctest-modules --ignore examples --ignore frontend"
 markers = ["app_routes", "render_params", "source_pkg", "ui_file"]
 # We run E2E tests separately
 norecursedirs = "e2e"
