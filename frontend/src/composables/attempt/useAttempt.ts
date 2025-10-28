@@ -14,6 +14,7 @@ import {
     usePostAttemptScoreMutation,
 } from '@/queries'
 import useAppStateStore from '@/stores/useAppStateStore'
+import usePendingOperationsStore from '@/stores/usePendingOperationsStore'
 import type { AttemptData, SectionErrorMap } from '@/types'
 
 /**
@@ -36,6 +37,7 @@ function useAttempt(questionId: string, attemptId: string): UseAttemptReturn {
     )
 
     const { setError } = useAppStateStore()
+    const { addOperation, removeOperation } = usePendingOperationsStore()
 
     return {
         asyncStatus: computed(() =>
@@ -55,26 +57,35 @@ function useAttempt(questionId: string, attemptId: string): UseAttemptReturn {
         isRestartDisabled: computed(() => attemptData.value?.attempt_data.attempt_status === 'STARTED'),
 
         async save(formData) {
+            const operation = addOperation('submit', { modelType: 'attempt' })
             try {
                 await postAttempt(formData)
             } catch (err) {
                 setError(err)
+            } finally {
+                removeOperation(operation)
             }
         },
 
         async score() {
+            const operation = addOperation('score')
             try {
                 await postScore()
             } catch (err) {
                 setError(err)
+            } finally {
+                removeOperation(operation)
             }
         },
 
         async restart() {
+            const operation = addOperation('delete', { modelType: 'attempt' })
             try {
                 await deleteAttempt()
             } catch (err) {
                 setError(err)
+            } finally {
+                removeOperation(operation)
             }
         },
     }

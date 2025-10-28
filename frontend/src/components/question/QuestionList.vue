@@ -10,16 +10,19 @@
     <CollapsibleCard v-else expanded>
         <template #button-title>Saved questions ({{ questionCount }})</template>
         <InvalidQuestionStateError v-if="hasInvalidStates" class="mb-3" />
-        <QuestionCard
+        <div
             v-for="[questionId, question] in Object.entries(questions)"
-            :class="['question-card', { highlight: highlightedIds.has(questionId) }]"
-            :id="generateHtmlId(questionId)"
+            :class="['question-card-wrapper', { highlight: highlightedIds.has(questionId) }]"
             :key="questionId"
-            :questionId="questionId"
-            :data="question.data"
-            :error="question.error"
-            @cloned="handleNewItem"
-        />
+            :ref="registerElementRef(questionId)"
+        >
+            <QuestionCard
+                :id="`question-${questionId}`"
+                :questionId="questionId"
+                :data="question.data"
+                :error="question.error"
+            />
+        </div>
         <BAlert v-if="questionCount === 0" :model-value="true" class="mb-0" variant="info"
             >This package has no questions yet.</BAlert
         >
@@ -29,14 +32,12 @@
 <script lang="ts" setup>
 import { computed } from 'vue'
 
-import { useHighlightOnInsert } from '@/composables/common'
+import { useDeferredItem, useHintItem } from '@/composables/common'
 import { useQuestionStatesQuery } from '@/queries'
 import { isDetailedServerError } from '@/types'
 import type { DetailedServerError, OptionsFormData } from '@/types'
 
 const { asyncStatus, error, data } = useQuestionStatesQuery()
-
-const generateHtmlId = (questionId: string) => `question-${questionId}`
 
 const questions = computed<Record<string, { data?: OptionsFormData; error?: DetailedServerError }>>(() => {
     if (data.value === undefined) {
@@ -52,13 +53,12 @@ const questions = computed<Record<string, { data?: OptionsFormData; error?: Deta
 const questionCount = computed(() => Object.keys(questions.value).length)
 const hasInvalidStates = computed(() => Object.values(questions.value).some((q) => q.error))
 
-const { handleNewItem, highlightedIds } = useHighlightOnInsert(questions, generateHtmlId, {
-    historyStateKey: 'highlightQuestionId',
-})
+const { highlightedIds, hintItem, registerElementRef } = useHintItem()
+useDeferredItem('question', questions, hintItem)
 </script>
 
 <style lang="scss" scoped>
-.question-card {
+.question-card-wrapper {
     margin-bottom: $spacer;
 
     &:last-of-type {

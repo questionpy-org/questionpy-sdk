@@ -5,7 +5,15 @@
 -->
 
 <template>
-    <BFormGroup class="mb-3" label-cols-sm="3" content-cols-sm="9">
+    <BFormGroup :disabled="hasPendingOperations" class="mb-3" label-cols-sm="3" content-cols-sm="9">
         <slot />
     </BFormGroup>
 </template>
+
+<script lang="ts" setup>
+import { storeToRefs } from 'pinia'
+
+import usePendingOperationsStore from '@/stores/usePendingOperationsStore'
+
+const { hasPendingOperations } = storeToRefs(usePendingOperationsStore())
+</script>

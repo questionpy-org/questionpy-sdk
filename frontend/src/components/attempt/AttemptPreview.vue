@@ -53,7 +53,6 @@
             :attempt-data="attemptData"
             :question-id="questionId"
             :attempt-id="attemptId"
-            @cloned="handleAttemptCloned"
             collapsible
             variant="info"
         />
@@ -67,7 +66,6 @@ import IMdiEdit from '~icons/mdi/edit'
 import IMdiRestart from '~icons/mdi/restart'
 import IMdiScore from '~icons/mdi/score'
 import { ref } from 'vue'
-import { useRouter } from 'vue-router'
 
 import { useAttemptDisplay } from '@/composables/attempt'
 import useAttempt from '@/composables/attempt/useAttempt'
@@ -79,8 +77,6 @@ const { questionId, attemptId } = defineProps<{
     questionId: string
     attemptId: string
 }>()
-
-const router = useRouter()
 
 const {
     asyncStatus,
@@ -110,14 +106,5 @@ async function saveAndSubmit() {
         await saveAttempt(formData)
         await score()
     }
-}
-
-const handleAttemptCloned = async (attemptId: string) => {
-    await router.push({
-        name: 'question',
-        params: { questionId },
-        // Tell AttemptList to scrollTo/highlight the new attempt
-        state: { highlightAttemptId: attemptId },
-    })
 }
 </script>
