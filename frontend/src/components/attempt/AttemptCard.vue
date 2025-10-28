@@ -53,7 +53,7 @@
             </template>
         </BContainer>
         <ButtonGroup>
-            <IconButton @click="cloneClick" :icon-component="IMdiContentCopy" variant="secondary" size="sm"
+            <IconButton @click="cloneAttempt" :icon-component="IMdiContentCopy" variant="secondary" size="sm"
                 >Clone</IconButton
             >
             <!-- TODO: Implement export -->
@@ -98,23 +98,10 @@ const {
     questionId: string
 }>()
 
-const emit = defineEmits<{
-    cloned: [newAttemptId: string]
-}>()
-
 const attemptLocation = { name: 'question-attempt', params: { questionId, attemptId } } as const
-
 const deleteAttempt = useDeleteAttempt(questionId, attemptId)
 const cloneAttempt = useCloneAttempt(questionId, attemptId)
 const { isActive: isCurrentPreviewActive } = useLink({ to: attemptLocation })
 const { isScored, displayScore, displayStatus } = useAttemptDisplay(attemptData)
-
 const cardComponent = computed(() => (collapsible ? CollapsibleCard : BCard))
-
-const cloneClick = async () => {
-    const newAttemptId = await cloneAttempt()
-    if (newAttemptId) {
-        emit('cloned', newAttemptId)
-    }
-}
 </script>

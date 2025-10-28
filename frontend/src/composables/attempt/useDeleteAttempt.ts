@@ -4,9 +4,12 @@
  * (c) Technische Universität Berlin, innoCampus <info@isis.tu-berlin.de>
  */
 
+import { useRouter } from 'vue-router'
+
 import { useConfirmModal } from '@/composables/common'
 import { useDeleteAttemptMutation } from '@/queries'
 import useAppStateStore from '@/stores/useAppStateStore'
+import usePendingOperationsStore from '@/stores/usePendingOperationsStore'
 
 /**
  * Composable that returns a function to delete an attempt after displaying a confirmation modal.
@@ -18,6 +21,9 @@ import useAppStateStore from '@/stores/useAppStateStore'
 function useDeleteAttempt(questionId: string, attemptId: string) {
     const { mutateAsync } = useDeleteAttemptMutation(questionId, attemptId)
     const { setError } = useAppStateStore()
+    const { addOperation, removeOperation } = usePendingOperationsStore()
+    const router = useRouter()
+
     const confirmModal = useConfirmModal({
         title: 'Delete Attempt',
         body: 'Are you sure you want to delete this attempt?',
@@ -26,10 +32,19 @@ function useDeleteAttempt(questionId: string, attemptId: string) {
 
     return async () => {
         if (await confirmModal()) {
+            // Navigate away from attempt preview page *before* deleting to prevent re-creation
+            if (router.currentRoute.value.name === 'question-attempt') {
+                await router.push({ name: 'question', params: { questionId } })
+            }
+
+            const operation = addOperation('delete', { modelType: 'attempt' })
             try {
                 await mutateAsync()
             } catch (err) {
                 setError(err)
+                return
+            } finally {
+                removeOperation(operation)
             }
         }
     }

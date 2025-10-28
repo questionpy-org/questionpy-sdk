@@ -9,6 +9,7 @@ import type { AsyncStatus } from '@pinia/colada'
 import type { ComputedRef, InjectionKey, Ref, ShallowRef } from 'vue'
 
 import { useOptionsFormDataQuery, useOptionsFormDefinitionQuery, usePostOptionsFormDataMutation } from '@/queries'
+import usePendingOperationsStore from '@/stores/usePendingOperationsStore'
 import type { OptionsFormData, OptionsFormDefinition, OptionsFormValue, ServerValidationErrors } from '@/types'
 
 import { areFormDataObjIdentical, getErrorKey, getFormData, hasEditableElements } from './formDataUtils'
@@ -48,6 +49,8 @@ function provideFormDataState(questionId: string): UseFormDataStateReturn {
 
     // Form validation errors
     const formErrors = ref<ServerValidationErrors>({})
+
+    const { addOperation, removeOperation } = usePendingOperationsStore()
 
     // Build form data from server-side state
     watch(
@@ -106,6 +109,8 @@ function provideFormDataState(questionId: string): UseFormDataStateReturn {
 
     async function submit(): Promise<boolean> {
         const rawFormData = toRaw(formDataCurrent.value)
+
+        const operation = addOperation('submit', { modelType: 'question' })
         try {
             formErrors.value = await postData(rawFormData)
         } catch (err) {
@@ -113,10 +118,14 @@ function provideFormDataState(questionId: string): UseFormDataStateReturn {
                 mutationState.value.error = err
             }
             throw err
+        } finally {
+            removeOperation(operation)
         }
+
         formDataClean.value = structuredClone(rawFormData)
         mutationState.value.error = null
         await formDataRefresh()
+
         return Object.keys(formErrors.value).length === 0
     }
 

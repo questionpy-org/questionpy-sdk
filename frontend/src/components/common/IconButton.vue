@@ -5,16 +5,21 @@
 -->
 
 <template>
-    <BButton class="d-flex text-nowrap gap-2 align-items-center" v-bind="buttonProps">
+    <BButton :disabled="disabled" class="d-flex text-nowrap gap-2 align-items-center" v-bind="buttonProps">
         <component :is="iconComponent" />
         <slot />
     </BButton>
 </template>
 
 <script lang="ts" setup>
+import { storeToRefs } from 'pinia'
 import { computed } from 'vue'
 import type { BButtonProps } from 'bootstrap-vue-next'
 import type { Component } from 'vue'
+
+import usePendingOperationsStore from '@/stores/usePendingOperationsStore'
+
+const { hasPendingOperations } = storeToRefs(usePendingOperationsStore())
 
 const props = defineProps<
     BButtonProps & {
@@ -23,7 +28,9 @@ const props = defineProps<
 >()
 
 const buttonProps = computed(() => {
-    const { iconComponent, ...rest } = props
+    const { iconComponent, disabled, ...rest } = props
     return rest
 })
+
+const disabled = computed(() => props.disabled || hasPendingOperations.value)
 </script>

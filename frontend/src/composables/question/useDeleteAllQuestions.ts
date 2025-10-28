@@ -9,6 +9,7 @@ import { useRouter } from 'vue-router'
 import { useConfirmModal } from '@/composables/common'
 import { useDeleteAllOptionsFormDataMutation } from '@/queries'
 import useAppStateStore from '@/stores/useAppStateStore'
+import usePendingOperationsStore from '@/stores/usePendingOperationsStore'
 
 /**
  * Composable that returns a function to delete all question states after displaying a confirmation modal.
@@ -24,14 +25,18 @@ function useDeleteAllQuestions() {
         body: 'Are you sure you want to delete all question states?',
         okTitle: 'Delete All Questions',
     })
+    const { addOperation, removeOperation } = usePendingOperationsStore()
 
     return async () => {
         if (await confirmModal()) {
+            const operation = addOperation('delete', { modelType: 'question' })
             try {
                 await mutateAsync()
             } catch (err) {
                 setError(err)
                 return
+            } finally {
+                removeOperation(operation)
             }
 
             // Next, navigate to the index page, because the old route may not exist anymore

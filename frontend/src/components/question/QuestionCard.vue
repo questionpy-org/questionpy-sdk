@@ -18,7 +18,7 @@
             <pre v-if="data">{{ data }}</pre>
         </BCardText>
         <ButtonGroup>
-            <IconButton @click="cloneClick" :icon-component="IMdiContentCopy" variant="secondary" size="sm"
+            <IconButton @click="cloneQuestion" :icon-component="IMdiContentCopy" variant="secondary" size="sm"
                 >Clone</IconButton
             >
             <!-- TODO: Implement export -->
@@ -66,23 +66,11 @@ const { data, questionId } = defineProps<{
     error?: DetailedServerError
 }>()
 
-const emit = defineEmits<{
-    cloned: [newQuestionId: string]
-}>()
-
 const questionLocation = { name: 'question', params: { questionId } } as const
-
 const { colorMode } = storeToRefs(useAppStateStore())
 const deleteQuestion = useDeleteQuestion(questionId)
 const cloneQuestion = useCloneQuestion(questionId)
 const { isActive: isCurrentPreviewActive } = useLink({ to: questionLocation })
 
 const cardVariant = computed(() => (colorMode.value === 'dark' ? 'dark' : 'light'))
-
-const cloneClick = async () => {
-    const newQuestionId = await cloneQuestion()
-    if (newQuestionId) {
-        emit('cloned', newQuestionId)
-    }
-}
 </script>

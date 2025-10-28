@@ -4,9 +4,8 @@
  * (c) Technische Universität Berlin, innoCampus <info@isis.tu-berlin.de>
  */
 
-import { generateId } from '@/composables/composableUtils'
+import { useClone } from '@/composables/common'
 import { usePostQuestionCloneMutation } from '@/queries'
-import useAppStateStore from '@/stores/useAppStateStore'
 
 /**
  * Composable that returns a function to clone a question.
@@ -15,18 +14,9 @@ import useAppStateStore from '@/stores/useAppStateStore'
  * @returns The ID of the new question.
  */
 function useCloneQuestion(questionId: string) {
-    const { setError } = useAppStateStore()
-
-    return async () => {
-        const newQuestionId = generateId()
-        const { mutateAsync } = usePostQuestionCloneMutation(questionId, newQuestionId)
-        try {
-            await mutateAsync()
-            return newQuestionId
-        } catch (err) {
-            setError(err)
-        }
-    }
+    const makeMutateAsync = (newId: string) => usePostQuestionCloneMutation(questionId, newId).mutateAsync
+    const navigateTo = { name: 'index' } as const
+    return useClone('question', makeMutateAsync, navigateTo)
 }
 
 export default useCloneQuestion

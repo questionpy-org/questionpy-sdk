@@ -8,13 +8,7 @@
     <IconButton :to="{ name: 'index' }" :icon-component="IMdiArrowLeft" class="ps-0 mb-2" variant="link"
         >Back to Package Preview</IconButton
     >
-    <QuestionCard
-        class="mb-3"
-        :question-id="params.questionId"
-        :data="formData?.data"
-        :error="detailedServerError"
-        @cloned="handleAttemptCloned"
-    />
+    <QuestionCard class="mb-3" :question-id="params.questionId" :data="formData?.data" :error="detailedServerError" />
     <ButtonGroup class="mb-4">
         <IconButton :icon-component="IMdiImport" variant="link" @click="importAttempt">Import attempt</IconButton>
         <IconButton :icon-component="IMdiAdd" @click="createAttempt" variant="primary">New attempt</IconButton>
@@ -58,14 +52,6 @@ const detailedServerError = computed(() =>
         ? ({ error: error.value.message, details: error.value.details } satisfies DetailedServerError)
         : undefined,
 )
-
-const handleAttemptCloned = async (questionId: string) => {
-    await router.push({
-        name: 'index',
-        // Tell QuestionList to scrollTo/highlight the new question
-        state: { highlightQuestionId: questionId },
-    })
-}
 </script>
 
 <route lang="json">

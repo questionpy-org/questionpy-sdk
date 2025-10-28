@@ -4,10 +4,12 @@
  * (c) Technische Universität Berlin, innoCampus <info@isis.tu-berlin.de>
  */
 
+import { storeToRefs } from 'pinia'
 import { createRouter, createWebHistory } from 'vue-router'
 import { handleHotUpdate, routes } from 'vue-router/auto-routes'
 
 import useAppStateStore from '@/stores/useAppStateStore'
+import usePendingOperationsStore from '@/stores/usePendingOperationsStore'
 
 // Catch-all route
 routes.push({
@@ -19,10 +21,18 @@ routes.push({
 const history = createWebHistory(import.meta.env.BASE_URL)
 const router = createRouter({ history, routes })
 
-router.beforeEach((to, from, next) => {
+// Prevent navigation while operations are pending
+router.beforeEach(() => {
+    const { hasPendingOperations } = storeToRefs(usePendingOperationsStore())
+    if (hasPendingOperations.value) {
+        return false
+    }
+})
+
+// Update page title
+router.beforeEach((to) => {
     const store = useAppStateStore()
     store.pageTitle = to.meta.title
-    next()
 })
 
 // This will update routes at runtime without reloading the page

@@ -4,10 +4,12 @@
  * (c) Technische Universität Berlin, innoCampus <info@isis.tu-berlin.de>
  */
 
+import { storeToRefs } from 'pinia'
 import { computed } from 'vue'
 import type { ComputedRef, Ref } from 'vue'
 
 import { useFormDataState } from '@/composables/question'
+import usePendingOperationsStore from '@/stores/usePendingOperationsStore'
 
 /**
  * A composable providing a disabled state to options form elements.
@@ -20,8 +22,9 @@ import { useFormDataState } from '@/composables/question'
  */
 function useIsDisabled(disabled: Ref<boolean>): ComputedRef<boolean> {
     const { isSaving } = useFormDataState()
+    const { hasPendingOperations } = storeToRefs(usePendingOperationsStore())
 
-    return computed(() => isSaving.value || disabled.value)
+    return computed(() => hasPendingOperations.value || isSaving.value || disabled.value)
 }
 
 export default useIsDisabled

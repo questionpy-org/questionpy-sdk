@@ -4,9 +4,8 @@
  * (c) Technische Universität Berlin, innoCampus <info@isis.tu-berlin.de>
  */
 
-import { generateId } from '@/composables/composableUtils'
+import { useClone } from '@/composables/common'
 import { usePostAttemptCloneMutation } from '@/queries'
-import useAppStateStore from '@/stores/useAppStateStore'
 
 /**
  * Composable that returns a function to clone an attempt.
@@ -16,18 +15,9 @@ import useAppStateStore from '@/stores/useAppStateStore'
  * @returns The ID of the new attempt.
  */
 function useCloneAttempt(questionId: string, attemptId: string) {
-    const { setError } = useAppStateStore()
-
-    return async () => {
-        const newAttemptId = generateId()
-        const { mutateAsync } = usePostAttemptCloneMutation(questionId, attemptId, newAttemptId)
-        try {
-            await mutateAsync()
-            return newAttemptId
-        } catch (err) {
-            setError(err)
-        }
-    }
+    const makeMutateAsync = (newId: string) => usePostAttemptCloneMutation(questionId, attemptId, newId).mutateAsync
+    const navigateTo = { name: 'question', params: { questionId } } as const
+    return useClone('attempt', makeMutateAsync, navigateTo)
 }
 
 export default useCloneAttempt

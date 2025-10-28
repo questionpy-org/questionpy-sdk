@@ -7,6 +7,7 @@
 import { useConfirmModal } from '@/composables/common'
 import { useDeleteOptionsFormDataMutation } from '@/queries'
 import useAppStateStore from '@/stores/useAppStateStore'
+import usePendingOperationsStore from '@/stores/usePendingOperationsStore'
 
 /**
  * Composable that returns a function to delete a question after displaying a confirmation modal.
@@ -17,6 +18,8 @@ import useAppStateStore from '@/stores/useAppStateStore'
 function useDeleteQuestion(questionId: string) {
     const { mutateAsync } = useDeleteOptionsFormDataMutation(questionId)
     const { setError } = useAppStateStore()
+    const { addOperation, removeOperation } = usePendingOperationsStore()
+
     const confirmModal = useConfirmModal({
         title: 'Delete Question',
         body: 'Are you sure you want to delete this question?',
@@ -25,10 +28,13 @@ function useDeleteQuestion(questionId: string) {
 
     return async () => {
         if (await confirmModal()) {
+            const operation = addOperation('delete', { modelType: 'question' })
             try {
                 await mutateAsync()
             } catch (err) {
                 setError(err)
+            } finally {
+                removeOperation(operation)
             }
         }
     }

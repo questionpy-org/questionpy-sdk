@@ -4,5 +4,7 @@
  * (c) Technische Universität Berlin, innoCampus <info@isis.tu-berlin.de>
  */
 
+export { default as useClone } from './useClone'
 export { default as useConfirmModal } from './useConfirmModal'
-export { default as useHighlightOnInsert } from './useHighlightOnInsert'
+export { default as useDeferredItem } from './useDeferredItem'
+export { default as useHintItem } from './useHintItem'
