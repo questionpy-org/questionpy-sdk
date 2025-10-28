@@ -1717,8 +1717,8 @@ watchdog = ">=6.0.0,<7.0.0"
 [package.source]
 type = "git"
 url = "https://github.com/questionpy-org/questionpy-server.git"
-reference = "8a57214559427b6f906c94cb2c77f71aad323d7e"
-resolved_reference = "8a57214559427b6f906c94cb2c77f71aad323d7e"
+reference = "a9f052d552e68268684792e028279feabae2c2e2"
+resolved_reference = "a9f052d552e68268684792e028279feabae2c2e2"
 
 [[package]]
 name = "requests"
@@ -2028,4 +2028,4 @@ propcache = ">=0.2.1"
 [metadata]
 lock-version = "2.1"
 python-versions = ">=3.12, <4.0"
-content-hash = "1da0a8212ea7cf2dba20a714b4ccbf6fb44fdb76498460c0d0d400ff6116b5eb"
+content-hash = "95f25c50a2b7014c9239612f65b428ae732bfc6da1692cffdbfd330fe0d78825"
