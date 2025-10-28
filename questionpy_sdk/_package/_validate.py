@@ -4,7 +4,7 @@ from itertools import chain
 from pathlib import Path
 
 from questionpy_common.constants import MANIFEST_FILENAME
-from questionpy_common.manifest import Manifest, PackageType
+from questionpy_common.manifest import Bcp47LanguageTag, Manifest, PackageType
 
 _log = logging.getLogger(__name__)
 
@@ -128,3 +128,40 @@ def validate_requested_lms_attributes(manifest: Manifest) -> None:
     if unknown_attributes:
         unknown_attribute_list = "\n\t- " + "\n\t- ".join(unknown_attributes)
         _log.warning("The following LMS attributes are requested but unknown:%s", unknown_attribute_list)
+
+
+def validate_package_name_and_description(manifest: Manifest) -> None:
+    if not _log.isEnabledFor(logging.WARNING):
+        return
+
+    declared_translations = set(manifest.languages)
+    name_translations = set(manifest.name.keys())
+    description_translations = set(manifest.description.keys())
+
+    if missing_name_translations := declared_translations - name_translations:
+        missing_translations_list = "\n\t- " + "\n\t- ".join(missing_name_translations)
+        _log.warning("The following package name translations are missing:%s", missing_translations_list)
+
+    if unused_name_translations := name_translations - declared_translations:
+        unused_translations_list = "\n\t- " + "\n\t- ".join(unused_name_translations)
+        _log.warning(
+            "The following package name translations are given but missing in the languages list:%s",
+            unused_translations_list,
+        )
+
+    if description_translations:
+        if missing_description_translations := declared_translations - description_translations:
+            missing_translations_list = "\n\t- " + "\n\t- ".join(missing_description_translations)
+            message = "The following package description translations are missing:%s"
+
+            if Bcp47LanguageTag("en") in missing_translations_list:
+                message += "\nThe package description should be available in English as it is used as a fallback."
+
+            _log.warning(message, missing_translations_list)
+
+        if unused_description_translations := description_translations - declared_translations:
+            unused_translations_list = "\n\t- " + "\n\t- ".join(unused_description_translations)
+            _log.warning(
+                "The following package description translations are given but missing in the languages list:%s",
+                unused_translations_list,
+            )

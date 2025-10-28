@@ -46,6 +46,7 @@ def create_package(
         version=version,
         api_version="0.1",
         author="pytest",
+        name={Bcp47LanguageTag("en"): "Test Package"},
         languages=[Bcp47LanguageTag("en")],
     )
 

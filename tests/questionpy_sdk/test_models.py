@@ -13,9 +13,15 @@ def test_package_config_strips_config_fields() -> None:
         api_version="0.1",
         author="John Doe",
         build_hooks={"pre": "npm start"},
+        name={Bcp47LanguageTag("en"): "Test Package"},
         languages=[Bcp47LanguageTag("en")],
     )
     exp = SourceManifest(
-        short_name="foo", version="0.0.1", api_version="0.1", author="John Doe", languages=[Bcp47LanguageTag("en")]
+        short_name="foo",
+        version="0.0.1",
+        api_version="0.1",
+        author="John Doe",
+        name={Bcp47LanguageTag("en"): "Test Package"},
+        languages=[Bcp47LanguageTag("en")],
     )
     assert dict(config.to_manifest()) == dict(exp)

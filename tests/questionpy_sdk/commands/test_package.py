@@ -24,7 +24,12 @@ from questionpy_sdk.resources import EXAMPLE_PACKAGE
 def create_config(source: Path) -> PackageConfig:
     """Creates a config in the given `source` directory."""
     config = PackageConfig(
-        short_name="short_name", author="pytest", api_version="0.1", version="0.1.0", languages=[Bcp47LanguageTag("en")]
+        short_name="short_name",
+        author="pytest",
+        api_version="0.1",
+        version="0.1.0",
+        name={Bcp47LanguageTag("en"): "Test Package"},
+        languages=[Bcp47LanguageTag("en")],
     )
     with (source / PACKAGE_CONFIG_FILENAME).open("w") as file:
         yaml.dump(config.model_dump(exclude={"type"}), file)

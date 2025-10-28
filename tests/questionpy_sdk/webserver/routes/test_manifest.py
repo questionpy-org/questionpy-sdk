@@ -8,7 +8,7 @@ import pytest
 from aiohttp.test_utils import TestClient
 from aiohttp.web_exceptions import HTTPOk
 
-from questionpy_common.manifest import Manifest
+from questionpy_common.manifest import Bcp47LanguageTag, Manifest
 from questionpy_sdk.webserver.routes.manifest import routes
 
 
@@ -20,7 +20,8 @@ async def test_get_manifest(client: TestClient, mock_controller: AsyncMock) -> N
         version="0.0.1",
         api_version="0.1",
         author="Jane Doe <jane.doe@example.org>",
-        languages=["de", "en"],
+        name={Bcp47LanguageTag("en"): "Test Package"},
+        languages=[Bcp47LanguageTag("de"), Bcp47LanguageTag("en")],
     )
 
     async with client.get("/manifest") as resp:

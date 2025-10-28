@@ -33,6 +33,7 @@ def package() -> ImportablePackage:
                 short_name="test_package",
                 version="1.2.3",
                 author="Testy McTestface",
+                name={Bcp47LanguageTag("en"): "Test Package"},
                 api_version="0.3",
                 languages=[Bcp47LanguageTag("en")],
                 static_files=STATIC_FILES,

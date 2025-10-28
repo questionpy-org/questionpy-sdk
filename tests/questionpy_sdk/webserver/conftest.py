@@ -17,6 +17,7 @@ def mock_worker() -> AsyncMock:
         version="7.3.1",
         api_version="9.4",
         author="Testy McTestface",
+        name={Bcp47LanguageTag("en"): "Test Package"},
         languages=[Bcp47LanguageTag("en")],
     )
     return AsyncMock(get_manifest=AsyncMock(return_value=manifest))
