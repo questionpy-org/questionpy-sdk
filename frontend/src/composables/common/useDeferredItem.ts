@@ -4,8 +4,8 @@
  * (c) Technische Universität Berlin, innoCampus <info@isis.tu-berlin.de>
  */
 
-import { computed, nextTick, watch } from 'vue'
-import type { Ref } from 'vue'
+import { computed, nextTick, toValue, watch } from 'vue'
+import type { MaybeRefOrGetter } from 'vue'
 
 import usePendingOperationsStore from '@/stores/usePendingOperationsStore'
 import type { OperationModelType } from '@/stores/usePendingOperationsStore'
@@ -22,12 +22,12 @@ import type { OperationModelType } from '@/stores/usePendingOperationsStore'
  *
  * @template T Type of items stored in the `items` map.
  * @param modelType The model type to filter relevant deferred operations.
- * @param items Reactive reference to an object mapping item IDs to items.
+ * @param items An object mapping item IDs to items (ref or getter).
  * @param handleDeferredItem Callback invoked with the item ID once it appears.
  */
 function useDeferredItem<T extends object>(
     modelType: OperationModelType,
-    items: Ref<Record<string, T>>,
+    items: MaybeRefOrGetter<Record<string, T>>,
     handleDeferredItem: (id: string) => Promise<void>,
 ) {
     const { getOperationsByType, removeOperation } = usePendingOperationsStore()
@@ -36,7 +36,7 @@ function useDeferredItem<T extends object>(
     watch(
         () => ({
             newOps: deferredItemOperations.value,
-            newItems: items.value,
+            newItems: toValue(items),
         }),
         async ({ newOps, newItems }) => {
             // Check for an operation that concerns us
