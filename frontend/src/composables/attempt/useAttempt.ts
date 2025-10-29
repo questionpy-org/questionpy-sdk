@@ -5,7 +5,6 @@
  */
 
 import { computed, type ComputedRef } from 'vue'
-import type { AsyncStatus } from '@pinia/colada'
 
 import {
     useAttemptQuery,
@@ -25,28 +24,16 @@ import type { AttemptData, SectionErrorMap } from '@/types'
  * @returns An object containing form state and mutation methods.
  */
 function useAttempt(questionId: string, attemptId: string): UseAttemptReturn {
-    const { asyncStatus: dataAsyncStatus, data: attemptData, error: dataError } = useAttemptQuery(questionId, attemptId)
-    const { asyncStatus: postAsyncStatus, mutateAsync: postAttempt } = usePostAttemptMutation(questionId, attemptId)
-    const { asyncStatus: deleteAttemptAsyncStatus, mutateAsync: deleteAttempt } = useDeleteAttemptMutation(
-        questionId,
-        attemptId,
-    )
-    const { asyncStatus: postScoreAsyncStatus, mutateAsync: postScore } = usePostAttemptScoreMutation(
-        questionId,
-        attemptId,
-    )
+    const { data: attemptData, error: dataError, isPending } = useAttemptQuery(questionId, attemptId)
+    const { mutateAsync: postAttempt } = usePostAttemptMutation(questionId, attemptId)
+    const { mutateAsync: deleteAttempt } = useDeleteAttemptMutation(questionId, attemptId)
+    const { mutateAsync: postScore } = usePostAttemptScoreMutation(questionId, attemptId)
 
     const { setError } = useAppStateStore()
     const { addOperation, removeOperation } = usePendingOperationsStore()
 
     return {
-        asyncStatus: computed(() =>
-            [dataAsyncStatus, postAsyncStatus, deleteAttemptAsyncStatus, postScoreAsyncStatus].every(
-                ({ value }) => value === 'idle',
-            )
-                ? 'idle'
-                : 'loading',
-        ),
+        isPending,
         error: computed(() => dataError.value),
 
         attemptData: computed(() => attemptData.value?.attempt_data),
@@ -96,8 +83,8 @@ interface UseAttemptReturn {
     /** Attempt data. */
     attemptData: ComputedRef<AttemptData | undefined>
 
-    /** Computed combined async loading status. */
-    asyncStatus: ComputedRef<AsyncStatus>
+    /** Whether the request is still pending its first call. */
+    isPending: ComputedRef<boolean>
 
     /** Computed reference to the latest error from underlying queries. */
     error: ComputedRef<Error | null>

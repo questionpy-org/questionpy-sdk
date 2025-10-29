@@ -5,57 +5,68 @@
 -->
 
 <template>
-    <LoadingIndicator v-if="asyncStatus === 'loading'" />
     <ErrorCard v-if="error" :error="error" />
     <template v-else>
-        <AttemptRenderErrors v-if="renderErrors" :render-errors="renderErrors" />
-        <BContainer fluid>
-            <BRow>
-                <BCol class="px-0" cols="12" md="8" order-md="2">
-                    <AttemptIframe v-if="iframeSrcDoc" :src-doc="iframeSrcDoc" ref="attemptIframeRef" />
-                </BCol>
-                <BCol class="px-0 mb-3" cols="12" md="4" order-md="1">
-                    <BRow align-v="center">
-                        <BCol cols="6" md="12">
-                            <h3 class="mb-md-5">
-                                <BBadge variant="info">{{
-                                    displayScore ? `Score: ${displayScore}` : 'Not yet scored'
-                                }}</BBadge>
-                            </h3>
-                        </BCol>
-                        <BCol class="px-0" cols="6" md="12">
-                            <IconButton
-                                :icon-component="IMdiEdit"
-                                :to="{ name: 'question-edit', params: { questionId } }"
-                                variant="link"
-                                >Edit question</IconButton
-                            >
-                        </BCol>
-                    </BRow>
-                </BCol>
-            </BRow>
-        </BContainer>
-        <ButtonGroup class="mb-4">
-            <IconButton :icon-component="IMdiContentSave" @click="save" variant="primary">Save</IconButton>
-            <IconButton :icon-component="IMdiContentSaveMove" @click="saveAndSubmit" variant="secondary"
-                >Save and submit</IconButton
-            >
-            <IconButton :disabled="isRestartDisabled" :icon-component="IMdiRestart" @click="restart" variant="warning"
-                >Restart</IconButton
-            >
-            <IconButton :disabled="isRescoreDisabled" :icon-component="IMdiScore" @click="score" variant="info"
-                >Re-score</IconButton
-            >
-        </ButtonGroup>
-        <DisplayOptions class="mb-4" />
-        <AttemptCard
-            v-if="attemptData"
-            :attempt-data="attemptData"
-            :question-id="questionId"
-            :attempt-id="attemptId"
-            collapsible
-            variant="info"
-        />
+        <LoadingIndicator :loading="isPending">
+            <AttemptRenderErrors v-if="renderErrors" :render-errors="renderErrors" />
+            <BContainer fluid>
+                <BRow>
+                    <BCol class="px-0" cols="12" md="8" order-md="2">
+                        <AttemptIframe v-if="iframeSrcDoc" :src-doc="iframeSrcDoc" ref="attemptIframeRef" />
+                    </BCol>
+                    <BCol class="px-0 mb-3" cols="12" md="4" order-md="1">
+                        <BRow align-v="center">
+                            <BCol cols="6" md="12">
+                                <h3 class="mb-md-5">
+                                    <BBadge variant="info">{{
+                                        displayScore ? `Score: ${displayScore}` : 'Not yet scored'
+                                    }}</BBadge>
+                                </h3>
+                            </BCol>
+                            <BCol class="px-0" cols="6" md="12">
+                                <IconButton
+                                    :icon-component="IMdiEdit"
+                                    :to="{ name: 'question-edit', params: { questionId } }"
+                                    variant="link"
+                                    >Edit question</IconButton
+                                >
+                            </BCol>
+                        </BRow>
+                    </BCol>
+                </BRow>
+            </BContainer>
+            <ButtonGroup>
+                <IconButton :icon-component="IMdiContentSave" @click="save" variant="primary">Save</IconButton>
+                <IconButton :icon-component="IMdiContentSaveMove" @click="saveAndSubmit" variant="secondary"
+                    >Save and submit</IconButton
+                >
+                <IconButton
+                    :disabled="isRestartDisabled"
+                    :icon-component="IMdiRestart"
+                    @click="restart"
+                    variant="warning"
+                    >Restart</IconButton
+                >
+                <IconButton :disabled="isRescoreDisabled" :icon-component="IMdiScore" @click="score" variant="info"
+                    >Re-score</IconButton
+                >
+            </ButtonGroup>
+        </LoadingIndicator>
+
+        <LoadingIndicator :loading="isPending">
+            <DisplayOptions />
+        </LoadingIndicator>
+
+        <LoadingIndicator :loading="isPending">
+            <AttemptCard
+                v-if="attemptData"
+                :attempt-data="attemptData"
+                :question-id="questionId"
+                :attempt-id="attemptId"
+                collapsible
+                variant="info"
+            />
+        </LoadingIndicator>
     </template>
 </template>
 
@@ -79,9 +90,9 @@ const { questionId, attemptId } = defineProps<{
 }>()
 
 const {
-    asyncStatus,
     attemptData,
     error,
+    isPending,
     iframeSrcDoc,
     renderErrors,
     score,

@@ -5,11 +5,11 @@
 -->
 
 <template>
-    <IconButton :to="{ name: 'index' }" :icon-component="IMdiArrowLeft" class="ps-0 mb-2" variant="link"
-        >Back to Package Preview</IconButton
-    >
-    <QuestionCard class="mb-3" :question-id="params.questionId" :data="formData?.data" :error="detailedServerError" />
-    <ButtonGroup class="mb-4">
+    <BackLink :to="{ name: 'index' }">Back to Package Preview</BackLink>
+    <LoadingIndicator :loading="isPending">
+        <QuestionCard :question-id="params.questionId" :data="formData?.data" :error="detailedServerError" />
+    </LoadingIndicator>
+    <ButtonGroup>
         <IconButton :icon-component="IMdiImport" variant="link" @click="importAttempt">Import attempt</IconButton>
         <IconButton :icon-component="IMdiAdd" @click="createAttempt" variant="primary">New attempt</IconButton>
     </ButtonGroup>
@@ -18,7 +18,6 @@
 
 <script setup lang="ts">
 import IMdiAdd from '~icons/mdi/add'
-import IMdiArrowLeft from '~icons/mdi/arrow-left'
 import IMdiImport from '~icons/mdi/import'
 import { computed, watch } from 'vue'
 import { useRoute, useRouter } from 'vue-router'
@@ -29,7 +28,7 @@ import type { DetailedServerError } from '@/types'
 
 const router = useRouter()
 const { params } = useRoute('question')
-const { data: formData, error } = useOptionsFormDataQuery(params.questionId)
+const { data: formData, error, isPending } = useOptionsFormDataQuery(params.questionId)
 const createAttempt = useCreateAttempt(params.questionId)
 
 // If question doesn't exist, show index instead

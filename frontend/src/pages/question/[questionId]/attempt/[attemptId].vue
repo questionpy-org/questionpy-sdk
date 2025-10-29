@@ -5,18 +5,11 @@
 -->
 
 <template>
-    <IconButton
-        :to="{ name: 'question', params: { questionId: params.questionId } }"
-        :icon-component="IMdiArrowLeft"
-        class="ps-0 mb-2"
-        variant="link"
-        >Back to Question Preview</IconButton
-    >
+    <BackLink :to="{ name: 'question', params: { questionId: params.questionId } }">Back to Question Preview</BackLink>
     <AttemptPreview :questionId="params.questionId" :attemptId="params.attemptId" />
 </template>
 
 <script setup lang="ts">
-import IMdiArrowLeft from '~icons/mdi/arrow-left'
 import { useRoute } from 'vue-router'
 
 const { params } = useRoute('question-attempt')

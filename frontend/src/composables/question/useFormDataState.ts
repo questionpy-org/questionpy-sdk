@@ -5,7 +5,6 @@
  */
 
 import { computed, inject, provide, ref, toRaw, watch } from 'vue'
-import type { AsyncStatus } from '@pinia/colada'
 import type { ComputedRef, InjectionKey, Ref, ShallowRef } from 'vue'
 
 import { useOptionsFormDataQuery, useOptionsFormDefinitionQuery, usePostOptionsFormDataMutation } from '@/queries'
@@ -24,16 +23,16 @@ const QUESTION_FORM_DATA_KEY = Symbol('question-form-data') as InjectionKey<UseF
  */
 function provideFormDataState(questionId: string): UseFormDataStateReturn {
     const {
-        asyncStatus: formDefinitionAsyncStatus,
         data: formDefinition,
         error: formDefinitionError,
+        isPending: formDefinitionIsPending,
         status: formDefinitionStatus,
     } = useOptionsFormDefinitionQuery(questionId)
     const {
-        asyncStatus: formDataAsyncStatus,
         data: formDataRemote,
         error: formDataError,
         refresh: formDataRefresh,
+        isPending: formDataIsPending,
         status: formDataStatus,
     } = useOptionsFormDataQuery(questionId)
     const {
@@ -74,14 +73,8 @@ function provideFormDataState(questionId: string): UseFormDataStateReturn {
         },
     )
 
-    const asyncStatus = computed(() =>
-        [formDefinitionAsyncStatus, formDataAsyncStatus, postDataAsyncStatus].some(
-            (status) => status.value === 'loading',
-        )
-            ? 'loading'
-            : 'idle',
-    )
     const error = computed(() => formDefinitionError.value ?? formDataError.value ?? postDataError.value)
+    const isPending = computed(() => formDefinitionIsPending.value || formDataIsPending.value)
 
     // Form logic
 
@@ -151,7 +144,7 @@ function provideFormDataState(questionId: string): UseFormDataStateReturn {
         formDefinition,
         formData: formDataCurrent,
         formErrors,
-        asyncStatus,
+        isPending,
         error,
 
         hasEditableFields,
@@ -202,8 +195,8 @@ interface UseFormDataStateReturn {
     /** Reactive reference to current form validation errors. */
     formErrors: Ref<ServerValidationErrors>
 
-    /** Computed combined async loading status. */
-    asyncStatus: ComputedRef<AsyncStatus>
+    /**  Whether the form requests are still pending their first call. */
+    isPending: ComputedRef<boolean>
 
     /** Computed reference to the latest error from underlying queries. */
     error: ComputedRef<Error | null>

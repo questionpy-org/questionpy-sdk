@@ -5,28 +5,36 @@
 -->
 
 <template>
-    <LoadingIndicator v-if="asyncStatus === 'loading'" />
-    <ErrorCard v-if="error" :error="error" />
-    <CollapsibleCard v-else expanded>
-        <template #button-title>Saved questions ({{ questionCount }})</template>
-        <InvalidQuestionStateError v-if="hasInvalidStates" class="mb-3" />
-        <div
-            v-for="[questionId, question] in Object.entries(questions)"
-            :class="['question-card-wrapper', { highlight: highlightedIds.has(questionId) }]"
-            :key="questionId"
-            :ref="registerElementRef(questionId)"
-        >
-            <QuestionCard
-                :id="`question-${questionId}`"
-                :questionId="questionId"
-                :data="question.data"
-                :error="question.error"
-            />
-        </div>
-        <BAlert v-if="questionCount === 0" :model-value="true" class="mb-0" variant="info"
-            >This package has no questions yet.</BAlert
-        >
-    </CollapsibleCard>
+    <LoadingIndicator :loading="isPending">
+        <ErrorCard v-if="error" :error="error" />
+        <CollapsibleCard v-else expanded>
+            <template #button-title>
+                <div class="d-flex gap-2 align-items-center">
+                    <IMdiFormatListBulleted class="flex-shrink-0 me-2" />
+                    <div class="text-truncate">Saved questions ({{ questionCount }})</div>
+                </div>
+            </template>
+            <InvalidQuestionStateError v-if="hasInvalidStates" class="mb-3" />
+            <div class="vstack gap-3">
+                <div
+                    v-for="[questionId, question] in Object.entries(questions)"
+                    :class="['question-card-wrapper', { highlight: highlightedIds.has(questionId) }]"
+                    :key="questionId"
+                    :ref="registerElementRef(questionId)"
+                >
+                    <QuestionCard
+                        :id="`question-${questionId}`"
+                        :questionId="questionId"
+                        :data="question.data"
+                        :error="question.error"
+                    />
+                </div>
+            </div>
+            <BAlert v-if="questionCount === 0" :model-value="true" class="mb-0" variant="info"
+                >This package has no questions yet.</BAlert
+            >
+        </CollapsibleCard>
+    </LoadingIndicator>
 </template>
 
 <script lang="ts" setup>
@@ -37,7 +45,7 @@ import { useQuestionStatesQuery } from '@/queries'
 import { isDetailedServerError } from '@/types'
 import type { DetailedServerError, OptionsFormData } from '@/types'
 
-const { asyncStatus, error, data } = useQuestionStatesQuery()
+const { error, data, isPending } = useQuestionStatesQuery()
 
 const questions = computed<Record<string, { data?: OptionsFormData; error?: DetailedServerError }>>(() => {
     if (data.value === undefined) {
@@ -59,11 +67,7 @@ useDeferredItem('question', questions, hintItem)
 
 <style lang="scss" scoped>
 .question-card-wrapper {
-    margin-bottom: $spacer;
-
-    &:last-of-type {
-        margin-bottom: 0;
-    }
+    border-radius: var(--bs-border-radius);
 
     &.highlight {
         @include highlight-pulse;

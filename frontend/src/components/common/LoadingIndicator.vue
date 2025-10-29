@@ -5,5 +5,24 @@
 -->
 
 <template>
-    <BPlaceholder animation="glow" />
+    <div v-bind="wrapperProps">
+        <BPlaceholderWrapper :loading="loading">
+            <template #loading>
+                <BPlaceholderCard animation="wave" no-button no-footer no-img />
+            </template>
+            <slot />
+        </BPlaceholderWrapper>
+    </div>
 </template>
+
+<script lang="ts" setup>
+import { computed } from 'vue'
+import type { BPlaceholderWrapperProps } from 'bootstrap-vue-next'
+
+const props = defineProps<BPlaceholderWrapperProps>()
+
+const wrapperProps = computed(() => {
+    const { loading, ...rest } = props
+    return rest
+})
+</script>
