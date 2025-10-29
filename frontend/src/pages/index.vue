@@ -5,8 +5,8 @@
 -->
 
 <template>
-    <PackageCard class="mb-4" />
-    <ButtonGroup class="mb-4">
+    <PackageCard />
+    <ButtonGroup>
         <IconButton :icon-component="IMdiImport" variant="link" @click="importQuestion">Import question</IconButton>
         <IconButton :icon-component="IMdiAdd" @click="createQuestion" variant="primary">New question</IconButton>
     </ButtonGroup>

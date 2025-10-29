@@ -24,8 +24,10 @@
             </BButton>
         </BNavbar>
 
-        <BContainer class="pt-4" fluid="md">
-            <RouterView />
+        <BContainer class="py-4" fluid="md">
+            <div class="vstack gap-4">
+                <RouterView />
+            </div>
         </BContainer>
 
         <ErrorModal />

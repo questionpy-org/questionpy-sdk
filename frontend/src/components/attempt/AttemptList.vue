@@ -5,27 +5,35 @@
 -->
 
 <template>
-    <LoadingIndicator v-if="asyncStatus === 'loading'" />
-    <ErrorCard v-if="error" :error="error" />
-    <CollapsibleCard v-else expanded>
-        <template #button-title>Saved attempts ({{ attemptCount }})</template>
-        <div
-            v-for="[attemptId, attemptData] in Object.entries(attempts)"
-            :class="['attempt-card-wrapper', { highlight: highlightedIds.has(attemptId) }]"
-            :key="attemptId"
-            :ref="registerElementRef(attemptId)"
-        >
-            <AttemptCard
-                :id="`attempt-${questionId}-${attemptId}`"
-                :question-id="questionId"
-                :attempt-id="attemptId"
-                :attempt-data="attemptData"
-            />
-        </div>
-        <BAlert v-if="attemptCount === 0" :model-value="true" class="mb-0" variant="info"
-            >This question has no attempts yet.</BAlert
-        >
-    </CollapsibleCard>
+    <LoadingIndicator :loading="isPending">
+        <ErrorCard v-if="error" :error="error" />
+        <CollapsibleCard v-else expanded>
+            <template #button-title>
+                <div class="d-flex gap-2 align-items-center">
+                    <IMdiFormatListBulleted class="flex-shrink-0 me-2" />
+                    <div class="text-truncate">Saved attempts ({{ attemptCount }})</div>
+                </div>
+            </template>
+            <div class="vstack gap-3">
+                <div
+                    v-for="[attemptId, attemptData] in Object.entries(attempts)"
+                    :class="['attempt-card-wrapper', { highlight: highlightedIds.has(attemptId) }]"
+                    :key="attemptId"
+                    :ref="registerElementRef(attemptId)"
+                >
+                    <AttemptCard
+                        :id="`attempt-${questionId}-${attemptId}`"
+                        :question-id="questionId"
+                        :attempt-id="attemptId"
+                        :attempt-data="attemptData"
+                    />
+                </div>
+            </div>
+            <BAlert v-if="attemptCount === 0" :model-value="true" class="mb-0" variant="info"
+                >This question has no attempts yet.</BAlert
+            >
+        </CollapsibleCard>
+    </LoadingIndicator>
 </template>
 
 <script lang="ts" setup>
@@ -36,7 +44,7 @@ import { useAttemptListQuery } from '@/queries'
 
 const { questionId } = defineProps<{ questionId: string }>()
 
-const { asyncStatus, error, data: listData } = useAttemptListQuery(questionId)
+const { error, data: listData, isPending } = useAttemptListQuery(questionId)
 
 const attempts = computed(() => listData.value ?? {})
 const attemptCount = computed(() => Object.keys(attempts.value).length)
@@ -48,11 +56,6 @@ useDeferredItem('attempt', attempts, hintItem)
 <style lang="scss" scoped>
 .attempt-card-wrapper {
     border-radius: var(--bs-border-radius);
-    margin-bottom: $spacer;
-
-    &:last-of-type {
-        margin-bottom: 0;
-    }
 
     &.highlight {
         @include highlight-pulse;

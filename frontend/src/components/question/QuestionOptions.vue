@@ -5,43 +5,44 @@
 -->
 
 <template>
-    <LoadingIndicator v-if="asyncStatus === 'loading'" />
-    <ErrorCard v-if="error" :error="error" />
-    <BForm v-else-if="formDefinition">
-        <OptionsSection header="General" name="general" :elements="formDefinition.general" />
-        <OptionsSection
-            v-for="section in formDefinition.sections"
-            :elements="section.elements"
-            :header="section.header"
-            :key="section.name"
-            :name="section.name"
-        />
-    </BForm>
-    <ButtonGroup class="mb-4">
-        <template v-if="hasEditableFields">
-            <IconButton :disabled="isSaveDisabled" :icon-component="SubmitIcon" @click="submit" variant="primary">{{
-                submitLabel
-            }}</IconButton>
-            <IconButton
-                :disabled="isSaveDisabled"
-                :icon-component="IMdiContentSaveMove"
-                @click="saveAndReturn"
-                variant="secondary"
-                >{{ submitLabel }} and return</IconButton
+    <LoadingIndicator :loading="isPending">
+        <ErrorCard v-if="error" :error="error" />
+        <BForm v-else-if="formDefinition">
+            <OptionsSection header="General" name="general" :elements="formDefinition.general" />
+            <OptionsSection
+                v-for="section in formDefinition.sections"
+                :elements="section.elements"
+                :header="section.header"
+                :key="section.name"
+                :name="section.name"
+            />
+        </BForm>
+        <ButtonGroup class="mb-4">
+            <template v-if="hasEditableFields">
+                <IconButton :disabled="isSaveDisabled" :icon-component="SubmitIcon" @click="submit" variant="primary">{{
+                    submitLabel
+                }}</IconButton>
+                <IconButton
+                    :disabled="isSaveDisabled"
+                    :icon-component="IMdiContentSaveMove"
+                    @click="saveAndReturn"
+                    variant="secondary"
+                    >{{ submitLabel }} and return</IconButton
+                >
+                <IconButton
+                    :disabled="isPreviewDisabled"
+                    :icon-component="IMdiEye"
+                    @click="saveAndPreview"
+                    variant="secondary"
+                    >{{ submitAndPreviewLabel }}</IconButton
+                >
+            </template>
+            <IconButton v-else :icon-component="IMdiEye" @click="preview" variant="secondary">Preview</IconButton>
+            <IconButton :disabled="isSaving" :icon-component="IMdiCancel" :to="{ name: 'index' }" variant="danger"
+                >Cancel</IconButton
             >
-            <IconButton
-                :disabled="isPreviewDisabled"
-                :icon-component="IMdiEye"
-                @click="saveAndPreview"
-                variant="secondary"
-                >{{ submitAndPreviewLabel }}</IconButton
-            >
-        </template>
-        <IconButton v-else :icon-component="IMdiEye" @click="preview" variant="secondary">Preview</IconButton>
-        <IconButton :disabled="isSaving" :icon-component="IMdiCancel" :to="{ name: 'index' }" variant="danger"
-            >Cancel</IconButton
-        >
-    </ButtonGroup>
+        </ButtonGroup>
+    </LoadingIndicator>
 </template>
 
 <script lang="ts" setup>
@@ -62,8 +63,8 @@ const { questionId } = defineProps<{ questionId: string }>()
 const router = useRouter()
 const store = useAppStateStore()
 const {
-    asyncStatus,
     error,
+    isPending,
     formDefinition,
     hasEditableFields,
     isClean,

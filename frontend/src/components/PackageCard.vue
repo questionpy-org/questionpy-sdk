@@ -5,8 +5,7 @@
 -->
 
 <template>
-    <div>
-        <LoadingIndicator v-if="asyncStatus === 'loading'" />
+    <LoadingIndicator :loading="isPending">
         <ErrorCard v-if="state.error" :error="state.error" />
         <CollapsibleCard variant="success" v-else-if="manifest" expanded>
             <BContainer class="px-0" fluid>
@@ -52,13 +51,13 @@
                 </div>
             </template>
         </CollapsibleCard>
-    </div>
+    </LoadingIndicator>
 </template>
 
 <script lang="ts" setup>
 import { useManifestQuery } from '@/queries'
 
-const { asyncStatus, manifest, state } = useManifestQuery()
+const { isPending, manifest, state } = useManifestQuery()
 </script>
 
 <style lang="scss" scoped>
