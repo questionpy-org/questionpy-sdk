@@ -1,7 +1,7 @@
 #  This file is part of the QuestionPy SDK. (https://questionpy.org)
 #  The QuestionPy SDK is free software released under terms of the MIT license. See LICENSE.md.
 #  (c) Technische Universität Berlin, innoCampus <info@isis.tu-berlin.de>
-
+import os
 from collections.abc import AsyncIterator
 from contextlib import asynccontextmanager
 from typing import TYPE_CHECKING
@@ -26,7 +26,11 @@ class BaseController:
     @asynccontextmanager
     async def get_worker(self) -> AsyncIterator[Worker]:
         async with self._webserver.worker_pool.get_worker(
-            self._webserver.package_location, "sdk", "sdk", self._webserver.package_permissions
+            self._webserver.package_location,
+            "sdk",
+            "sdk",
+            self._webserver.package_permissions,
+            os.environ.copy(),
         ) as worker:
             yield worker
 

@@ -48,6 +48,11 @@ class DuplicateAttemptError(StateError):
     message = "The attempt already exists."
 
 
+class EnvironmentVariablesMissingError(Exception):
+    def __init__(self, missing: set[str]) -> None:
+        self.missing = missing
+
+
 @dataclass(config=ConfigDict(use_attribute_docstrings=True))
 class DetailedServerError:
     """Represents a server-side error serialized for client display."""

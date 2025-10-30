@@ -8,6 +8,7 @@
 // DO NOT MODIFY IT BY HAND. Instead, modify the source Pydantic models, and regenerate this file.
 
 export type PackageType = 'LIBRARY' | 'QUESTIONTYPE' | 'QUESTION'
+export type EnvironmentVariableName = string
 
 /**
  * Represents a package manifest.
@@ -32,6 +33,7 @@ export interface Manifest {
     type: PackageType
     license: string | null
     permissions: PartialPackagePermissions | null
+    environment_variables: EnvironmentVariableName[] | null
     tags: string[]
     requirements: string | string[] | null
     static_files: StaticFiles

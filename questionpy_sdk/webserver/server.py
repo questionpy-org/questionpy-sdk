@@ -3,6 +3,7 @@
 #  (c) Technische Universität Berlin, innoCampus <info@isis.tu-berlin.de>
 
 import logging
+import os
 from pathlib import Path
 from types import TracebackType
 from typing import ClassVar, NotRequired, Self, TypedDict, Unpack
@@ -23,6 +24,7 @@ from questionpy_server.worker.impl.subprocess import SubprocessWorker
 from questionpy_server.worker.runtime.package_location import PackageLocation
 
 from .constants import API_PATH_PREFIX, USE_VITE_DEV_SERVER, WEBSERVER_KEY
+from .errors import EnvironmentVariablesMissingError
 from .manifest import read_manifest
 
 log = logging.getLogger("questionpy-sdk:web-server")
@@ -58,6 +60,11 @@ class WebServer:
     async def __aenter__(self) -> Self:
         # Read manifest
         self._manifest = await read_manifest(self.package_location)
+
+        # Check if required environment variables are set
+        requested_environment_variables = self._manifest.environment_variables or set()
+        if missing_environment_variables := requested_environment_variables - os.environ.keys():
+            raise EnvironmentVariablesMissingError(missing=missing_environment_variables)
 
         # Assemble worker permissions
         permissions = CompletePackagePermissions()
