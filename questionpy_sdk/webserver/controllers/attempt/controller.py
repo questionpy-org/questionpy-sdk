@@ -94,6 +94,8 @@ class AttemptController(BaseController):
                 question_state=await self._state_manager.read_question_state(question_id),
                 attempt_state=await self._state_manager.read_attempt_state(question_id, attempt_id),
                 response=await self._state_manager.read_attempt_data(question_id, attempt_id),
+                uploads={},
+                editors={},  # TODO: Implement uploads and editors in SDK frontend. (#245)
                 scoring_state=score.scoring_state if score else None,
             )
 

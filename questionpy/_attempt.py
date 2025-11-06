@@ -18,6 +18,7 @@ from questionpy_common.api.attempt import (
     ScoredInputModel,
     ScoringCode,
 )
+from questionpy_common.api.files import EditorData, ResponseFile
 
 from ._ui import create_jinja2_environment
 from ._util import get_package_by_attempt, reify_type_hint
@@ -129,11 +130,18 @@ class Attempt(ABC):
         attempt_state: BaseAttemptState,
         scoring_state: BaseScoringState | None = None,
         response: dict[str, JsonValue] | None = None,
+        uploads: dict[str, list[ResponseFile]] | None = None,
+        editors: dict[str, EditorData[ResponseFile]] | None = None,
     ) -> None:
         self.question = question
         self.attempt_state = attempt_state
-        self.response = response
         self.scoring_state = scoring_state
+        self.response = response
+        """The values entered into all "normal" input fields by the student, by their names."""
+        self.uploads = uploads
+        """The files uploaded to any `<qpy:file-upload/>` elements you defined, by their names."""
+        self.editors = editors
+        """The text entered and files uploaded in any `<qpy:rich-text-editor/>` elements you defined, by their names."""
 
         self.cache_control = CacheControl.PRIVATE_CACHE
         self.placeholders: dict[str, str | TranslatableString] = {}

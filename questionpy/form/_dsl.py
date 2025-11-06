@@ -9,6 +9,7 @@ from pydantic.fields import FieldInfo
 from pydantic_core import PydanticUndefined
 
 from questionpy_common import TranslatableString
+from questionpy_common.api.files import EditorData, OptionsFile
 from questionpy_common.conditions import Condition, DoesNotEqual, Equals, In, IsChecked, IsNotChecked
 from questionpy_common.elements import (
     CheckboxElement,
@@ -30,8 +31,6 @@ from questionpy_common.elements import (
 from ._model import (
     FormModel,
     OptionEnum,
-    OptionsFile,
-    RichTextEditor,
     _FieldInfo,
     _OptionInfo,
     _SectionInfo,
@@ -689,7 +688,7 @@ def rich_text_editor(
     upload_max_bytes_per_file: int | None = None,
     upload_max_bytes_total: int | None = None,
     help: str | TranslatableString | None = None,
-) -> RichTextEditor:
+) -> EditorData[OptionsFile]:
     """Adds a rich text editor element, usually a WYSIWYG-style editor, depending on what the LMS provides.
 
     If the LMS supports uploading and embedding files in its editor, they will be available in the `files` attribute,
@@ -722,9 +721,9 @@ def rich_text_editor(
         )
 
     return cast(
-        "RichTextEditor",
+        "EditorData[OptionsFile]",
         _FieldInfo(
-            type=RichTextEditor,
+            type=EditorData[OptionsFile],
             build=lambda name: WysiwygEditorElement(name=name, label=label, help=help, file_uploads=upload_options),
         ),
     )

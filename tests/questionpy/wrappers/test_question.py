@@ -46,7 +46,13 @@ def test_should_get_attempt(package: Package) -> None:
 def test_score_attempt_should_return_automatically_scored(package: Package) -> None:
     qtype = QuestionTypeWrapper(QuestionUsingMyQuestionState, package)
     question = qtype.create_question_from_state(json.dumps(QUESTION_STATE_DICT))
-    attempt_scored_model = question.score_attempt(json.dumps(ATTEMPT_STATE_DICT))
+    attempt_scored_model = question.score_attempt(
+        attempt_state=json.dumps(ATTEMPT_STATE_DICT),
+        scoring_state=None,
+        response={},
+        uploads={},
+        editors={},
+    )
 
     assert attempt_scored_model == AttemptScoredModel(
         lang="en",
@@ -75,7 +81,13 @@ def test_score_attempt_should_handle_scoring_error(
     assert isinstance(question, QuestionWrapper)
     with patch.object(SomeAttempt, "_compute_score") as method:
         method.side_effect = error
-        attempt_scored_model = question.score_attempt(json.dumps(ATTEMPT_STATE_DICT))
+        attempt_scored_model = question.score_attempt(
+            attempt_state=json.dumps(ATTEMPT_STATE_DICT),
+            scoring_state=None,
+            response={},
+            uploads={},
+            editors={},
+        )
 
     assert attempt_scored_model == AttemptScoredModel(
         lang="en",
