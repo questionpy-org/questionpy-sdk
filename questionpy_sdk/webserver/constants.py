@@ -16,6 +16,7 @@ if TYPE_CHECKING:
 
 API_PATH_PREFIX = "/api"
 ID_RE = r"[A-Za-z0-9_-]{8}"
+FILE_REF_RE = r"[a-zA-Z0-9\-_=]{1,64}"
 
 WEBSERVER_KEY: web.AppKey["WebServer"] = web.AppKey("qpy_webserver")
 REQUEST_CONTROLLER_KEY = "qpy_controller"
