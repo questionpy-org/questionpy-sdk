@@ -35,7 +35,7 @@ class QuestionView(QuestionBaseView):
         except MissingQuestionStateError as err:
             raise HTTPNotFound from err
 
-        return web.json_response()
+        return self.json_success_response()
 
 
 @routes.view("/questions", name="question.list")
@@ -48,7 +48,7 @@ class QuestionListView(QuestionBaseView):
     async def delete(self) -> web.Response:
         """Deletes all questions and its attempts from the state storage."""
         await self.controller.delete_all_questions()
-        return web.json_response()
+        return self.json_success_response()
 
 
 @routes.view(f"/question/{{question_id:{ID_RE}}}/state", name="question.state")
@@ -69,7 +69,7 @@ class QuestionStateView(QuestionBaseView):
         except OptionsFormValidationError as err:
             return web.json_response(err.errors, status=HTTPUnprocessableEntity.status_code)
 
-        return web.json_response()
+        return self.json_success_response()
 
 
 @routes.view(f"/question/{{question_id:{ID_RE}}}/clone/{{new_question_id:{ID_RE}}}", name="question.clone")
@@ -86,4 +86,4 @@ class QuestionCloneView(QuestionBaseView):
         except DuplicateQuestionError as err:
             raise web.HTTPConflict(text=str(err)) from err
 
-        return web.Response()
+        return self.json_success_response()

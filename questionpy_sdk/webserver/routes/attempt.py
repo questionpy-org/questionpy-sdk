@@ -47,7 +47,7 @@ class AttemptView(AttemptBaseView):
 
         data = await self.request.json()
         await self.controller.save_attempt(question_id, attempt_id, data)
-        return web.Response()
+        return self.json_success_response()
 
     async def delete(self) -> web.Response:
         """Deletes the attempt from the state storage."""
@@ -59,7 +59,7 @@ class AttemptView(AttemptBaseView):
         except webserver_errors.MissingAttemptStateError as err:
             raise HTTPNotFound from err
 
-        return web.json_response()
+        return self.json_success_response()
 
 
 @routes.view(f"/question/{{question_id:{ID_RE}}}/attempts", name="attempt.list")
@@ -82,7 +82,7 @@ class AttemptScoreView(AttemptBaseView):
             await self.controller.score_attempt(question_id, attempt_id)
         except webserver_errors.MissingStateError as err:
             raise web.HTTPBadRequest(text=str(err)) from err
-        return web.Response()
+        return self.json_success_response()
 
 
 @routes.view(
@@ -103,4 +103,4 @@ class AttemptCloneView(AttemptBaseView):
         except webserver_errors.DuplicateAttemptError as err:
             raise web.HTTPConflict(text=str(err)) from err
 
-        return web.Response()
+        return self.json_success_response()
