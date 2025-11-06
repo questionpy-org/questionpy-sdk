@@ -12,7 +12,7 @@ export {
     usePostAttemptMutation,
     usePostAttemptScoreMutation,
 } from './attempt'
-export { FetchError } from './fetch'
+export { API_BASE, FetchError } from './fetch'
 export { useManifestQuery } from './package'
 export {
     useDeleteAllOptionsFormDataMutation,
@@ -21,5 +21,6 @@ export {
     useOptionsFormDefinitionQuery,
     usePostOptionsFormDataMutation,
     usePostQuestionCloneMutation,
+    usePostQuestionFileUploadMutation,
     useQuestionStatesQuery,
 } from './question'

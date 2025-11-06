@@ -40,9 +40,20 @@ interface DeferredItemOperation {
     id: string
 }
 
+/** A file upload operation. */
+interface FileUploadOperation {
+    type: 'file-upload'
+}
+
 type OperationModelType = 'attempt' | 'question'
 type OperationType = Operation['type']
-type Operation = SubmitOperation | ScoreOperation | DeleteOperation | CloneOperation | DeferredItemOperation
+type Operation =
+    | SubmitOperation
+    | ScoreOperation
+    | DeleteOperation
+    | CloneOperation
+    | DeferredItemOperation
+    | FileUploadOperation
 
 type ExtractOperation<K extends OperationType> = Extract<Operation, { type: K }>
 

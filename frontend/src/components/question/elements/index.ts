@@ -9,6 +9,7 @@ import type { Component } from 'vue'
 import { assertNever, type FormElement } from '@/types'
 
 import CheckboxElement from './CheckboxElement.vue'
+import FileUploadElement from './FileUploadElement.vue'
 import GeneratedIdElement from './GeneratedIdElement.vue'
 import GroupElement from './GroupElement.vue'
 import HiddenElement from './HiddenElement.vue'
@@ -48,6 +49,7 @@ function mapElementKindToComponent(kind: FormElement['kind']): Component {
         case 'textarea':
             return TextAreaElement
         case 'file_upload':
+            return FileUploadElement
         case 'wysiwyg_editor':
             // TODO: Implement.
             throw new Error('Form element not yet implemented: ' + kind)

@@ -9,6 +9,7 @@ import type { ValidationState } from 'bootstrap-vue-next'
 import type {
     CheckboxElement,
     Condition,
+    FileUploadElement,
     FormElement,
     GeneratedIdElement,
     GroupElement,
@@ -39,6 +40,7 @@ interface ElementValueMap {
     select: string | string[]
     hidden: string
     id: string
+    file_upload: OptionsFile[]
 }
 
 /** Utility to look up value type by form element. */
@@ -57,6 +59,7 @@ type EditableElement =
     | SelectElement
     | TextInputElement
     | TextAreaElement
+    | FileUploadElement
 
 /** Form element that has `elements` property. */
 type HasElements = Extract<FormElement, { elements: FormElement[] }>
@@ -108,6 +111,7 @@ export type {
     EditableElement,
     ElementPath,
     ElementToValue,
+    FileUploadElement,
     FormElement,
     GeneratedIdElement,
     GroupElement,

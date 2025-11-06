@@ -104,6 +104,9 @@ function createFormDataValues(elems: FormElement[], data: OptionsFormModelValue 
                 break
 
             case 'file_upload':
+                data[elem.name] = []
+                break
+
             case 'wysiwyg_editor':
                 // TODO: Implement.
                 throw new Error('Form element not yet implemented: ' + elem.kind)
