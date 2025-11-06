@@ -6,7 +6,7 @@ import logging
 import os
 from pathlib import Path
 from types import TracebackType
-from typing import ClassVar, NotRequired, Self, TypedDict, Unpack
+from typing import ClassVar, Literal, NotRequired, Self, TypedDict, Unpack
 
 from aiohttp import web
 
@@ -29,6 +29,8 @@ from .manifest import read_manifest
 
 log = logging.getLogger("questionpy-sdk:web-server")
 
+type AccessLogMode = Literal["all", "api", "none"]
+
 
 class WebServerArgs(TypedDict):
     package_location: PackageLocation
@@ -36,6 +38,19 @@ class WebServerArgs(TypedDict):
     host: NotRequired[str]
     port: NotRequired[int]
     worker_class: NotRequired[type[Worker]]
+    access_log_mode: NotRequired[AccessLogMode]
+
+
+class FilteredAccessLogger(web.AccessLogger):
+    mode: AccessLogMode = "api"
+
+    def log(self, request: web.BaseRequest, response: web.StreamResponse, time: float) -> None:
+        if self.mode == "none":
+            return
+        if self.mode == "api" and not request.path.startswith(f"{API_PATH_PREFIX}/"):
+            return
+
+        super().log(request, response, time)
 
 
 class WebServer:
@@ -47,6 +62,7 @@ class WebServer:
         self._host = kwargs.get("host", "localhost")
         self._port = kwargs.get("port", 8080)
         self._worker_class = kwargs.get("worker_class", self.DEFAULT_WORKER_CLASS)
+        self._access_log_mode = kwargs.get("access_log_mode", "api")
 
         self._app: web.Application
         self._api_app: web.Application
@@ -83,7 +99,8 @@ class WebServer:
 
         # Create web app
         self._app = self._create_webapp()
-        self._runner = web.AppRunner(self.app)
+        FilteredAccessLogger.mode = self._access_log_mode
+        self._runner = web.AppRunner(self.app, access_log=log, access_log_class=FilteredAccessLogger)
         await self._runner.setup()
         await web.TCPSite(self._runner, self._host, self._port).start()
         self._print_status()

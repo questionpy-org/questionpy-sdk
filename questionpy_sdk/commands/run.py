@@ -13,7 +13,7 @@ from questionpy_sdk.constants import DEFAULT_STATE_STORAGE_PATH
 from questionpy_sdk.watcher import Watcher
 from questionpy_sdk.webserver import WebServer
 from questionpy_sdk.webserver.errors import EnvironmentVariablesMissingError
-from questionpy_sdk.webserver.server import WebServerArgs
+from questionpy_sdk.webserver.server import AccessLogMode, WebServerArgs
 from questionpy_server.worker.impl.subprocess import SubprocessWorker
 from questionpy_server.worker.impl.thread import ThreadWorker
 from questionpy_server.worker.runtime.package_location import DirPackageLocation
@@ -58,6 +58,15 @@ async def async_run(webserver_args: WebServerArgs) -> None:
     show_default=True,
     help="The worker implementation to use. Thread workers offer no isolation but may improve debugging experience.",
 )
+@click.option(
+    "--access-log",
+    "-l",
+    "access_log_mode",
+    type=click.Choice(("none", "api", "all"), case_sensitive=False),
+    default="api",
+    show_default=True,
+    help="Access log mode to use, none disables logging, api logs only API requests, all logs everything.",
+)
 def run(
     package: str,
     state_storage_path: Path,
@@ -66,6 +75,7 @@ def run(
     *,
     watch: bool,
     worker: Literal["subprocess", "thread"],
+    access_log_mode: AccessLogMode,
 ) -> None:
     """Run a package.
 
@@ -85,6 +95,7 @@ def run(
         host=host,
         port=port,
         worker_class=ThreadWorker if worker == "thread" else SubprocessWorker,
+        access_log_mode=access_log_mode,
     )
 
     if watch:
