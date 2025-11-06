@@ -95,7 +95,7 @@ class WebServer:
 
         # Initialize state manager
         pkg_dirname = f"{self._manifest.namespace}-{self._manifest.short_name}-{self._manifest.version}"
-        self._state_manager = FilesystemStateManager(self._state_storage_root / pkg_dirname)
+        self._state_manager = FilesystemStateManager(self._state_storage_root, pkg_dirname)
 
         # Create web app
         self._app = self._create_webapp()

@@ -16,7 +16,6 @@ from questionpy.form import FormModel
 from questionpy_common.api.qtype import QuestionTypeInterface
 from questionpy_common.constants import DIST_DIR
 from questionpy_sdk._package import build_qpy_package
-from questionpy_sdk._package._helper import create_normalized_filename
 from questionpy_sdk._package.source import PackageSource
 from questionpy_sdk.webserver.server import WebServer
 from questionpy_server.hash import calculate_hash
@@ -37,10 +36,7 @@ def mock_state_manager(monkeypatch: pytest.MonkeyPatch) -> Iterator[Mock]:
 
 
 async def test_webserver_startup(
-    mock_worker_pool: tuple[Mock, MagicMock],
-    mock_worker: AsyncMock,
-    mock_web_components: tuple[Mock, AsyncMock],
-    mock_state_manager: Mock,
+    mock_worker_pool: tuple[Mock, MagicMock], mock_web_components: tuple[Mock, AsyncMock], mock_state_manager: Mock
 ) -> None:
     mock_worker_pool_cls, mock_worker_pool_instance = mock_worker_pool
     mock_app_runner, mock_tcp_site = mock_web_components
@@ -50,13 +46,8 @@ async def test_webserver_startup(
 
     async with WebServer(package_location=package_location, state_storage_path=state_storage_path):
         mock_worker_pool_cls.assert_called_once()
-
         mock_worker_pool_instance.get_worker.assert_not_called()
-
-        file_name = create_normalized_filename(package_location.manifest)
-        expected_path = state_storage_path / file_name
-        mock_state_manager.assert_called_once_with(expected_path.with_suffix(""))
-
+        mock_state_manager.assert_called_once_with(state_storage_path, "test-init-0.1.0-debug")
         mock_app_runner.setup.assert_awaited_once()
         mock_tcp_site.return_value.start.assert_awaited_once()
 

@@ -28,6 +28,10 @@ class DuplicateQuestionError(StateError):
     message = "The question already exists."
 
 
+class MissingOptionsFileError(MissingStateError):
+    message = "An options file is missing."
+
+
 class MissingAttemptStateError(MissingStateError):
     message = "The attempt state is missing."
 

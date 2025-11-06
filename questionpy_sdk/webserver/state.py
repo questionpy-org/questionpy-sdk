@@ -3,18 +3,24 @@
 #  (c) Technische Universität Berlin, innoCampus <info@isis.tu-berlin.de>
 
 import asyncio
-import contextlib
 import json
 import re
+import shutil
+from collections.abc import Iterator
+from contextlib import AbstractContextManager, contextmanager, suppress
 from enum import StrEnum
 from pathlib import Path
-from typing import NamedTuple, Protocol
+from typing import Any, BinaryIO, NamedTuple, Protocol
 
-from pydantic import JsonValue, TypeAdapter
+from pydantic import JsonValue, RootModel, TypeAdapter, ValidationError
 
 import questionpy_sdk.webserver.errors as webserver_errors
 from questionpy import ScoreModel
+from questionpy.form import OptionsFile
 from questionpy_sdk.webserver.constants import ID_RE
+
+OptionsFiles = RootModel[dict[str, OptionsFile]]
+"""A mapping of file_refs to OptionsFiles."""
 
 
 class Attempt(NamedTuple):
@@ -36,6 +42,11 @@ class StateManager(Protocol):
 
     async def delete_question(self, question_id: str) -> None: ...
     async def delete_all_questions(self) -> None: ...
+
+    async def add_options_file(self, file_ref: str, filepath: Path) -> None: ...
+    async def get_options_file(
+        self, question_id: str, name: str, file_ref: str
+    ) -> tuple[OptionsFile, AbstractContextManager[BinaryIO]]: ...
 
     async def read_attempts(self, question_id: str) -> dict[str, Attempt]: ...
     async def read_attempt_state(self, question_id: str, attempt_id: str) -> str: ...
@@ -70,8 +81,13 @@ class FilesystemStateManager:
         ATTEMPT_SCORE = "score.json"
         ATTEMPT_DATA = "attempt_data.json"
 
-    def __init__(self, package_state_dir: Path) -> None:
-        self._package_state_dir = package_state_dir
+    OPTIONS_FILES_DIR = "options_files"
+
+    def __init__(self, storage_root: Path, package_state_dir: str) -> None:
+        self._storage_root = storage_root
+        self._package_state_path = storage_root / package_state_dir
+
+    # ------ Questions
 
     async def read_question_states(self) -> dict[str, str]:
         def _read_question_states() -> dict[str, str]:
@@ -113,7 +129,7 @@ class FilesystemStateManager:
             if self._is_id_dir(path):
                 self._delete_attempt_data_sync(question_id, path.name)
 
-        with contextlib.suppress(OSError):
+        with suppress(OSError):
             # Ignore in case of non-empty directory
             question_path.rmdir()
 
@@ -123,6 +139,73 @@ class FilesystemStateManager:
                 self._delete_question_sync(path.name)
 
         await asyncio.to_thread(_delete_all_questions)
+
+    # ------ Options files
+
+    async def add_options_file(self, file_ref: str, filepath: Path) -> None:
+        await asyncio.to_thread(self._add_options_file_sync, file_ref, filepath)
+
+    def _add_options_file_sync(self, file_ref: str, filepath: Path) -> None:
+        target_path = self._get_sharded_path(file_ref)
+        # If the same content exists already, no need to overwrite
+        if not target_path.exists():
+            target_path.parent.mkdir(parents=True, exist_ok=True)
+            shutil.move(filepath, target_path)
+
+    async def get_options_file(
+        self, question_id: str, name: str, file_ref: str
+    ) -> tuple[OptionsFile, AbstractContextManager[BinaryIO]]:
+        state = await self.read_question_state(question_id)
+        options_file = self._find_file(json.loads(state)["options"], name, file_ref)
+        content_path = self._get_sharded_path(file_ref)
+
+        @contextmanager
+        def read_bytes() -> Iterator[BinaryIO]:
+            try:
+                with content_path.open("rb") as f:
+                    yield f
+            except FileNotFoundError as err:
+                raise webserver_errors.MissingOptionsFileError from err
+
+        return options_file, read_bytes()
+
+    @staticmethod
+    def _find_file(opts: dict[str, Any], name: str, file_ref: str) -> OptionsFile:
+        """Find an `OptionsFile` inside the form data."""
+
+        def get_item(cur: dict[str, Any] | list[Any], p: str | int) -> Any:
+            # Makes mypy happy about cur/p types
+            if isinstance(p, int):
+                if not isinstance(cur, list):
+                    msg = f"Expected list for index {p}, got {type(cur).__name__}"
+                    raise TypeError(msg)
+                return cur[p]
+            if not isinstance(cur, dict):
+                msg = f"Expected dict for key {p}, got {type(cur).__name__}"
+                raise TypeError(msg)
+            return cur[p]
+
+        # Parse path
+        parts = [int(p) if p.isdigit() else p for p in name.split(".")]
+        if parts and parts[0] == "general":
+            parts = parts[1:]  # treat `general` as root-level
+
+        cur: dict[str, Any] | list[Any] = opts
+        with suppress(KeyError, IndexError, TypeError, StopIteration, ValidationError):
+            # Descend into options tree
+            for p in parts:
+                cur = get_item(cur, p)
+            if isinstance(cur, dict) and cur.get("file_ref") == file_ref:
+                # File found
+                return OptionsFile.model_validate(cur)
+
+        raise webserver_errors.MissingOptionsFileError
+
+    def _get_sharded_path(self, file_ref: str) -> Path:
+        """Get sharded file path, e.g. `options_files/ab/abcdef...`."""
+        return self._storage_root / self.OPTIONS_FILES_DIR / file_ref[:2] / file_ref
+
+    # ------ Attempts
 
     async def read_attempts(self, question_id: str) -> dict[str, Attempt]:
         return await asyncio.to_thread(self._read_attempts_sync, question_id)
@@ -220,9 +303,11 @@ class FilesystemStateManager:
             self.StateFilename.ATTEMPT_SEED,
         ):
             (attempt_path / fname).unlink(missing_ok=True)
-        with contextlib.suppress(OSError):
+        with suppress(OSError):
             # Ignore in case of non-empty directory
             attempt_path.rmdir()
+
+    # ------ Helpers
 
     async def _read_state_file(self, path: Path, filename: "FilesystemStateManager.StateFilename") -> str:
         return await asyncio.to_thread((path / filename).read_text)
@@ -235,14 +320,14 @@ class FilesystemStateManager:
         await asyncio.to_thread(_write_state_file)
 
     def _get_question_path(self, question_id: str) -> Path:
-        return self._package_state_dir / question_id
+        return self._package_state_path / question_id
 
     def _get_attempt_path(self, question_id: str, attempt_id: str) -> Path:
         return self._get_question_path(question_id) / attempt_id
 
     def _get_question_state_paths(self) -> list[Path]:
         try:
-            return [p for p in self._package_state_dir.iterdir() if self._is_id_dir(p)]
+            return [p for p in self._package_state_path.iterdir() if self._is_id_dir(p)]
         except FileNotFoundError:
             # Package dir might not have been created yet
             return []
