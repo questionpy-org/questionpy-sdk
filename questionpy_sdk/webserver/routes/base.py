@@ -29,3 +29,7 @@ class BaseView[CT: "BaseController"](web.View):
     def json_model_response(self, model: BaseModel, **kwargs: Any) -> web.Response:
         """Create JSON response from model using Pydantic's serializer."""
         return web.json_response(text=model.model_dump_json(**kwargs))
+
+    def json_success_response(self, msg: str = "Success") -> web.Response:
+        """Create JSON response signalling success."""
+        return web.json_response({"msg": msg})
