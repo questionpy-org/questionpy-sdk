@@ -1,0 +1,88 @@
+/*
+ * This file is part of the QuestionPy SDK. (https://questionpy.org)
+ * The QuestionPy SDK is free software released under terms of the MIT license. See LICENSE.md.
+ * (c) Technische Universität Berlin, innoCampus <info@isis.tu-berlin.de>
+ */
+
+/* TinyMCE content styles, based on `tinymce/skins/content/default/content.css` */
+
+body {
+    background-color: var(--bs-body-bg);
+    color: var(--bs-body-color);
+    font-family: var(--bs-body-font-family);
+    line-height: var(--bs-body-line-height);
+    margin: 1rem;
+}
+
+table {
+    border-collapse: collapse;
+}
+
+table:not([cellpadding]) th,
+table:not([cellpadding]) td {
+    padding: 0.4rem;
+}
+
+table[border]:not([border='0']):not([style*='border-width']) th,
+table[border]:not([border='0']):not([style*='border-width']) td {
+    border-width: 1px;
+}
+
+table[border]:not([border='0']):not([style*='border-style']) th,
+table[border]:not([border='0']):not([style*='border-style']) td {
+    border-style: solid;
+}
+
+table[border]:not([border='0']):not([style*='border-color']) th,
+table[border]:not([border='0']):not([style*='border-color']) td {
+    border-color: var(--bs-border-color);
+}
+
+figure {
+    display: table;
+    margin: 1rem auto;
+}
+
+figure figcaption {
+    color: var(--bs-secondary-color);
+    display: block;
+    margin-top: 0.25rem;
+    text-align: center;
+}
+
+hr {
+    border-color: var(--bs-border-color);
+    border-style: solid;
+    border-width: 1px 0 0 0;
+}
+
+code {
+    color: var(--bs-code-color);
+    font-family: var(--bs-font-monospace);
+    font-size: 0.875em;
+}
+
+pre {
+    font-family: var(--bs-font-monospace);
+    font-size: 0.875em;
+}
+
+a {
+    color: var(--bs-link-color);
+}
+
+a:hover {
+    color: var(--bs-link-hover-color);
+}
+
+.mce-content-body:not([dir='rtl']) blockquote {
+    border-left: 2px solid var(--bs-border-color);
+    margin-left: 1.5rem;
+    padding-left: 1rem;
+}
+
+.mce-content-body[dir='rtl'] blockquote {
+    border-right: 2px solid var(--bs-border-color);
+    margin-right: 1.5rem;
+    padding-right: 1rem;
+}

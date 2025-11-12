@@ -27,6 +27,14 @@ export default defineConfig({
     build: {
         emptyOutDir: true, // Suppress warning when outputting to folder outside of project dir
         outDir: path.resolve(import.meta.dirname, '..', 'questionpy_sdk', 'webserver', 'static'),
+        rollupOptions: {
+            output: {
+                manualChunks: {
+                    // As a large package, give TinyMCE an own chunk
+                    tinymce: ['tinymce'],
+                },
+            },
+        },
     },
     css: {
         preprocessorOptions: {

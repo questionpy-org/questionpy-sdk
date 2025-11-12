@@ -1,0 +1,449 @@
+/*
+ * This file is part of the QuestionPy SDK. (https://questionpy.org)
+ * The QuestionPy SDK is free software released under terms of the MIT license. See LICENSE.md.
+ * (c) Technische Universität Berlin, innoCampus <info@isis.tu-berlin.de>
+ */
+
+/* Override colors, fonts, etc. from `tinymce/skins/ui/oxide/skin.css` */
+.tox {
+    /* Editor */
+
+    &.tox-tinymce {
+        border: $input-border-width solid $input-border-color;
+        @include border-radius($input-border-radius, 0);
+    }
+
+    &.tox-tinymce,
+    &.tox-tinymce-aux {
+        font-family: var(--bs-font-sans-serif);
+        color: var(--bs-body-color);
+        @include font-size($font-size-base);
+    }
+
+    .tox-editor-header,
+    &:not(.tox-tinymce-inline) .tox-editor-header {
+        background-color: var(--bs-tertiary-bg);
+        box-shadow: none;
+        border-bottom: $input-border-width solid $input-border-color;
+
+        .tox-menubar {
+            background-color: var(--bs-tertiary-bg);
+            padding: 0 $input-padding-x $input-padding-y-sm;
+        }
+
+        .tox-toolbar-overlord {
+            background-color: var(--bs-tertiary-bg);
+        }
+
+        .tox-promotion {
+            display: none;
+        }
+    }
+
+    /* Toolbar */
+
+    .tox-toolbar,
+    .tox-toolbar__primary {
+        background-color: var(--bs-tertiary-bg);
+        background-image: none;
+        transform: none;
+    }
+
+    &.tox-tinymce-aux .tox-toolbar__overflow {
+        background-color: $dropdown-bg;
+        color: $dropdown-color;
+        border: $dropdown-border-width solid $dropdown-border-color;
+        box-shadow: $dropdown-box-shadow;
+        background-image: repeating-linear-gradient($dropdown-border-color 0 1px, transparent 1px 39px);
+        @include font-size($dropdown-font-size);
+        @include border-radius($dropdown-border-radius, 0);
+    }
+
+    /* Edit area */
+
+    .tox-edit-area {
+        &::before {
+            border: none;
+            border-radius: 0;
+        }
+
+        & .tox-edit-area__iframe {
+            background-color: var(--bs-body-bg);
+        }
+    }
+
+    /* Statusbar */
+
+    .tox-statusbar {
+        background-color: var(--bs-tertiary-bg);
+        border-top: $input-border-width solid $input-border-color;
+        color: var(--bs-secondary-color);
+
+        a,
+        .tox-statusbar__path-item,
+        .tox-statusbar__wordcount {
+            color: var(--bs-secondary-color);
+
+            &:hover:not(:disabled):not([aria-disabled='true']) {
+                color: var(--bs-emphasis-color);
+            }
+        }
+
+        .tox-statusbar__resize-handle svg {
+            fill: currentColor;
+        }
+    }
+
+    /* Forms */
+
+    .tox-label {
+        color: var(--bs-body-color);
+        @include font-size($input-font-size-sm);
+    }
+
+    .tox-textfield,
+    .tox-toolbar-textfield,
+    .tox-listboxfield .tox-listbox--select,
+    .tox-textarea,
+    .tox-textarea-wrap .tox-textarea:focus {
+        background-color: $input-bg;
+        border-color: $input-border-color;
+        color: $input-color;
+        @include font-size($input-font-size);
+
+        &:focus {
+            color: $input-focus-color;
+            background-color: $input-focus-bg;
+            border-color: $input-focus-border-color;
+        }
+    }
+
+    /* Menus */
+
+    .tox-menu {
+        background-color: $dropdown-bg;
+        color: $dropdown-color;
+        border: $dropdown-border-width solid $dropdown-border-color;
+        box-shadow: $dropdown-box-shadow;
+        @include font-size($dropdown-font-size);
+        @include border-radius($dropdown-border-radius, 0);
+
+        &.tox-collection--list .tox-collection__item--enabled:not(.tox-collection__item--state-disabled) {
+            background-color: transparent;
+            color: var(--bs-body-color);
+
+            &:focus,
+            &:hover {
+                background-color: var(--bs-secondary-bg);
+                color: var(--bs-body-color);
+            }
+        }
+    }
+
+    .tox-swatches__picker-btn svg {
+        fill: currentColor;
+    }
+
+    /* Toolbar/menu buttons */
+
+    .tox-btn,
+    .tox-tbtn,
+    .tox-mbtn {
+        background: transparent;
+        font-weight: $btn-font-weight;
+        line-height: $btn-line-height;
+        color: var(--bs-body-color);
+        @include font-size($btn-font-size);
+        @include border-radius($btn-border-radius-sm);
+
+        &:focus {
+            background: inherit;
+
+            &:not(.tox-tbtn--disabled),
+            &:not(:disabled) {
+                background: inherit;
+                color: inherit;
+            }
+
+            &::after {
+                box-shadow: 0 0 0 2px $primary;
+            }
+        }
+
+        &:hover {
+            background: var(--bs-secondary-bg);
+            color: inherit;
+
+            &:not(:disabled):not(.tox-mbtn--active) {
+                background: var(--bs-secondary-bg);
+                color: inherit;
+            }
+        }
+
+        &:active {
+            background: $component-active-bg;
+            color: $component-active-color;
+        }
+
+        svg {
+            fill: currentColor !important;
+        }
+    }
+
+    .tox-mbtn,
+    .tox-tbtn {
+        margin-top: 0;
+        margin-bottom: 0;
+    }
+
+    .tox-mbtn {
+        &--active,
+        &:not(:disabled).tox-mbtn--active:focus {
+            background: var(--bs-secondary-bg);
+            color: inherit;
+        }
+    }
+
+    .tox-tbtn {
+        &--enabled,
+        &--enabled:hover,
+        &--enabled:focus {
+            background: $component-active-bg !important;
+            color: $component-active-color !important;
+        }
+
+        &--disabled,
+        &--disabled:hover,
+        &:disabled,
+        &:disabled:hover {
+            background: inherit;
+            color: var(--bs-secondary-color);
+        }
+    }
+
+    /* Regular buttons */
+
+    @mixin tox-button {
+        padding: $btn-padding-y $btn-padding-x;
+        font-family: $btn-font-family;
+        @include font-size($btn-font-size);
+        font-weight: $btn-font-weight;
+        line-height: $btn-line-height;
+        color: var(--bs-btn-color);
+        text-align: center;
+        white-space: $btn-white-space;
+        vertical-align: middle;
+        user-select: none;
+        border: $btn-border-width solid var(--bs-btn-border-color);
+        @include border-radius($btn-border-radius);
+        @include gradient-bg(var(--bs-btn-bg));
+        @include box-shadow(var(--bs-btn-box-shadow));
+        @include transition($btn-transition);
+
+        &:active:not(:disabled) {
+            background-color: var(--bs-btn-active-bg);
+            border-color: var(--bs-btn-active-border-color);
+            color: var(--bs-btn-active-color);
+        }
+
+        &:focus:not(:disabled) {
+            background-color: var(--bs-btn-bg);
+            border-color: var(--bs-btn-border-color);
+            color: var(--bs-btn-color);
+        }
+
+        &:focus::before {
+            box-shadow: 0 0 0 2px $primary;
+        }
+
+        &:hover:not(:disabled) {
+            color: var(--bs-btn-hover-color);
+            background-color: var(--bs-btn-hover-bg);
+            border-color: var(--bs-btn-hover-border-color);
+        }
+
+        &[disabled] {
+            color: var(--bs-btn-disabled-color);
+            background-color: var(--bs-btn-disabled-bg);
+            border-color: var(--bs-btn-disabled-border-color);
+        }
+
+        &::before {
+            box-shadow: none;
+        }
+    }
+
+    .tox-button {
+        @include button-variant($primary, $primary);
+        @include tox-button;
+    }
+
+    .tox-button--secondary {
+        @include button-variant($secondary, $secondary);
+    }
+
+    .tox-button--naked {
+        @include button-variant($secondary, $secondary);
+
+        &.tox-button--icon:hover:not(:disabled) {
+            color: var(--bs-btn-hover-color);
+        }
+    }
+
+    /* Dialog */
+
+    .tox-dialog {
+        background-color: var(--bs-body-bg);
+        box-shadow: var(--bs-box-shadow);
+
+        .tox-dialog__header,
+        .tox-dialog__body,
+        .tox-dialog__footer {
+            background-color: transparent;
+            color: var(--bs-body-color);
+        }
+
+        .tox-dialog__body-content {
+            a {
+                color: $link-color;
+
+                &:hover {
+                    color: $link-hover-color;
+                }
+            }
+
+            .tox-form__group h1 {
+                color: var(--bs-body-color);
+            }
+        }
+
+        .tox-dialog__body-nav-item {
+            color: var(--bs-body-color);
+
+            &:focus {
+                background-color: inherit;
+            }
+        }
+
+        .tox-dialog__body-nav-item {
+            color: var(--bs-body-color);
+        }
+
+        .tox-dialog__body-nav-item--active {
+            color: var(--bs-link-color);
+            border-bottom-color: var(--bs-link-color);
+        }
+
+        .tox-dialog__table tbody tr {
+            border-bottom-color: $table-border-color;
+        }
+    }
+
+    .tox-dialog-wrap__backdrop {
+        background-color: $modal-backdrop-bg;
+        opacity: $modal-backdrop-opacity;
+    }
+
+    /* Pop dialog */
+
+    .tox-pop__dialog {
+        background-color: $dropdown-bg;
+        color: $dropdown-color;
+        border: $dropdown-border-width solid $dropdown-border-color;
+        box-shadow: $dropdown-box-shadow;
+        @include font-size($dropdown-font-size);
+        @include border-radius($dropdown-border-radius, 0);
+    }
+
+    .tox-pop.tox-pop--top {
+        &::before {
+            border-bottom-color: $dropdown-border-color;
+        }
+        &::after {
+            border-bottom-color: $dropdown-bg;
+        }
+    }
+
+    /* Tooltip */
+
+    .tox-tooltip__body {
+        background-color: $tooltip-bg;
+        border-radius: $tooltip-border-radius;
+        color: $tooltip-color;
+        opacity: $tooltip-opacity;
+        padding: $tooltip-padding-y $tooltip-padding-x;
+    }
+
+    /* Collection */
+
+    .tox-collection--list,
+    .tox-collection--toolbar {
+        .tox-collection__item--active:not(.tox-collection__item--state-disabled) {
+            color: var(--bs-body-color);
+            background-color: var(--bs-secondary-bg);
+
+            &:focus,
+            &:hover {
+                color: var(--bs-body-color);
+                background-color: var(--bs-secondary-bg);
+            }
+        }
+
+        .tox-collection__item--enabled:not(.tox-collection__item--state-disabled) {
+            color: $component-active-color;
+            background-color: $component-active-bg;
+
+            &:focus,
+            &:hover {
+                color: $component-active-color;
+                background-color: $component-active-bg;
+            }
+        }
+
+        .tox-collection__group {
+            border-color: $dropdown-divider-bg;
+        }
+    }
+
+    .tox-collection--grid .tox-collection__item--active:not(.tox-collection__item--state-disabled) {
+        background: var(--bs-secondary-bg);
+        color: var(--bs-body-color);
+    }
+
+    .tox-collection__item {
+        color: var(--bs-body-color);
+    }
+
+    .tox-collection__item-label {
+        @include font-size($font-size-sm);
+    }
+
+    .tox-collection__item-accessory {
+        color: var(--bs-secondary-color);
+        @include font-size($font-size-sm);
+    }
+
+    .tox-collection__item--state-disabled {
+        color: var(--bs-secondary-color);
+    }
+
+    /* Table picker */
+
+    .tox-insert-table-picker {
+        background-color: var(--bs-body-bg);
+
+        > div {
+            border-color: $table-border-color;
+        }
+
+        .tox-insert-table-picker__selected {
+            background-color: var(--bs-secondary-bg);
+            border-color: $input-focus-border-color;
+        }
+
+        .tox-insert-table-picker__label {
+            color: var(--bs-body-color);
+            @include font-size($font-size-sm);
+        }
+    }
+}

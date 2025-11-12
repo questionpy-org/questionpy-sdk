@@ -19,6 +19,7 @@ import SelectElement from './SelectElement.vue'
 import StaticTextElement from './StaticTextElement.vue'
 import TextAreaElement from './TextAreaElement.vue'
 import TextInputElement from './TextInputElement.vue'
+import WysiwygEditorElement from './WysiwygEditorElement.vue'
 
 /**
  * Maps an element `kind` property to a component.
@@ -51,8 +52,7 @@ function mapElementKindToComponent(kind: FormElement['kind']): Component {
         case 'file_upload':
             return FileUploadElement
         case 'wysiwyg_editor':
-            // TODO: Implement.
-            throw new Error('Form element not yet implemented: ' + kind)
+            return WysiwygEditorElement
         default:
             assertNever(kind)
     }

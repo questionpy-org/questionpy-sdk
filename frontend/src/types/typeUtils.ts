@@ -10,6 +10,7 @@ import type {
     FormElement,
     HasElements,
     OptionsFile,
+    RichTextEditor,
     ServerValidationErrors,
 } from '.'
 
@@ -56,6 +57,16 @@ function isOptionsFile(value: unknown): value is OptionsFile {
     return isObject(value) && typeof value.file_ref === 'string'
 }
 
+/** Type guard for `RichTextEditor`. */
+function isRichTextEditor(value: unknown): value is RichTextEditor {
+    return (
+        isObject(value) &&
+        typeof value.text === 'string' &&
+        Array.isArray(value.files) &&
+        value.files.every((f) => isOptionsFile(f))
+    )
+}
+
 export {
     assertNever,
     hasElements,
@@ -63,5 +74,6 @@ export {
     isEditableElement,
     isObject,
     isOptionsFile,
+    isRichTextEditor,
     isServerValidationErrors,
 }
