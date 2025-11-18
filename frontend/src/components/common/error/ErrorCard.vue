@@ -15,9 +15,13 @@
         <BCardText>
             <ErrorDisplay :error="error" />
         </BCardText>
+        <BButton v-if="reset" @click="reset">Reset error</BButton>
     </BCard>
 </template>
 
 <script lang="ts" setup>
-defineProps<{ error: Error }>()
+defineProps<{
+    error: Error
+    reset?: () => void
+}>()
 </script>
