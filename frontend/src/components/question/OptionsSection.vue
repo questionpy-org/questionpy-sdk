@@ -9,9 +9,6 @@
     <template v-for="element in elements" :key="element.name">
         <ErrorBoundary>
             <FormElement :disabled="false" :element="element" :path-prefix="[name]" />
-            <template #error="{ error }">
-                <ErrorCard :error="error" />
-            </template>
         </ErrorBoundary>
     </template>
 </template>

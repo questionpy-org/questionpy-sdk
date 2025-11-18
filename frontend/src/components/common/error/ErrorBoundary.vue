@@ -5,11 +5,14 @@
 -->
 
 <template>
-    <slot :name="slotName" v-bind="slotProps"></slot>
+    <slot v-if="error" name="error" v-bind="{ error: error, reset }">
+        <ErrorCard :error="error" :reset="reset" />
+    </slot>
+    <slot v-else name="default" />
 </template>
 
 <script setup lang="ts">
-import { computed, onErrorCaptured, ref } from 'vue'
+import { onErrorCaptured, ref } from 'vue'
 
 const error = ref<Error | null>(null)
 
@@ -24,7 +27,4 @@ onErrorCaptured((err) => {
 function reset() {
     error.value = null
 }
-
-const slotProps = computed(() => (error.value ? { error: error.value, reset } : ({} as Record<string, never>)))
-const slotName = computed(() => (error.value ? 'error' : 'default'))
 </script>
