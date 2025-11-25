@@ -4,6 +4,8 @@
  * (c) Technische Universität Berlin, innoCampus <info@isis.tu-berlin.de>
  */
 
+import type { ValidationState } from 'bootstrap-vue-next'
+
 import type {
     CheckboxElement,
     Condition,
@@ -19,7 +21,13 @@ import type {
     TextAreaElement,
     TextInputElement,
 } from './OptionsFormDefinition.generated'
-import type { OptionsFormData, OptionsStateResponse } from './OptionsStateResponse.generated'
+import type {
+    OptionsFile,
+    OptionsFormData,
+    OptionsFormModelValue,
+    OptionsFormValue,
+    OptionsStateResponse,
+} from './OptionsStateResponse.generated'
 
 /** Mapping of form element `kind` types to their corresponding value types. */
 interface ElementValueMap {
@@ -27,6 +35,7 @@ interface ElementValueMap {
     textarea: string
     checkbox: boolean
     radio_group: string
+    repetition: OptionsFormModelValue[]
     select: string | string[]
     hidden: string
     id: string
@@ -58,8 +67,25 @@ type CanHaveConditions = Extract<FormElement, { disable_if: Condition[]; hide_if
 /** Form element that can have help. */
 type CanHaveHelp = Extract<FormElement, { help: string | null }>
 
-/** Possible primitive and list value types allowed in the options form. */
-type OptionsFormValue = OptionsFormData[string]
+/**
+ * An array of strings/integers representing the hierarchical path of a `FormElement`.
+ *
+ * @example
+ * [general', 'my_repetition', 0, 'name', 'first_name']
+ */
+type ElementPath = (string | number)[]
+
+/** Validation state and text of an options form input. */
+interface ValidationInfo {
+    /**
+     * Validation state.
+     *
+     * See {@link https://bootstrap-vue-next.github.io/bootstrap-vue-next/docs/components/form-group.html#validation-state-feedback|BootstrapVueNext docs}
+     */
+    state: ValidationState
+    /** Validation feedback text. */
+    text: string | undefined
+}
 
 export type {
     AttemptData,
@@ -80,14 +106,17 @@ export type {
     CheckboxElement,
     Condition,
     EditableElement,
+    ElementPath,
     ElementToValue,
     FormElement,
     GeneratedIdElement,
     GroupElement,
     HasElements,
     HiddenElement,
+    OptionsFile,
     OptionsFormData,
     OptionsFormDefinition,
+    OptionsFormModelValue,
     OptionsFormValue,
     OptionsStateResponse,
     RadioGroupElement,
@@ -97,4 +126,5 @@ export type {
     StaticTextElement,
     TextAreaElement,
     TextInputElement,
+    ValidationInfo,
 }

@@ -6,9 +6,10 @@
 
 import { computed, type ComputedRef } from 'vue'
 
-import type { CanHaveHelp } from '@/types'
+import type { CanHaveHelp, ElementPath } from '@/types'
 
-import useCommon from './useCommon'
+import useId from './useId'
+import usePath from './usePath'
 
 /**
  * A composable providing help texts to options form elements.
@@ -18,8 +19,9 @@ import useCommon from './useCommon'
  *
  * @returns An object containing `helpId` and `helpText` for the form element.
  */
-function useHelp(pathPrefix: string[], element: CanHaveHelp): UseHelpReturn {
-    const { id: elementId } = useCommon(pathPrefix, element)
+function useHelp(pathPrefix: ElementPath, element: CanHaveHelp): UseHelpReturn {
+    const path = usePath(pathPrefix, element)
+    const elementId = useId(path)
     const hasHelp = computed(() => (element.help ?? '').length > 0)
 
     return {

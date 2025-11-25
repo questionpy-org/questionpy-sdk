@@ -13,11 +13,11 @@
 
 <script lang="ts" setup>
 import { useConditions, useHelp } from '@/composables/question/elements'
-import type { StaticTextElement } from '@/types'
+import type { ElementPath, StaticTextElement } from '@/types'
 
 const { element, pathPrefix } = defineProps<{
     element: StaticTextElement
-    pathPrefix: string[]
+    pathPrefix: ElementPath
 }>()
 
 const { isHiddenByCond } = useConditions(pathPrefix, element)

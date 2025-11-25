@@ -9,7 +9,14 @@ import type { ComputedRef, InjectionKey, Ref, ShallowRef } from 'vue'
 
 import { useOptionsFormDataQuery, useOptionsFormDefinitionQuery, usePostOptionsFormDataMutation } from '@/queries'
 import usePendingOperationsStore from '@/stores/usePendingOperationsStore'
-import type { OptionsFormData, OptionsFormDefinition, OptionsFormValue, ServerValidationErrors } from '@/types'
+import { isObject } from '@/types'
+import type {
+    ElementPath,
+    OptionsFormData,
+    OptionsFormDefinition,
+    OptionsFormValue,
+    ServerValidationErrors,
+} from '@/types'
 
 import { areFormDataObjIdentical, getErrorKey, getFormData, hasEditableElements } from './formDataUtils'
 
@@ -126,18 +133,55 @@ function provideFormDataState(questionId: string): UseFormDataStateReturn {
         formDataCurrent.value = structuredClone(toRaw(formDataClean.value))
     }
 
-    function getValue<T extends OptionsFormValue>(name: string): T | undefined {
-        if (name in formDataCurrent.value) {
-            return formDataCurrent.value[name] as T
+    function navigateToNestedProperty(path: ElementPath) {
+        // Adjust path: the general section elements are at the root
+        const adjustedPath = path[0] === 'general' ? path.slice(1) : path
+
+        let current: unknown = formDataCurrent.value
+        for (const key of adjustedPath) {
+            if (isObject(current) && typeof key === 'string') {
+                current = current[key]
+                continue
+            } else if (Array.isArray(current) && typeof key === 'number') {
+                current = current[key]
+                continue
+            }
+            return undefined
         }
+
+        return current
     }
 
-    function setValue(name: string, value: OptionsFormValue): void {
-        formDataCurrent.value[name] = value
+    function getValue<T extends OptionsFormValue>(path: ElementPath): T | undefined {
+        return navigateToNestedProperty(path) as T
     }
 
-    function getFeedback(path: string[]): string | undefined {
-        return formErrors.value[getErrorKey(path)]
+    function setValue(path: ElementPath, value: OptionsFormValue): void {
+        // Navigate to the parent of the target property
+        const parentPath = path.slice(0, -1)
+        const parent = navigateToNestedProperty(parentPath)
+
+        // Set value
+        const targetKey = path[path.length - 1]
+        if (isObject(parent) && typeof targetKey === 'string') {
+            parent[targetKey] = value
+        } else if (Array.isArray(parent) && typeof targetKey === 'number') {
+            parent[targetKey] = value
+        } else {
+            throw TypeError('Expected array or object in form data')
+        }
+
+        // Remove validation errors after edit
+        resetFeedback(path)
+    }
+
+    function resetFeedback(path: ElementPath): void {
+        const errorKey = getErrorKey(path)
+        for (const key of Object.keys(formErrors.value)) {
+            if (key.startsWith(errorKey)) {
+                delete formErrors.value[key]
+            }
+        }
     }
 
     const formDataState = {
@@ -158,7 +202,7 @@ function provideFormDataState(questionId: string): UseFormDataStateReturn {
         reset,
         getValue,
         setValue,
-        getFeedback,
+        resetFeedback,
     }
 
     // Provide form data to child components
@@ -232,27 +276,27 @@ interface UseFormDataStateReturn {
     /**
      * Retrieves a value from the form data object.
      *
-     * @param name The name representing the input field, e.g. `general[first_name]`.
-     * @returns The value found at the specified name in the `formData` object, or `undefined` otherwise.
+     * @param path The element path representing the input field.
+     * @returns The value found at the specified `path` in the `formData` object, or `undefined` otherwise.
      */
-    getValue<T extends OptionsFormValue>(name: string): T | undefined
+    getValue<T extends OptionsFormValue>(path: ElementPath): T | undefined
 
     /**
      * Sets a value on the form data object.
      *
-     * @param name The name representing the input field, e.g. `general[first_name]`.
+     * @param path The element path representing the input field.
      * @param value The value to set at the specified name.
      */
-    setValue(name: string, value: OptionsFormValue): void
+    setValue(path: ElementPath, value: OptionsFormValue): void
 
     /**
-     * Retrieves the validation feedback text of a form element.
+     * Resets the validation feedback text of a form element and all its children.
      *
      * @param path The path representing the element.
-     * @returns The validation feedback text or `undefined`.
      */
-    getFeedback(path: string[]): string | undefined
+    resetFeedback(path: ElementPath): void
 }
 
+export type { UseFormDataStateReturn }
 export { provideFormDataState }
 export default useFormDataState

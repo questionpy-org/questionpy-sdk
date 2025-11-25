@@ -4,7 +4,14 @@
  * (c) Technische Universität Berlin, innoCampus <info@isis.tu-berlin.de>
  */
 
-import type { DetailedServerError, EditableElement, FormElement, HasElements } from '.'
+import type {
+    DetailedServerError,
+    EditableElement,
+    FormElement,
+    HasElements,
+    OptionsFile,
+    ServerValidationErrors,
+} from '.'
 
 /** Utility function to be used as exhaustion check. */
 function assertNever(value: never): never {
@@ -35,4 +42,26 @@ function isDetailedServerError(value: unknown): value is DetailedServerError {
     )
 }
 
-export { assertNever, hasElements, isDetailedServerError, isEditableElement, isObject }
+/** Type guard for `ServerValidationErrors`. */
+function isServerValidationErrors(value: unknown): value is ServerValidationErrors {
+    return (
+        isObject(value) &&
+        Object.keys(value).every((key) => typeof key === 'string') &&
+        Object.values(value).every((v) => typeof v === 'string')
+    )
+}
+
+/** Type guard for `OptionsFile`. */
+function isOptionsFile(value: unknown): value is OptionsFile {
+    return isObject(value) && typeof value.file_ref === 'string'
+}
+
+export {
+    assertNever,
+    hasElements,
+    isDetailedServerError,
+    isEditableElement,
+    isObject,
+    isOptionsFile,
+    isServerValidationErrors,
+}

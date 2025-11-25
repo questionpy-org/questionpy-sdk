@@ -5,17 +5,19 @@
 -->
 
 <template>
-    <input type="hidden" :id="id" :name="name" :value="model" />
+    <input type="hidden" :id="id" :value="model" />
 </template>
 
 <script lang="ts" setup>
-import { useCommon, useModel } from '@/composables/question/elements'
-import type { GeneratedIdElement } from '@/types'
+import { useId, useModel, usePath } from '@/composables/question/elements'
+import type { ElementPath, GeneratedIdElement } from '@/types'
 
 const { element, pathPrefix } = defineProps<{
     element: GeneratedIdElement
-    pathPrefix: string[]
+    pathPrefix: ElementPath
 }>()
-const { id, name } = useCommon(pathPrefix, element)
+
+const path = usePath(pathPrefix, element)
+const id = useId(path)
 const model = useModel(pathPrefix, element)
 </script>

@@ -5,22 +5,23 @@
 -->
 
 <template>
-    <input :disabled="isDisabled" type="hidden" :id="id" :name="name" :value="element.value" />
+    <input :disabled="isDisabled" type="hidden" :id="id" :value="element.value" />
 </template>
 
 <script lang="ts" setup>
 import { computed } from 'vue'
 
-import { useCommon, useConditions, useIsDisabled } from '@/composables/question/elements'
-import type { HiddenElement } from '@/types'
+import { useConditions, useId, useIsDisabled, usePath } from '@/composables/question/elements'
+import type { ElementPath, HiddenElement } from '@/types'
 
 const { disabled, element, pathPrefix } = defineProps<{
     disabled: boolean
     element: HiddenElement
-    pathPrefix: string[]
+    pathPrefix: ElementPath
 }>()
 
-const { id, name } = useCommon(pathPrefix, element)
+const path = usePath(pathPrefix, element)
+const id = useId(path)
 const { isDisabledByCond } = useConditions(pathPrefix, element)
 const isDisabled = useIsDisabled(computed(() => disabled || isDisabledByCond.value))
 </script>

@@ -5,7 +5,7 @@
 -->
 
 <template>
-    <div class="border-start border-4 mb-3 ps-3">
+    <div :id="id" class="border-start border-4 mb-3 ps-3">
         <div class="mb-5" v-for="n in count" :key="n">
             <FormElement
                 v-for="el in element.elements"
@@ -17,7 +17,7 @@
             <ButtonGroup>
                 <IconButton
                     v-if="n === count"
-                    @click="addRepetition(element.elements)"
+                    @click="add"
                     :disabled="isDisabled"
                     :icon-component="IMdiAdd"
                     size="sm"
@@ -25,7 +25,7 @@
                     >{{ element.button_label ?? 'Add repetition' }}</IconButton
                 >
                 <IconButton
-                    @click="removeRepetition(n)"
+                    @click="remove(n - 1)"
                     :disabled="count <= element.minimum_repetitions || isDisabled"
                     :icon-component="IMdiDelete"
                     size="sm"
@@ -33,6 +33,7 @@
                     >Remove</IconButton
                 >
             </ButtonGroup>
+            <ValidationFeedback :validation="validation" />
         </div>
     </div>
 </template>
@@ -43,18 +44,18 @@ import IMdiDelete from '~icons/mdi/delete'
 import { computed } from 'vue'
 
 import { useRepetitions } from '@/composables/question'
-import { useCommon, useIsDisabled } from '@/composables/question/elements'
-import type { RepetitionElement } from '@/types'
+import { useId, useIsDisabled, usePath, useValidation } from '@/composables/question/elements'
+import type { ElementPath, RepetitionElement } from '@/types'
 
 const { disabled, element, pathPrefix } = defineProps<{
     disabled: boolean
     element: RepetitionElement
-    pathPrefix: string[]
+    pathPrefix: ElementPath
 }>()
 
-const { path } = useCommon(pathPrefix, element)
-const { addRepetition, getRepetitionCount, removeRepetition } = useRepetitions(path.value)
+const path = usePath(pathPrefix, element)
+const id = useId(path)
+const { add, count, remove } = useRepetitions(pathPrefix, element)
 const isDisabled = useIsDisabled(computed(() => disabled))
-
-const count = computed(() => getRepetitionCount())
+const validation = useValidation(path)
 </script>
