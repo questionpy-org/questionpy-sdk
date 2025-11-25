@@ -41,6 +41,7 @@ References:
 #  (c) Technische Universität Berlin, innoCampus <info@isis.tu-berlin.de>
 
 # We reexport these for them to be used in file upload elements.
+from questionpy_common.api.files import OptionsFile
 from questionpy_common.constants import GiB, KiB, MiB
 from questionpy_common.elements import (
     CanHaveConditions,
@@ -81,7 +82,7 @@ from ._dsl import (
     text_area,
     text_input,
 )
-from ._model import FormModel, OptionEnum, OptionsFile, RichTextEditor
+from ._model import FormModel, OptionEnum
 
 __all__ = [
     "CanHaveConditions",
@@ -101,7 +102,6 @@ __all__ = [
     "OptionsFormDefinition",
     "RadioGroupElement",
     "RepetitionElement",
-    "RichTextEditor",
     "SelectElement",
     "StaticTextElement",
     "TextAreaElement",

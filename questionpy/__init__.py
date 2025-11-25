@@ -16,6 +16,7 @@ from questionpy_common.api.attempt import (
     ScoreModel,
     ScoringCode,
 )
+from questionpy_common.api.files import EditorData, ResponseFile
 from questionpy_common.api.qtype import OptionsFormValidationError, QuestionTypeInterface
 from questionpy_common.api.question import (
     PossibleResponse,
@@ -63,6 +64,7 @@ __all__ = [
     "CacheControl",
     "ClassifiedResponse",
     "DisplayRole",
+    "EditorData",
     "Environment",
     "FeedbackType",
     "InvalidResponseError",
@@ -83,6 +85,7 @@ __all__ = [
     "QuestionTypeWrapper",
     "QuestionWrapper",
     "RequestInfo",
+    "ResponseFile",
     "ResponseNotScorableError",
     "ScoreModel",
     "ScoringCode",

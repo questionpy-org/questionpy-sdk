@@ -9,6 +9,7 @@ from questionpy import Question, i18n
 from questionpy._attempt import AttemptProtocol, AttemptScoredProtocol
 from questionpy_common import TranslatableString
 from questionpy_common.api.attempt import AttemptModel, AttemptScoredModel, AttemptStartedModel, AttemptUi
+from questionpy_common.api.files import EditorData, ResponseFile
 from questionpy_common.api.question import QuestionInterface, QuestionModel
 from questionpy_common.environment import get_qpy_environment
 from questionpy_common.manifest import Bcp47LanguageTag
@@ -78,21 +79,28 @@ class QuestionWrapper(QuestionInterface):
         return AttemptStartedModel(**_export_attempt(attempt), attempt_state=json.dumps(plain_attempt_state))
 
     def get_attempt(
-        self, attempt_state: str, scoring_state: str | None = None, response: dict[str, JsonValue] | None = None
+        self,
+        attempt_state: str,
+        scoring_state: str | None = None,
+        response: dict[str, JsonValue] | None = None,
+        uploads: dict[str, list[ResponseFile]] | None = None,
+        editors: dict[str, EditorData[ResponseFile]] | None = None,
     ) -> AttemptModel:
         parsed_attempt_state = json.loads(attempt_state)
         parsed_scoring_state = None
         if scoring_state:
             parsed_scoring_state = json.loads(scoring_state)
 
-        attempt = self._question.get_attempt(parsed_attempt_state, parsed_scoring_state, response)
+        attempt = self._question.get_attempt(parsed_attempt_state, parsed_scoring_state, response, uploads, editors)
         return AttemptModel(**_export_attempt(attempt))
 
     def score_attempt(
         self,
         attempt_state: str,
-        scoring_state: str | None = None,
-        response: dict[str, JsonValue] | None = None,
+        scoring_state: str | None,
+        response: dict[str, JsonValue],
+        uploads: dict[str, list[ResponseFile]],
+        editors: dict[str, EditorData[ResponseFile]],
         *,
         compute_adjusted_score: bool = False,
         generate_hint: bool = False,
@@ -106,6 +114,8 @@ class QuestionWrapper(QuestionInterface):
             parsed_attempt_state,
             parsed_scoring_state,
             response,
+            uploads,
+            editors,
             compute_adjusted_score=compute_adjusted_score,
             generate_hint=generate_hint,
         )

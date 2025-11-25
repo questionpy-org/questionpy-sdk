@@ -6,6 +6,7 @@ from typing import TYPE_CHECKING, ClassVar, Self, cast
 
 from pydantic import BaseModel, JsonValue, ValidationError
 
+from questionpy_common.api.files import EditorData, ResponseFile
 from questionpy_common.api.qtype import InvalidQuestionStateError, OptionsFormValidationError
 from questionpy_common.api.question import ScoringMethod, SubquestionModel
 from questionpy_common.environment import get_qpy_environment
@@ -156,24 +157,28 @@ class Question(ABC):
         attempt_state: dict[str, JsonValue],
         scoring_state: dict[str, JsonValue] | None = None,
         response: dict[str, JsonValue] | None = None,
+        uploads: dict[str, list[ResponseFile]] | None = None,
+        editors: dict[str, EditorData[ResponseFile]] | None = None,
     ) -> AttemptProtocol:
         parsed_attempt_state = self.attempt_class.attempt_state_class.model_validate(attempt_state)
         parsed_scoring_state = None
         if scoring_state is not None:
             parsed_scoring_state = self.attempt_class.scoring_state_class.model_validate(scoring_state)
 
-        return self.attempt_class(self, parsed_attempt_state, parsed_scoring_state, response)
+        return self.attempt_class(self, parsed_attempt_state, parsed_scoring_state, response, uploads, editors)
 
     def score_attempt(
         self,
         attempt_state: dict[str, JsonValue],
         scoring_state: dict[str, JsonValue] | None,
-        response: dict[str, JsonValue] | None,
+        response: dict[str, JsonValue],
+        uploads: dict[str, list[ResponseFile]],
+        editors: dict[str, EditorData[ResponseFile]],
         *,
         compute_adjusted_score: bool,
         generate_hint: bool,
     ) -> AttemptScoredProtocol:
-        attempt = cast("Attempt", self.get_attempt(attempt_state, scoring_state, response))
+        attempt = cast("Attempt", self.get_attempt(attempt_state, scoring_state, response, uploads, editors))
         attempt.score_response(compute_adjusted_score=compute_adjusted_score, generate_hint=generate_hint)
         return cast("AttemptScoredProtocol", attempt)
 
