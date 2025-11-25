@@ -56,7 +56,8 @@ class QuestionStateView(QuestionBaseView):
     async def get(self) -> web.Response:
         """Gets the form data for the Options Form from the state storage."""
         question_id = self.request.match_info["question_id"]
-        return self.json_model_response(RootModel(await self.controller.get_options_state(question_id)))
+        state_response = await self.controller.get_options_state(question_id)
+        return self.json_model_response(RootModel(state_response))
 
     async def post(self) -> web.Response:
         """Stores the form data from the Options Form in the state storage."""

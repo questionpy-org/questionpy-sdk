@@ -8,8 +8,7 @@ import pytest
 
 from questionpy_common.api.question import ScoringMethod
 from questionpy_common.elements import OptionsFormDefinition, TextInputElement
-from questionpy_sdk.webserver.controllers.question import QuestionController
-from questionpy_sdk.webserver.controllers.question.controller import OptionsStateResponse
+from questionpy_sdk.webserver.controllers.question import OptionsStateResponse, QuestionController
 from questionpy_sdk.webserver.errors import DuplicateQuestionError, MissingQuestionStateError
 from questionpy_server.models import QuestionCreated
 
@@ -33,21 +32,22 @@ async def test_get_form_definition(
 
 
 async def test_get_questions(controller: QuestionController, mock_worker: AsyncMock) -> None:
-    mock_worker.get_options_form.return_value = (
-        OptionsFormDefinition(general=[TextInputElement(label="Foo", name="foo")]),
-        {"foo": "Bar"},
+    mock_worker.get_options_form.side_effect = (
+        (
+            OptionsFormDefinition(general=[TextInputElement(label="Foo", name="foo")]),
+            {"foo": "foo value"},
+        ),
+        (
+            OptionsFormDefinition(general=[TextInputElement(label="Bar", name="bar")]),
+            {"bar": "bar value"},
+        ),
     )
     questions = await controller.get_questions()
 
-    question_1 = questions["svyhZCg8"]
-    assert isinstance(question_1, dict)
-    assert question_1["general[foo]"] == "Bar"
-
-    question_2 = questions["tKVJTdsv"]
-    assert isinstance(question_2, dict)
-    assert question_2["general[foo]"] == "Bar"
-
-    assert len(questions) == 2
+    assert questions == {
+        "svyhZCg8": {"foo": "foo value"},
+        "tKVJTdsv": {"bar": "bar value"},
+    }
 
 
 async def test_get_options_state(
@@ -60,7 +60,7 @@ async def test_get_options_state(
     options_state = await controller.get_options_state("QaKxpanc")
 
     mock_state_manager.read_question_state.assert_called_once()
-    assert options_state == OptionsStateResponse(data={"general[foo]": "Bar"}, is_new=False)
+    assert options_state == OptionsStateResponse(data={"foo": "Bar"}, is_new=False)
 
 
 async def test_get_options_state_new(
@@ -74,7 +74,7 @@ async def test_get_options_state_new(
     options_state = await controller.get_options_state("QaKxpanc")
 
     mock_state_manager.read_question_state.assert_called_once()
-    assert options_state == OptionsStateResponse(data={"general[foo]": "Bar"}, is_new=True)
+    assert options_state == OptionsStateResponse(data={"foo": "Bar"}, is_new=True)
 
 
 async def test_save_options_state(
@@ -83,7 +83,7 @@ async def test_save_options_state(
     mock_worker.create_question_from_options.return_value = QuestionCreated(
         lang="en", scoring_method=ScoringMethod.AUTOMATICALLY_SCORABLE, question_state="question_state"
     )
-    await controller.save_options_state("QaKxpanc", {"general[foo]": "Baz"})
+    await controller.save_options_state("QaKxpanc", {"foo": "Baz"})
 
     mock_state_manager.read_question_state.assert_called_once()
     mock_state_manager.write_question_state.assert_called_once_with("QaKxpanc", "question_state")
