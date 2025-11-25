@@ -83,6 +83,7 @@ extend-ignore-names = ["mcs", "test_*"]
 "**/questionpy_sdk/webserver/controllers/attempt/errors.py" = ["RUF027"]
 # unused-async (aiohttp handlers must be async even if they don't use it)
 "**/questionpy_sdk/webserver/routes/*" = ["RUF029"]
+"**/e2e/**/*" = ["PLR09", "PLR2004", "S"]
 
 [tool.ruff.lint.pylint]
 allow-dunder-method-names = ["__get_pydantic_core_schema__"]
