@@ -5,7 +5,7 @@
 -->
 
 <template>
-    <FormGroup v-show="!isHiddenByCond" :label="element.label">
+    <FormGroup v-show="!isHiddenByCond" :label="element.label" :label-for="id" :state="validation.state">
         <BFormSelect
             v-model="model"
             :aria-describedby="ariaDescribedBy"
@@ -15,7 +15,9 @@
             :options="options"
             :required="element.required"
             :select-size="size"
+            :state="validation.state"
         />
+        <ValidationFeedback :validation="validation" />
         <BFormText v-if="helpText" :id="helpId">{{ helpText }}</BFormText>
     </FormGroup>
 </template>
@@ -31,6 +33,7 @@ import {
     useIsDisabled,
     useModel,
     usePath,
+    useValidation,
 } from '@/composables/question/elements'
 import type { ElementPath, SelectElement } from '@/types'
 
@@ -50,6 +53,7 @@ const { isDisabledByCond, isHiddenByCond } = useConditions(pathPrefix, element)
 const { helpId, helpText } = useHelp(pathPrefix, element)
 const isDisabled = useIsDisabled(computed(() => disabled || isDisabledByCond.value))
 const ariaDescribedBy = useAriaDescribedBy([helpId.value])
+const validation = useValidation(path)
 
 const options = computed(() =>
     element.options.map((opts) => ({

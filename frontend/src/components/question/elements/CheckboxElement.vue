@@ -5,22 +5,23 @@
 -->
 
 <template>
-    <FormGroup v-show="!isHiddenByCond" :label="element.left_label">
+    <FormGroup v-show="!isHiddenByCond" :label="element.left_label" :state="validation.state">
         <BFormCheckbox
             :aria-describedby="ariaDescribedBy"
             :disabled="isDisabled"
             :id="id"
             :required="element.required"
+            :state="validation.state"
             v-model="model"
             >{{ element.right_label }}</BFormCheckbox
         >
+        <ValidationFeedback :validation="validation" />
         <BFormText v-if="helpText" :id="helpId">{{ helpText }}</BFormText>
     </FormGroup>
 </template>
 
 <script lang="ts" setup>
-import { computed } from 'vue'
-
+import ValidationFeedback from '@/components/question/ValidationFeedback.vue'
 import {
     useAriaDescribedBy,
     useConditions,
@@ -29,6 +30,7 @@ import {
     useIsDisabled,
     useModel,
     usePath,
+    useValidation,
 } from '@/composables/question/elements'
 import type { CheckboxElement, ElementPath } from '@/types'
 
@@ -43,6 +45,7 @@ const id = useId(path)
 const model = useModel(pathPrefix, element)
 const { isDisabledByCond, isHiddenByCond } = useConditions(pathPrefix, element)
 const { helpId, helpText } = useHelp(pathPrefix, element)
-const isDisabled = useIsDisabled(computed(() => disabled || isDisabledByCond.value))
+const isDisabled = useIsDisabled(() => disabled || isDisabledByCond.value)
 const ariaDescribedBy = useAriaDescribedBy([helpId.value])
+const validation = useValidation(path)
 </script>

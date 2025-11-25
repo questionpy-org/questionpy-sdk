@@ -71,7 +71,7 @@ function provideFormDataState(questionId: string): UseFormDataStateReturn {
                 // Restore form data and populate with default values
                 formDataCurrent.value = getFormData(formDefinition.value, formDataRemote.value.data)
                 // Remember clean form state
-                formDataClean.value = structuredClone(toRaw(formDataCurrent.value))
+                formDataClean.value = window.structuredClone(toRaw(formDataCurrent.value))
             }
         },
         {
@@ -122,7 +122,7 @@ function provideFormDataState(questionId: string): UseFormDataStateReturn {
             removeOperation(operation)
         }
 
-        formDataClean.value = structuredClone(rawFormData)
+        formDataClean.value = window.structuredClone(rawFormData)
         mutationState.value.error = null
         await formDataRefresh()
 
@@ -130,7 +130,7 @@ function provideFormDataState(questionId: string): UseFormDataStateReturn {
     }
 
     function reset(): void {
-        formDataCurrent.value = structuredClone(toRaw(formDataClean.value))
+        formDataCurrent.value = window.structuredClone(toRaw(formDataClean.value))
     }
 
     function navigateToNestedProperty(path: ElementPath) {

@@ -5,16 +5,17 @@
 -->
 
 <template>
-    <BCard class="mb-3" v-show="!isHiddenByCond" :footer="helpText" :id="id" :title="element.label">
-        <FormElement
-            v-for="el in element.elements"
-            :disabled="isDisabled"
-            :key="el.name"
-            :element="el"
-            :path-prefix="[...pathPrefix, element.name]"
-        />
+    <BCard v-show="!isHiddenByCond" :footer="helpText" :id="id" :title="element.label">
+        <div class="vstack gap-3">
+            <FormElement
+                v-for="el in element.elements"
+                :disabled="isDisabled"
+                :key="el.name"
+                :element="el"
+                :path-prefix="[...pathPrefix, element.name]"
+            />
+        </div>
     </BCard>
-    <BFormText v-if="helpText" :id="helpId">{{ helpText }}</BFormText>
 </template>
 
 <script lang="ts" setup>
@@ -32,6 +33,6 @@ const { disabled, element, pathPrefix } = defineProps<{
 const path = usePath(pathPrefix, element)
 const id = useId(path)
 const { isDisabledByCond, isHiddenByCond } = useConditions(pathPrefix, element)
-const { helpId, helpText } = useHelp(pathPrefix, element)
+const { helpText } = useHelp(pathPrefix, element)
 const isDisabled = useIsDisabled(computed(() => disabled || isDisabledByCond.value))
 </script>

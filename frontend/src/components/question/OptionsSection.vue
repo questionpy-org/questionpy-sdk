@@ -5,12 +5,14 @@
 -->
 
 <template>
-    <h3>{{ header }}</h3>
-    <template v-for="element in elements" :key="element.name">
-        <ErrorBoundary>
-            <FormElement :disabled="false" :element="element" :path-prefix="[name]" />
-        </ErrorBoundary>
-    </template>
+    <div>
+        <h3>{{ header }}</h3>
+        <template v-for="element in elements" :key="element.name">
+            <ErrorBoundary>
+                <FormElement :disabled="false" :element="element" :path-prefix="[name]" />
+            </ErrorBoundary>
+        </template>
+    </div>
 </template>
 
 <script lang="ts" setup>

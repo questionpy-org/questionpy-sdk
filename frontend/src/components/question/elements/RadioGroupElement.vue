@@ -5,7 +5,7 @@
 -->
 
 <template>
-    <FormGroup v-show="!isHiddenByCond" :label="element.label">
+    <FormGroup v-show="!isHiddenByCond" :label="element.label" :state="validation.state">
         <BFormRadioGroup
             v-model="model"
             :aria-describedby="ariaDescribedBy"
@@ -13,7 +13,9 @@
             :id="id"
             :options="options"
             :required="element.required"
+            :state="validation.state"
         />
+        <ValidationFeedback :validation="validation" />
         <BFormText v-if="helpText" :id="helpId">{{ helpText }}</BFormText>
     </FormGroup>
 </template>
@@ -47,4 +49,5 @@ const { helpId, helpText } = useHelp(pathPrefix, element)
 const isDisabled = useIsDisabled(computed(() => disabled || isDisabledByCond.value))
 const ariaDescribedBy = useAriaDescribedBy([helpId.value])
 const options = computed(() => element.options.map(({ value, label }) => ({ value, text: label })))
+const validation = useValidation(path)
 </script>

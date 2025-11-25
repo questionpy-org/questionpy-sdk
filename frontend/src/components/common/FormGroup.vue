@@ -5,7 +5,7 @@
 -->
 
 <template>
-    <BFormGroup :disabled="hasPendingOperations" class="mb-3" label-cols-sm="3" content-cols-sm="9">
+    <BFormGroup :disabled="hasPendingOperations" label-cols-sm="3" content-cols-sm="9">
         <slot />
     </BFormGroup>
 </template>
