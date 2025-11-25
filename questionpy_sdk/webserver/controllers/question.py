@@ -2,15 +2,30 @@
 #  The QuestionPy SDK is free software released under terms of the MIT license. See LICENSE.md.
 #  (c) Technische Universität Berlin, innoCampus <info@isis.tu-berlin.de>
 
+from collections.abc import Mapping
+from typing import cast
+
 from pydantic import ConfigDict
 from pydantic.dataclasses import dataclass
 
 import questionpy_sdk.webserver.errors as webserver_errors
+from questionpy.form import OptionsFile, RichTextEditor
 from questionpy_common.api.qtype import InvalidQuestionStateError
 from questionpy_common.elements import OptionsFormDefinition
 from questionpy_sdk.webserver.constants import DEFAULT_REQUEST_INFO
 from questionpy_sdk.webserver.controllers.base import BaseController
-from questionpy_sdk.webserver.controllers.question._form_data import OptionsFormData, flatten_form_data, parse_form_data
+
+type OptionsFormBaseValue = str | int | float | bool | list[str] | list[OptionsFile] | RichTextEditor | None
+"""Union of supported form value types (w/o nested)."""
+
+type OptionsFormModelValue = Mapping[str, OptionsFormValue]
+"""Form value type for elements that support nested `FormModel`, like `group`, `section`, etc."""
+
+type OptionsFormValue = OptionsFormBaseValue | OptionsFormModelValue | list[OptionsFormModelValue]
+"""Union of all form value types."""
+
+type OptionsFormData = Mapping[str, OptionsFormValue]
+"""Root form data type."""
 
 
 @dataclass(config=ConfigDict(use_attribute_docstrings=True))
@@ -45,15 +60,13 @@ class QuestionController(BaseController):
                 for question_id in states_str:
                     state = states_str[question_id]
                     try:
-                        form_definition, form_data = await worker.get_options_form(DEFAULT_REQUEST_INFO, state)
+                        _, form_data = await worker.get_options_form(DEFAULT_REQUEST_INFO, state)
                     except InvalidQuestionStateError as err:
                         states[question_id] = webserver_errors.DetailedServerError(
                             type(err).__name__, webserver_errors.format_error(err)
                         )
                     else:
-                        section_names = self._section_names_from_definition(form_definition)
-                        flat_form_data = flatten_form_data(form_data, section_names)
-                        states[question_id] = flat_form_data
+                        states[question_id] = cast("OptionsFormData", form_data)
 
         return states
 
@@ -66,16 +79,11 @@ class QuestionController(BaseController):
             is_new = True
 
         async with self.get_worker() as worker:
-            form_definition, form_data = await worker.get_options_form(DEFAULT_REQUEST_INFO, state)
+            _, form_data = await worker.get_options_form(DEFAULT_REQUEST_INFO, state)
 
-        return OptionsStateResponse(
-            data=flatten_form_data(form_data, self._section_names_from_definition(form_definition)),
-            is_new=is_new,
-        )
+        return OptionsStateResponse(data=cast("OptionsFormData", form_data), is_new=is_new)
 
-    async def save_options_state(self, question_id: str, data: OptionsFormData) -> None:
-        form_data = parse_form_data(data)
-
+    async def save_options_state(self, question_id: str, data: dict[str, object]) -> None:
         try:
             old_state = await self._state_manager.read_question_state(question_id)
         except webserver_errors.MissingQuestionStateError:
@@ -83,7 +91,7 @@ class QuestionController(BaseController):
 
         async with self.get_worker() as worker:
             question = await worker.create_question_from_options(
-                DEFAULT_REQUEST_INFO, old_state, form_data=form_data, lms_permissions=None
+                DEFAULT_REQUEST_INFO, old_state, form_data=data, lms_permissions=None
             )
 
         await self._state_manager.write_question_state(question_id, question.question_state)
@@ -102,7 +110,3 @@ class QuestionController(BaseController):
 
         state = await self._state_manager.read_question_state(question_id)
         await self._state_manager.write_question_state(new_question_id, state)
-
-    @staticmethod
-    def _section_names_from_definition(form_definition: OptionsFormDefinition) -> list[str]:
-        return [section.name for section in form_definition.sections]
