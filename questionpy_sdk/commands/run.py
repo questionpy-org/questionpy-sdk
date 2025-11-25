@@ -12,6 +12,7 @@ from questionpy_sdk.commands._helper import get_package_location
 from questionpy_sdk.constants import DEFAULT_STATE_STORAGE_PATH
 from questionpy_sdk.watcher import Watcher
 from questionpy_sdk.webserver import WebServer
+from questionpy_sdk.webserver.errors import EnvironmentVariablesMissingError
 from questionpy_sdk.webserver.server import WebServerArgs
 from questionpy_server.worker.impl.subprocess import SubprocessWorker
 from questionpy_server.worker.impl.thread import ThreadWorker
@@ -94,4 +95,8 @@ def run(
     else:
         coro = async_run(webserver_args)
 
-    asyncio.run(coro)
+    try:
+        asyncio.run(coro)
+    except EnvironmentVariablesMissingError as e:
+        msg = f"The following environment variables are required to run the package: {', '.join(e.missing)}"
+        raise click.ClickException(msg) from e
