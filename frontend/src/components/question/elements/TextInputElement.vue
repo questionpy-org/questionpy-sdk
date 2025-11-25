@@ -5,7 +5,7 @@
 -->
 
 <template>
-    <FormGroup v-show="!isHiddenByCond" :label="element.label">
+    <FormGroup v-show="!isHiddenByCond" :label="element.label" :state="validation.state">
         <BFormInput
             type="text"
             v-model="model"

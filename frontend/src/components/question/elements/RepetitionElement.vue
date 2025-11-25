@@ -5,42 +5,32 @@
 -->
 
 <template>
-    <div :id="id" class="border-start border-4 mb-3 ps-3">
-        <div class="mb-5" v-for="n in count" :key="n">
-            <FormElement
-                v-for="el in element.elements"
-                :disabled="isDisabled"
-                :element="el"
-                :key="el.name"
-                :path-prefix="[...pathPrefix, element.name, n.toString()]"
-            />
+    <BCard :id="id" no-body>
+        <BListGroup flush>
+            <BListGroupItem v-for="n in count" :key="n" class="p-3">
+                <RepetitionItem
+                    @remove="remove(n - 1)"
+                    :number="n"
+                    :disabled="disabled"
+                    :remove-disabled="count <= element.minimum_repetitions || isDisabled"
+                    :elements="element.elements"
+                    :path="[...pathPrefix, element.name, n - 1]"
+                />
+            </BListGroupItem>
+        </BListGroup>
+        <template #footer>
             <ButtonGroup>
-                <IconButton
-                    v-if="n === count"
-                    @click="add"
-                    :disabled="isDisabled"
-                    :icon-component="IMdiAdd"
-                    size="sm"
-                    variant="primary"
-                    >{{ element.button_label ?? 'Add repetition' }}</IconButton
-                >
-                <IconButton
-                    @click="remove(n - 1)"
-                    :disabled="count <= element.minimum_repetitions || isDisabled"
-                    :icon-component="IMdiDelete"
-                    size="sm"
-                    variant="danger"
-                    >Remove</IconButton
-                >
+                <IconButton @click="add" :disabled="isDisabled" :icon-component="IMdiAdd" size="sm" variant="primary">{{
+                    element.button_label ?? 'Add repetition'
+                }}</IconButton>
             </ButtonGroup>
             <ValidationFeedback :validation="validation" />
-        </div>
-    </div>
+        </template>
+    </BCard>
 </template>
 
 <script lang="ts" setup>
 import IMdiAdd from '~icons/mdi/add'
-import IMdiDelete from '~icons/mdi/delete'
 import { computed } from 'vue'
 
 import { useRepetitions } from '@/composables/question'
