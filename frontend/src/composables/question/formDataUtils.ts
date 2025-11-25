@@ -6,25 +6,16 @@
 
 import { v4 as uuidv4 } from 'uuid'
 
-import { assertNever, hasElements, isEditableElement } from '@/types'
-import type { FormElement, OptionsFormData, OptionsFormDefinition } from '@/types'
-
-/**
- * Constructs an element name string from an array of path segments.
- *
- * @param path An array of strings representing the path segments.
- * @returns The constructed element name string.
- *
- * **Example:**
- *
- * ```typescript
- * getElementName(['a', 'b', 'c']);
- * // Output: "a[b][c]"
- * ```
- */
-function getElementName(path: string[]): string {
-    return `${path.join('][').replace(']', '')}]`
-}
+import { assertNever, hasElements, isEditableElement, isObject } from '@/types'
+import type {
+    ElementPath,
+    FormElement,
+    OptionsFile,
+    OptionsFormData,
+    OptionsFormDefinition,
+    OptionsFormModelValue,
+    OptionsFormValue,
+} from '@/types'
 
 /**
  * Constructs the error key from an array of path segments.
@@ -32,20 +23,16 @@ function getElementName(path: string[]): string {
  * @param path An array of strings representing the path segments.
  * @returns The constructed error key.
  *
- * **Example:**
- *
- * ```typescript
- * getErrorKey(['general', 'a', '2', 'c']);
+ * @example
+ * getErrorKey(['general', 'a', 1, 'c']);
  * // Output: "a.1.c"
- * ```
  */
-function getErrorKey(path: string[]): string {
+function getErrorKey(path: ElementPath): string {
     return (
         path
             // Remove 'general' prefix
             .slice(path[0] === 'general' ? 1 : 0)
-            // Backend validation uses 0-based index
-            .map((part) => (part.match(/^\d+$/) ? String(Number(part) - 1) : part))
+            .map((part) => (typeof part === 'number' ? String(part) : part))
             .join('.')
     )
 }
@@ -53,67 +40,62 @@ function getErrorKey(path: string[]): string {
 /**
  * Populates a form data object with default values from a list of form elements.
  *
- * Each element's value is assigned to the `data` object using a key derived from the `pathPrefix`.
- *
- * @param data The form data object to be updated with default values.
  * @param elems An array of form elements that is processed recursively.
- * @param pathPrefix An array of strings representing the hierarchical path used to generate keys for the `data` object.
+ * @param data The form data object to be updated with default values (default: empty object).
+ * @return The updated form data.
  */
-function createFormDataValues(data: OptionsFormData, elems: FormElement[], pathPrefix: string[]): void {
+function createFormDataValues(elems: FormElement[], data: OptionsFormModelValue = {}): OptionsFormData {
     for (const elem of elems) {
-        const path = [...pathPrefix, elem.name]
-        const name = getElementName(path)
-
-        // Skip fields that are already populated
-        if (Object.keys(data).some((key) => key.startsWith(name))) {
+        // Skip if already populated
+        if (data[elem.name] !== undefined) {
             continue
         }
 
         switch (elem.kind) {
             case 'checkbox':
-                data[name] = elem.selected
+                data[elem.name] = elem.selected
                 break
 
             case 'select': {
                 if (elem.multiple) {
-                    data[name] = []
-                    for (const { selected, value } of elem.options) {
-                        if (selected) {
-                            data[name].push(value)
-                        }
-                    }
+                    data[elem.name] = elem.options.filter((opt) => opt.selected).map((opt) => opt.value)
                 } else {
-                    data[name] = elem.options.find((opt) => opt.selected)?.value ?? elem.options[0]?.value ?? ''
+                    data[elem.name] = elem.options.find((opt) => opt.selected)?.value ?? elem.options[0]?.value ?? ''
                 }
                 break
             }
 
             case 'input':
             case 'textarea':
-                data[name] = elem.default ?? ''
+                data[elem.name] = elem.default ?? ''
                 break
 
             case 'radio_group':
-                data[name] = elem.options.find((opt) => opt.selected)?.value ?? ''
+                data[elem.name] = elem.options.find((opt) => opt.selected)?.value ?? ''
                 break
 
             case 'hidden':
-                data[name] = elem.value
+                data[elem.name] = elem.value
                 break
 
             case 'id':
-                data[name] = uuidv4()
+                data[elem.name] = uuidv4()
                 break
 
-            case 'group':
-                createFormDataValues(data, elem.elements, path)
+            case 'group': {
+                data[elem.name] = createFormDataValues(elem.elements)
                 break
+            }
 
             case 'repetition': {
                 const count = Math.max(elem.initial_repetitions, elem.minimum_repetitions)
-                for (let i = 1; i <= count; ++i) {
-                    createFormDataValues(data, elem.elements, [...path, i.toString()])
+                const repetitionData: OptionsFormData[] = []
+
+                for (let i = 0; i < count; ++i) {
+                    repetitionData.push(createFormDataValues(elem.elements))
                 }
+
+                data[elem.name] = repetitionData
                 break
             }
 
@@ -130,6 +112,8 @@ function createFormDataValues(data: OptionsFormData, elems: FormElement[], pathP
                 assertNever(elem)
         }
     }
+
+    return data
 }
 
 /**
@@ -140,57 +124,65 @@ function createFormDataValues(data: OptionsFormData, elems: FormElement[], pathP
  * @returns The default form data.
  */
 function getFormData(options: OptionsFormDefinition, initialFormData: OptionsFormData): OptionsFormData {
-    const data: OptionsFormData = { ...initialFormData }
+    // General section elements at the root level
+    const data = createFormDataValues(options.general, { ...initialFormData })
 
-    createFormDataValues(data, options.general, ['general'])
+    // Other sections
     for (const section of options.sections) {
-        createFormDataValues(data, section.elements, [section.name])
+        const sectionElems = (data[section.name] ?? {}) as OptionsFormModelValue
+        data[section.name] = createFormDataValues(section.elements, sectionElems)
     }
 
     return data
 }
 
+type FormValue = OptionsFormValue | OptionsFile | null
+
+function areFormValuesIdentical(v1?: FormValue, v2?: FormValue): boolean {
+    // Primitive values, null and undefined
+    if (v1 === v2) {
+        return true
+    }
+
+    // Arrays
+    if (Array.isArray(v1) && Array.isArray(v2)) {
+        if (v1.length !== v2.length) {
+            return false
+        }
+        return v1.every((item, index) => areFormValuesIdentical(item, v2[index]))
+    }
+
+    // Objects
+    if (isObject(v1) && isObject(v2)) {
+        const keys1 = Object.keys(v1)
+        const keys2 = Object.keys(v2)
+
+        if (keys1.length !== keys2.length) {
+            return false
+        }
+
+        return keys1.every(
+            // RichTextEditor includes `[k: string]: unknown` which we don't use though
+            (key) => keys2.includes(key) && areFormValuesIdentical(v1[key] as FormValue, v2[key] as FormValue),
+        )
+    }
+
+    // Mismatched types
+    return false
+}
+
 /**
- * Checks if two objects are identical.
+ * Performs deep equality check between two `OptionsFormData` objects.
  *
- * Compares two objects of type `Record<string, string | boolean | string[]>` to determine if they have the same keys
- * and corresponding values. For values that are arrays, the order and content are compared.
+ * Recursively compares all properties, including nested objects and arrays. Array/object comparison requires identical
+ * length, order, and content.
  *
- * @param d1 The first object to compare.
- * @param d2 The second object to compare.
- * @returns `true` if both objects are identical, `false` otherwise.
+ * @param d1 First form data object to compare
+ * @param d2 Second form data object to compare
+ * @returns `true` if objects are deeply equal, `false` otherwise
  */
 function areFormDataObjIdentical(d1: OptionsFormData, d2: OptionsFormData): boolean {
-    const keys1 = Object.keys(d1)
-    const keys2 = Object.keys(d2)
-
-    if (keys1.length !== keys2.length) {
-        return false
-    }
-
-    for (const key of keys1) {
-        if (!d2.hasOwnProperty(key)) {
-            return false
-        }
-
-        const val1 = d1[key]
-        const val2 = d2[key]
-
-        if (Array.isArray(val1) && Array.isArray(val2)) {
-            if (val1.length !== val2.length) {
-                return false
-            }
-            for (let i = 0; i < val1.length; i++) {
-                if (val1[i] !== val2[i]) {
-                    return false
-                }
-            }
-        } else if (val1 !== val2) {
-            return false
-        }
-    }
-
-    return true
+    return areFormValuesIdentical(d1, d2)
 }
 
 /**
@@ -210,4 +202,4 @@ function hasEditableElements(elements: FormElement[]): boolean {
     return false
 }
 
-export { areFormDataObjIdentical, createFormDataValues, getElementName, getErrorKey, getFormData, hasEditableElements }
+export { areFormDataObjIdentical, createFormDataValues, getErrorKey, getFormData, hasEditableElements }

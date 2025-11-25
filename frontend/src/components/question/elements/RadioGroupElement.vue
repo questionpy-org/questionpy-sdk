@@ -11,7 +11,6 @@
             :aria-describedby="ariaDescribedBy"
             :disabled="isDisabled"
             :id="id"
-            :name="name"
             :options="options"
             :required="element.required"
         />
@@ -24,21 +23,24 @@ import { computed } from 'vue'
 
 import {
     useAriaDescribedBy,
-    useCommon,
     useConditions,
     useHelp,
+    useId,
     useIsDisabled,
     useModel,
+    usePath,
+    useValidation,
 } from '@/composables/question/elements'
-import type { RadioGroupElement } from '@/types'
+import type { ElementPath, RadioGroupElement } from '@/types'
 
 const { disabled, element, pathPrefix } = defineProps<{
     disabled: boolean
     element: RadioGroupElement
-    pathPrefix: string[]
+    pathPrefix: ElementPath
 }>()
 
-const { id, name } = useCommon(pathPrefix, element)
+const path = usePath(pathPrefix, element)
+const id = useId(path)
 const model = useModel(pathPrefix, element)
 const { isDisabledByCond, isHiddenByCond } = useConditions(pathPrefix, element)
 const { helpId, helpText } = useHelp(pathPrefix, element)

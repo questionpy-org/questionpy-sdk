@@ -12,14 +12,14 @@
 import { computed } from 'vue'
 import type { ComponentInstance } from 'vue'
 
-import type { FormElement } from '@/types'
+import type { ElementPath, FormElement } from '@/types'
 
 import { mapElementKindToComponent } from './elements'
 
 const props = defineProps<{
     disabled: boolean
     element: FormElement
-    pathPrefix: string[]
+    pathPrefix: ElementPath
 }>()
 
 const elementComponent = computed(() => mapElementKindToComponent(props.element.kind))

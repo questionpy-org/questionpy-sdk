@@ -4,23 +4,28 @@
  * (c) Technische Universität Berlin, innoCampus <info@isis.tu-berlin.de>
  */
 
-import { type Ref, ref, watchEffect } from 'vue'
+import { ref, watch } from 'vue'
+import type { Ref } from 'vue'
 
 import { useFormDataState } from '@/composables/question'
-import { getElementName } from '@/composables/question/formDataUtils'
 import { assertNever } from '@/types'
-import type { CanHaveConditions, Condition, OptionsFormData } from '@/types'
+import type { UseFormDataStateReturn } from '@/composables/question/useFormDataState'
+import type { CanHaveConditions, Condition, ElementPath } from '@/types'
 
 /**
  * Evaluates whether a given condition is met based on form data and a base path.
  *
  * @param cond The condition to evaluate (see `questionpy.form` Python module for a detailed description).
  * @param basePath The base path used as a starting point for relative references.
- * @param formData The form data object to check against the condition.
+ * @param getValue The form data value getter.
  *
  * @returns Returns true if the condition is satisfied, false otherwise.
  */
-function isConditionTrue(cond: Condition, basePath: string[], formData: OptionsFormData): boolean {
+function isConditionTrue(
+    cond: Condition,
+    basePath: ElementPath,
+    getValue: UseFormDataStateReturn['getValue'],
+): boolean {
     const nameParts = cond.name.replace(/\]/g, '').split('[')
 
     // Resolve condition's target name
@@ -32,10 +37,11 @@ function isConditionTrue(cond: Condition, basePath: string[], formData: OptionsF
             refPath.push(part)
         }
     }
-    const refValue = formData[getElementName(refPath)]
+
+    const refValue = getValue(refPath)
 
     if (refValue === undefined) {
-        return false
+        throw new Error(`Invalid condition detected: ${cond.name}`)
     }
 
     switch (cond.kind) {
@@ -67,21 +73,32 @@ function isConditionTrue(cond: Condition, basePath: string[], formData: OptionsF
  *
  * @returns An object containing `isDisabledByCond` and `isHiddenByCond`.
  */
-function useConditions(pathPrefix: string[], element: CanHaveConditions): UseConditionsReturn {
-    const { formData } = useFormDataState()
+function useConditions<T extends CanHaveConditions>(pathPrefix: ElementPath, element: T): UseConditionsReturn {
+    const { formData, getValue } = useFormDataState()
 
     // State of conditions
     const isHiddenByCond = ref(false)
     const isDisabledByCond = ref(false)
 
+    const isRepetition = typeof pathPrefix[pathPrefix.length - 1] === 'number'
+
+    // For elements inside repetitions, the reference is relative to the repetition when accessing parent element
+    //  -> remove last number part
+    const basePath = (cond: Condition) =>
+        cond.name.startsWith('..') && isRepetition ? pathPrefix.slice(0, -1) : pathPrefix
+
     // Predicate that tests a single condition
-    const predicate = (cond: Condition) => isConditionTrue(cond, pathPrefix, formData.value)
+    const predicate = (cond: Condition) => isConditionTrue(cond, basePath(cond), getValue)
 
     // Update condition state based on `formData` updates
-    watchEffect(() => {
-        isHiddenByCond.value = element.hide_if.some(predicate)
-        isDisabledByCond.value = element.disable_if.some(predicate)
-    })
+    watch(
+        formData.value,
+        () => {
+            isHiddenByCond.value = element.hide_if.some(predicate)
+            isDisabledByCond.value = element.disable_if.some(predicate)
+        },
+        { immediate: true },
+    )
 
     return { isDisabledByCond, isHiddenByCond }
 }

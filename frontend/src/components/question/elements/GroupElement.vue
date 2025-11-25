@@ -20,18 +20,18 @@
 <script lang="ts" setup>
 import { computed } from 'vue'
 
-import { useCommon, useConditions, useHelp, useIsDisabled } from '@/composables/question/elements'
-import type { GroupElement } from '@/types'
+import { useConditions, useHelp, useId, useIsDisabled, usePath } from '@/composables/question/elements'
+import type { ElementPath, GroupElement } from '@/types'
 
 const { disabled, element, pathPrefix } = defineProps<{
     disabled: boolean
     element: GroupElement
-    pathPrefix: string[]
+    pathPrefix: ElementPath
 }>()
 
+const path = usePath(pathPrefix, element)
+const id = useId(path)
 const { isDisabledByCond, isHiddenByCond } = useConditions(pathPrefix, element)
 const { helpId, helpText } = useHelp(pathPrefix, element)
 const isDisabled = useIsDisabled(computed(() => disabled || isDisabledByCond.value))
-
-const { id } = useCommon(pathPrefix, element)
 </script>

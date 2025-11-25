@@ -12,14 +12,11 @@
             :aria-describedby="ariaDescribedBy"
             :disabled="isDisabled"
             :id="id"
-            :name="name"
             :placeholder="element.placeholder ?? undefined"
             :required="element.required"
-            :state="validationState"
+            :state="validation.state"
         />
-        <BFormInvalidFeedback v-if="validationText" :id="validationId" :state="validationState">{{
-            validationText
-        }}</BFormInvalidFeedback>
+        <ValidationFeedback :validation="validation" />
         <BFormText v-if="helpText" :id="helpId">{{ helpText }}</BFormText>
     </FormGroup>
 </template>
@@ -29,25 +26,27 @@ import { computed } from 'vue'
 
 import {
     useAriaDescribedBy,
-    useCommon,
     useConditions,
     useHelp,
+    useId,
     useIsDisabled,
     useModel,
+    usePath,
     useValidation,
 } from '@/composables/question/elements'
-import type { TextAreaElement } from '@/types'
+import type { ElementPath, TextAreaElement } from '@/types'
 
 const { disabled, element, pathPrefix } = defineProps<{
     disabled: boolean
     element: TextAreaElement
-    pathPrefix: string[]
+    pathPrefix: ElementPath
 }>()
 
-const { id, name } = useCommon(pathPrefix, element)
+const path = usePath(pathPrefix, element)
+const id = useId(path)
 const model = useModel(pathPrefix, element)
 const { isDisabledByCond, isHiddenByCond } = useConditions(pathPrefix, element)
-const { validationId, validationText, validationState } = useValidation(pathPrefix, element)
+const validation = useValidation(path)
 const { helpId, helpText } = useHelp(pathPrefix, element)
 const isDisabled = useIsDisabled(computed(() => disabled || isDisabledByCond.value))
 const ariaDescribedBy = useAriaDescribedBy([helpId.value])

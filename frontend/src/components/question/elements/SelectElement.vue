@@ -12,7 +12,6 @@
             :disabled="isDisabled"
             :id="id"
             :multiple="element.multiple"
-            :name="name"
             :options="options"
             :required="element.required"
             :select-size="size"
@@ -26,24 +25,26 @@ import { computed } from 'vue'
 
 import {
     useAriaDescribedBy,
-    useCommon,
     useConditions,
     useHelp,
+    useId,
     useIsDisabled,
     useModel,
+    usePath,
 } from '@/composables/question/elements'
-import type { SelectElement } from '@/types'
+import type { ElementPath, SelectElement } from '@/types'
 
 const { disabled, element, pathPrefix } = defineProps<{
     disabled: boolean
     element: SelectElement
-    pathPrefix: string[]
+    pathPrefix: ElementPath
 }>()
 
 const MAX_SIZE = 8
 const size = computed(() => (element.multiple ? Math.min(element.options.length, MAX_SIZE) : undefined))
 
-const { id, name } = useCommon(pathPrefix, element)
+const path = usePath(pathPrefix, element)
+const id = useId(path)
 const model = useModel(pathPrefix, element)
 const { isDisabledByCond, isHiddenByCond } = useConditions(pathPrefix, element)
 const { helpId, helpText } = useHelp(pathPrefix, element)

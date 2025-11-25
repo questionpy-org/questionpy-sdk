@@ -7,7 +7,6 @@
 import {
     areFormDataObjIdentical,
     createFormDataValues,
-    getElementName,
     getErrorKey,
     getFormData,
     hasEditableElements,
@@ -26,24 +25,19 @@ import type {
 
 import options from './options'
 
-test('getElementName', () => {
-    expect(getElementName(['general', 'foo', 'bar'])).toBe('general[foo][bar]')
-})
-
 test('getErrorKey (general)', () => {
-    expect(getErrorKey(['general', 'a', '2', 'c'])).toBe('a.1.c')
+    expect(getErrorKey(['general', 'a', 1, 'c'])).toBe('a.1.c')
 })
 
 test('getErrorKey (section)', () => {
-    expect(getErrorKey(['section', '3', 'field'])).toBe('section.2.field')
+    expect(getErrorKey(['section', 2, 'field'])).toBe('section.2.field')
 })
 
 test('getErrorKey (mixed parts)', () => {
-    expect(getErrorKey(['section', 'a', '2', 'b', '3'])).toBe('section.a.1.b.2')
+    expect(getErrorKey(['section', 'a', 1, 'b', 2])).toBe('section.a.1.b.2')
 })
 
 test('createFormDataValues (checkbox)', () => {
-    const data = {}
     const checkbox = {
         kind: 'checkbox',
         name: 'chk',
@@ -55,12 +49,10 @@ test('createFormDataValues (checkbox)', () => {
         hide_if: [],
         help: null,
     } satisfies CheckboxElement
-    createFormDataValues(data, [checkbox], ['general'])
-    expect(data).toEqual({ 'general[chk]': true })
+    expect(createFormDataValues([checkbox])).toEqual({ chk: true })
 })
 
 test('createFormDataValues (select single)', () => {
-    const data = {}
     const select = {
         kind: 'select',
         name: 'my_select',
@@ -75,12 +67,10 @@ test('createFormDataValues (select single)', () => {
         hide_if: [],
         help: null,
     } satisfies SelectElement
-    createFormDataValues(data, [select], ['general'])
-    expect(data).toEqual({ 'general[my_select]': 'OPT_2' })
+    expect(createFormDataValues([select])).toEqual({ my_select: 'OPT_2' })
 })
 
 test('createFormDataValues (select multiple)', () => {
-    const data = {}
     const select = {
         kind: 'select',
         name: 'my_select_multi',
@@ -96,12 +86,10 @@ test('createFormDataValues (select multiple)', () => {
         hide_if: [],
         help: null,
     } satisfies SelectElement
-    createFormDataValues(data, [select], ['general'])
-    expect(data).toEqual({ 'general[my_select_multi]': ['OPT_1', 'OPT_3'] })
+    expect(createFormDataValues([select])).toEqual({ my_select_multi: ['OPT_1', 'OPT_3'] })
 })
 
 test('createFormDataValues (input)', () => {
-    const data = {}
     const input = {
         kind: 'input',
         name: 'input',
@@ -113,12 +101,10 @@ test('createFormDataValues (input)', () => {
         hide_if: [],
         help: null,
     } satisfies TextInputElement
-    createFormDataValues(data, [input], ['general'])
-    expect(data).toEqual({ 'general[input]': 'default text' })
+    expect(createFormDataValues([input])).toEqual({ input: 'default text' })
 })
 
 test('createFormDataValues (hidden)', () => {
-    const data = {}
     const hidden = {
         kind: 'hidden',
         name: 'my_hidden',
@@ -126,12 +112,10 @@ test('createFormDataValues (hidden)', () => {
         disable_if: [],
         hide_if: [],
     } satisfies HiddenElement
-    createFormDataValues(data, [hidden], ['general'])
-    expect(data).toEqual({ 'general[my_hidden]': 'foo' })
+    expect(createFormDataValues([hidden])).toEqual({ my_hidden: 'foo' })
 })
 
 test('createFormDataValues (group)', () => {
-    const data = {}
     const group = {
         kind: 'group',
         name: 'name_group',
@@ -164,15 +148,10 @@ test('createFormDataValues (group)', () => {
         hide_if: [],
         help: null,
     } satisfies GroupElement
-    createFormDataValues(data, [group], ['general'])
-    expect(data).toEqual({
-        'general[name_group][first_name]': '',
-        'general[name_group][last_name]': '',
-    })
+    expect(createFormDataValues([group])).toEqual({ name_group: { first_name: '', last_name: '' } })
 })
 
 test('createFormDataValues (repetition)', () => {
-    const data = {}
     const repetition = {
         kind: 'repetition',
         name: 'my_repetition',
@@ -230,21 +209,30 @@ test('createFormDataValues (repetition)', () => {
             },
         ],
     } satisfies RepetitionElement
-    createFormDataValues(data, [repetition], ['general'])
-    expect(data).toEqual({
-        'general[my_repetition][1][id]': expect.stringMatching(/^[a-f\d-]+$/),
-        'general[my_repetition][1][role]': '',
-        'general[my_repetition][1][name][first_name]': 'Jane',
-        'general[my_repetition][1][name][last_name]': '',
-        'general[my_repetition][2][id]': expect.stringMatching(/^[a-f\d-]+$/),
-        'general[my_repetition][2][role]': '',
-        'general[my_repetition][2][name][first_name]': 'Jane',
-        'general[my_repetition][2][name][last_name]': '',
+    expect(createFormDataValues([repetition])).toEqual({
+        my_repetition: [
+            {
+                id: expect.stringMatching(/^[a-f\d-]+$/),
+                role: '',
+                name: {
+                    first_name: 'Jane',
+                    last_name: '',
+                },
+            },
+            {
+                id: expect.stringMatching(/^[a-f\d-]+$/),
+                role: '',
+                name: {
+                    first_name: 'Jane',
+                    last_name: '',
+                },
+            },
+        ],
     })
 })
 
 test('createFormDataValues (existing key skipped)', () => {
-    const data = { 'general[input]': 'existing' }
+    const data = { input: 'existing' }
     const input = {
         kind: 'input',
         name: 'input',
@@ -256,12 +244,10 @@ test('createFormDataValues (existing key skipped)', () => {
         hide_if: [],
         help: null,
     } satisfies TextInputElement
-    createFormDataValues(data, [input], ['general'])
-    expect(data).toEqual({ 'general[input]': 'existing' })
+    expect(createFormDataValues([input], data)).toEqual({ input: 'existing' })
 })
 
 test('createFormDataValues (radio group)', () => {
-    const data = {}
     const radioGroup = {
         kind: 'radio_group',
         name: 'radio',
@@ -275,66 +261,93 @@ test('createFormDataValues (radio group)', () => {
         hide_if: [],
         help: null,
     } satisfies RadioGroupElement
-    createFormDataValues(data, [radioGroup], ['general'])
-    expect(data).toEqual({ 'general[radio]': 'RADIO_2' })
+    expect(createFormDataValues([radioGroup])).toEqual({ radio: 'RADIO_2' })
 })
 
 test('createFormDataValues (generated ID)', () => {
-    const data = {}
     const idElement = {
         kind: 'id',
         name: 'id',
     } satisfies GeneratedIdElement
-    createFormDataValues(data, [idElement], ['general'])
-    expect(data).toEqual({ 'general[id]': expect.stringMatching(/^[a-f\d-]+$/) })
+    expect(createFormDataValues([idElement])).toEqual({ id: expect.stringMatching(/^[a-f\d-]+$/) })
 })
 
 test('getFormData', async () => {
     expect(getFormData(options, {})).toStrictEqual({
-        'general[input]': 'default text',
-        'general[chk]': false,
-        'general[radio]': 'RADIO_2',
-        'general[my_select]': 'OPT_2',
-        'general[my_select_multi]': ['OPT_1', 'OPT_3'],
-        'general[my_hidden]': 'foo',
-        'general[my_repetition][1][id]': expect.stringMatching(/^[a-f\d-]+$/),
-        'general[my_repetition][1][role]': 'OPT_1',
-        'general[my_repetition][1][name][first_name]': 'Jane',
-        'general[my_repetition][1][name][last_name]': '',
-        'general[my_repetition][2][id]': expect.stringMatching(/^[a-f\d-]+$/),
-        'general[my_repetition][2][role]': 'OPT_1',
-        'general[my_repetition][2][name][first_name]': 'Jane',
-        'general[my_repetition][2][name][last_name]': '',
-        'general[has_name]': false,
-        'general[name_group][first_name]': '',
-        'general[name_group][last_name]': '',
-        'another_section[some_input]': '',
+        another_section: {
+            some_input: '',
+        },
+        chk: false,
+        has_name: false,
+        input: 'default text',
+        my_hidden: 'foo',
+        my_repetition: [
+            {
+                id: expect.stringMatching(/^[a-f\d-]+$/),
+                name: {
+                    first_name: 'Jane',
+                    last_name: '',
+                },
+                role: 'OPT_1',
+            },
+            {
+                id: expect.stringMatching(/^[a-f\d-]+$/),
+                name: {
+                    first_name: 'Jane',
+                    last_name: '',
+                },
+                role: 'OPT_1',
+            },
+        ],
+        my_select: 'OPT_2',
+        my_select_multi: ['OPT_1', 'OPT_3'],
+        name_group: {
+            first_name: '',
+            last_name: '',
+        },
+        radio: 'RADIO_2',
     })
 })
 
 test('getFormData (with initial data)', async () => {
     const initialData = {
-        'general[my_repetition][1][id]': 'fb79662e-1e2b-46d8-9655-3db4ecbbfab5',
-        'general[my_repetition][1][role]': 'OPT_3',
-        'general[my_repetition][1][name][first_name]': 'John',
-        'general[my_repetition][1][name][last_name]': 'Doe',
+        my_repetition: [
+            {
+                id: 'fb79662e-1e2b-46d8-9655-3db4ecbbfab5',
+                role: 'OPT_3',
+                name: {
+                    first_name: 'John',
+                    last_name: 'Doe',
+                },
+            },
+        ],
     }
 
     expect(getFormData(options, initialData)).toStrictEqual({
-        'general[input]': 'default text',
-        'general[chk]': false,
-        'general[radio]': 'RADIO_2',
-        'general[my_select]': 'OPT_2',
-        'general[my_select_multi]': ['OPT_1', 'OPT_3'],
-        'general[my_hidden]': 'foo',
-        'general[my_repetition][1][id]': 'fb79662e-1e2b-46d8-9655-3db4ecbbfab5',
-        'general[my_repetition][1][role]': 'OPT_3',
-        'general[my_repetition][1][name][first_name]': 'John',
-        'general[my_repetition][1][name][last_name]': 'Doe',
-        'general[has_name]': false,
-        'general[name_group][first_name]': '',
-        'general[name_group][last_name]': '',
-        'another_section[some_input]': '',
+        another_section: {
+            some_input: '',
+        },
+        chk: false,
+        has_name: false,
+        input: 'default text',
+        my_hidden: 'foo',
+        my_repetition: [
+            {
+                id: 'fb79662e-1e2b-46d8-9655-3db4ecbbfab5',
+                role: 'OPT_3',
+                name: {
+                    first_name: 'John',
+                    last_name: 'Doe',
+                },
+            },
+        ],
+        my_select: 'OPT_2',
+        my_select_multi: ['OPT_1', 'OPT_3'],
+        name_group: {
+            first_name: '',
+            last_name: '',
+        },
+        radio: 'RADIO_2',
     })
 })
 
@@ -378,6 +391,60 @@ test('areFormDataObjIdentical (different keys)', () => {
     const a = { a: '1' }
     const b = { b: '1' }
     expect(areFormDataObjIdentical(a, b)).toBe(false)
+})
+
+test('areFormDataObjIdentical (nested identical objects)', () => {
+    const a = { nested: { a: '1', b: true } }
+    const b = { nested: { a: '1', b: true } }
+    expect(areFormDataObjIdentical(a, b)).toBe(true)
+})
+
+test('areFormDataObjIdentical (nested different values)', () => {
+    const a = { nested: { a: '1' } }
+    const b = { nested: { a: '2' } }
+    expect(areFormDataObjIdentical(a, b)).toBe(false)
+})
+
+test('areFormDataObjIdentical (nested different structure)', () => {
+    const a = { nested: { a: '1' } }
+    const b = { nested: { b: '1' } }
+    expect(areFormDataObjIdentical(a, b)).toBe(false)
+})
+
+test('areFormDataObjIdentical (deeply nested objects)', () => {
+    const a = { level1: { level2: { value: 'test' } } }
+    const b = { level1: { level2: { value: 'test' } } }
+    expect(areFormDataObjIdentical(a, b)).toBe(true)
+})
+
+test('areFormDataObjIdentical (arrays of nested objects)', () => {
+    const a = { items: [{ id: 1 }, { id: 2 }] }
+    const b = { items: [{ id: 1 }, { id: 2 }] }
+    expect(areFormDataObjIdentical(a, b)).toBe(true)
+})
+
+test('areFormDataObjIdentical (arrays of nested objects different)', () => {
+    const a = { items: [{ id: 1 }, { id: 2 }] }
+    const b = { items: [{ id: 1 }, { id: 3 }] }
+    expect(areFormDataObjIdentical(a, b)).toBe(false)
+})
+
+test('areFormDataObjIdentical (mixed nested structures)', () => {
+    const a = {
+        simple: 'value',
+        nested: {
+            array: ['1', '2', '3'],
+            deep: { flag: true },
+        },
+    }
+    const b = {
+        simple: 'value',
+        nested: {
+            array: ['1', '2', '3'],
+            deep: { flag: true },
+        },
+    }
+    expect(areFormDataObjIdentical(a, b)).toBe(true)
 })
 
 test('hasEditableElements (editable input)', () => {
