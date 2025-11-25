@@ -137,7 +137,13 @@ class Attempt(ABC):
         self.attempt_state = attempt_state
         self.scoring_state = scoring_state
         self.response = response
-        """The values entered into all "normal" input fields by the student, by their names."""
+        """The values entered into primitive input fields, by their names, and the dynamic `data` field.
+
+        All input fields except the `<qpy:file-upload/>` and `<qpy:rich-text-editor/>` elements are considered
+        primitive.
+
+        The dynamic `data` field holds data set in `Attempt.data` by JavaScript code.
+        """
         self.uploads = uploads
         """The files uploaded to any `<qpy:file-upload/>` elements you defined, by their names."""
         self.editors = editors
