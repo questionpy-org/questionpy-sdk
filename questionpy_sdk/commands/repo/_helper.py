@@ -8,6 +8,8 @@ from gzip import open as gzip_open
 from pathlib import Path
 from zipfile import ZipFile
 
+import semver
+
 from questionpy_common.constants import DIST_DIR, MANIFEST_FILENAME
 from questionpy_common.manifest import Manifest
 from questionpy_server.hash import calculate_hash
@@ -45,7 +47,7 @@ class IndexCreator:
         """
         # Create RepoPackageVersion.
         version = RepoPackageVersion(
-            version=manifest.version,
+            version=semver.Version.parse(manifest.version),
             api_version=manifest.api_version,
             path=str(path.relative_to(self._root)),
             size=path.stat().st_size,

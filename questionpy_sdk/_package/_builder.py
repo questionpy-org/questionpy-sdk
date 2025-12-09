@@ -1,3 +1,4 @@
+import asyncio
 import inspect
 import logging
 import os
@@ -5,7 +6,7 @@ import shutil
 import subprocess
 import tempfile
 import zipfile
-from collections.abc import Iterator
+from collections.abc import Mapping
 from mimetypes import guess_type
 from pathlib import Path
 from typing import ClassVar
@@ -16,8 +17,16 @@ from pathspec import GitIgnoreSpec, PathSpec
 
 import questionpy
 from questionpy import i18n
-from questionpy_common.constants import DIST_DIR, MANIFEST_FILENAME
-from questionpy_common.manifest import DistStaticQPyDependency, Manifest, PackageFile
+from questionpy_common import PackageNamespaceAndShortName
+from questionpy_common.constants import MANIFEST_FILENAME
+from questionpy_common.dependencies import DependencySolution
+from questionpy_common.manifest import (
+    DistDynamicQPyDependency,
+    DistStaticQPyDependency,
+    LockedDependencyInfo,
+    Manifest,
+    PackageFile,
+)
 from questionpy_sdk._i18n_utils import bcp47_to_posix
 from questionpy_sdk._package._ignores import create_ignore_spec
 from questionpy_sdk._package._targets import BuildTarget, DirBuildTarget
@@ -28,36 +37,37 @@ from questionpy_sdk._package._validate import (
 )
 from questionpy_sdk._package.errors import PackageBuildError
 from questionpy_sdk._package.source import PackageSource
-from questionpy_sdk.models import BuildHookName, SourceStaticQPyDependency
+from questionpy_sdk.models import (
+    AbstractDynamicQPyDependency,
+    BuildHookName,
+    PackageConfig,
+    SourceDynamicQPyDependency,
+    SourceStaticQPyDependency,
+)
+from questionpy_server.dependencies import (
+    DynamicDependencyResolver,
+    NoopDependencyResolver,
+    resolve_dependency_tree,
+)
 from questionpy_server.hash import calculate_hash
+from questionpy_server.utils.manifest import read_manifest_from_zip
 
 _log = logging.getLogger(__name__)
 
 _PYTHON_TEMP_PATHS = GitIgnoreSpec.from_lines(("*.pyc", "__pycache__"))
 
 
-def _iterate_recursive_dependencies(
-    package_root: zipfile.Path,
-    *,
-    stack: tuple[str, ...] = (),
-    manifest: Manifest | None = None,
-) -> Iterator[tuple[str, ...]]:
-    if not manifest:
-        manifest = Manifest.model_validate_json((package_root / DIST_DIR / MANIFEST_FILENAME).read_text())
-
-    stack = (*stack, manifest.identifier)
-    yield stack
-
-    for dep in manifest.dependencies.qpy:
-        yield from _iterate_recursive_dependencies(
-            package_root / DIST_DIR / "dependencies" / "qpy" / dep.dir_name, stack=stack
-        )
-
-
 class PackageBuilder:
     STATIC_FILE_GLOBS: ClassVar[set[str]] = {"css/**/*", "js/**/*", "assets/**/*"}
 
-    def __init__(self, source: PackageSource, target: BuildTarget, *, copy_sources: bool) -> None:
+    def __init__(
+        self,
+        source: PackageSource,
+        target: BuildTarget,
+        *,
+        copy_sources: bool,
+        dependency_resolver: DynamicDependencyResolver,
+    ) -> None:
         self._source = source
         self._target = target
 
@@ -70,6 +80,8 @@ class PackageBuilder:
 
         self._ignore_spec = create_ignore_spec(self._source.path, self._source.config.ignore)
 
+        self._dynamic_dep_resolver = dependency_resolver
+
     def write_package(self) -> None:
         """Writes the package to the filesystem.
 
@@ -79,7 +91,8 @@ class PackageBuilder:
         self._run_build_hooks("pre")
         self._install_questionpy()
         self._install_requirements()
-        self._install_static_qpy_dependencies()
+        static_deps = self._install_static_qpy_dependencies()
+        self._lock_dynamic_dependencies(static_deps)
         self._write_package_files()
         self._compile_pos()
         if self._copy_sources:
@@ -142,7 +155,7 @@ class PackageBuilder:
             msg = f"Failed to install requirements: {exc.stderr.decode()}"
             raise PackageBuildError(msg) from exc
 
-    def _install_static_qpy_dependencies(self) -> None:
+    def _install_static_qpy_dependencies(self) -> dict[Path, DistStaticQPyDependency]:
         # Ignoring duplicates, we collect all the dependencies in the dependencies directory and those explicitly
         # listed.
         dependency_paths = set((self._source.path / "dependencies").glob("*.qpy"))
@@ -157,7 +170,7 @@ class PackageBuilder:
 
             dependency_paths.add(dep_path)
 
-        installed_deps: dict[str, tuple[str, ...]] = {}
+        installed_deps: dict[Path, DistStaticQPyDependency] = {}
 
         # Then, we copy all of their contents into a directory in dist/dependencies/qpy.
         for dep_path in dependency_paths:
@@ -165,30 +178,55 @@ class PackageBuilder:
 
             with dep_path.open("rb+") as dep_package_file, zipfile.ZipFile(dep_package_file) as dep_package_zf:
                 dep_hash = calculate_hash(dep_package_file)
-                dep_manifest = Manifest.model_validate_json(dep_package_zf.read(f"{DIST_DIR}/{MANIFEST_FILENAME}"))
-
-                # Any duplicate dependencies in the tree, even if the same version, would lead to an error at runtime,
-                # so we prevent them here.
-                for nested_dep_stack in _iterate_recursive_dependencies(
-                    zipfile.Path(dep_package_zf), manifest=dep_manifest, stack=(self._source.config.identifier,)
-                ):
-                    already_installed_through = installed_deps.get(nested_dep_stack[-1])
-                    if already_installed_through is not None:
-                        msg = (
-                            f"The dependency '{nested_dep_stack[-1]}' is required through "
-                            f"'{' -> '.join(nested_dep_stack)}', but has already been installed though "
-                            f"'{' -> '.join(already_installed_through)}'. This is not allowed even when both "
-                            f"require the same version."
-                        )
-                        raise PackageBuildError(msg)
-
-                    installed_deps[nested_dep_stack[-1]] = nested_dep_stack
+                dep_manifest = asyncio.run(read_manifest_from_zip(dep_path))
 
                 dep_dir_name = f"{dep_manifest.namespace}-{dep_manifest.short_name}-{dep_manifest.version}"
                 dest_path = self._target.dist / "dependencies" / "qpy" / dep_dir_name
                 dep_package_zf.extractall(dest_path)
 
-            self._manifest.dependencies.qpy.append(DistStaticQPyDependency(dir_name=dep_dir_name, hash=dep_hash))
+            dist_dep = DistStaticQPyDependency(
+                namespace=dep_manifest.namespace,
+                short_name=dep_manifest.short_name,
+                version=str(dep_manifest.version),
+                dependencies=dep_manifest.dependencies,
+                hash=dep_hash,
+            )
+
+            installed_deps[dep_path] = dist_dep
+            self._manifest.dependencies.qpy.append(dist_dep)
+
+        return installed_deps
+
+    def _lock_dynamic_dependencies(self, static_dependencies: dict[Path, DistStaticQPyDependency]) -> None:
+        # Even when no dynamic dependencies use locking, resolve_dependency_tree checks the tree for consistency.
+        resolution = _resolve_dependencies_for_packaging(
+            self._source.config, self._dynamic_dep_resolver, static_dependencies
+        )
+
+        for source_dep in self._source.config.dependencies.qpy:
+            if not isinstance(source_dep, SourceDynamicQPyDependency):
+                continue
+
+            lock_strategy = source_dep.lock
+            if lock_strategy is None:
+                lock_strategy = self._source.config.lock_dependencies
+
+            if not lock_strategy:
+                lock_info = None
+            else:
+                chosen_version = resolution[PackageNamespaceAndShortName(source_dep.namespace, source_dep.short_name)]
+                lock_info = LockedDependencyInfo(
+                    strategy=lock_strategy,
+                    locked_version=str(chosen_version.version),
+                    locked_hash=chosen_version.hash,
+                )
+
+            self._manifest.dependencies.qpy.append(
+                DistDynamicQPyDependency(
+                    **AbstractDynamicQPyDependency.model_dump(source_dep),
+                    locked=lock_info,
+                )
+            )
 
     def _write_package_files(self) -> None:
         """Writes custom package files."""
@@ -322,10 +360,41 @@ class PackageBuilder:
                 self._add_to_static_files(dest_path)
 
 
-def build_qpy_package(source: PackageSource, target: BuildTarget | None = None, *, copy_sources: bool = True) -> None:
+def build_qpy_package(
+    source: PackageSource,
+    target: BuildTarget | None = None,
+    *,
+    copy_sources: bool = True,
+    dependency_resolver: DynamicDependencyResolver | None = None,
+) -> None:
+    if not dependency_resolver:
+        dependency_resolver = NoopDependencyResolver()
+
     if not target:
         target = DirBuildTarget.in_source(source)
 
     with target:
-        builder = PackageBuilder(source, target, copy_sources=copy_sources)
+        builder = PackageBuilder(source, target, copy_sources=copy_sources, dependency_resolver=dependency_resolver)
         builder.write_package()
+
+
+def _resolve_dependencies_for_packaging(
+    config: PackageConfig,
+    dynamic_resolver: DynamicDependencyResolver,
+    source_static_deps: Mapping[Path, DistStaticQPyDependency],
+) -> dict[PackageNamespaceAndShortName, DependencySolution]:
+    """Converts `SourceQPyDependency` models from the `PackageConfig` into `DistQPyDependency` models.
+
+    `DistStaticQPyDependency` models were already built when the static dependencies were installed, and we can build
+    `DistDynamicQPyDependency` by just copying the `SourceDynamicQPyDependency`.
+    """
+    root_deps = [
+        dep
+        if isinstance(dep, (DistStaticQPyDependency, DistDynamicQPyDependency))
+        else source_static_deps[dep.path]
+        if isinstance(dep, SourceStaticQPyDependency)
+        else DistDynamicQPyDependency(**dep.model_dump())
+        for dep in config.dependencies.qpy
+    ]
+
+    return resolve_dependency_tree(config, root_deps, dynamic_resolver)

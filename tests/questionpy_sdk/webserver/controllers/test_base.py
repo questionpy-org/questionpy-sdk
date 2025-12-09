@@ -7,9 +7,9 @@ from unittest.mock import AsyncMock, MagicMock, Mock
 
 import pytest
 
+from questionpy_common.package_location import FunctionPackageLocation
 from questionpy_sdk.webserver import WebServer
 from questionpy_sdk.webserver.controllers.base import BaseController
-from questionpy_server.worker.runtime.package_location import FunctionPackageLocation
 
 
 @pytest.mark.parametrize(

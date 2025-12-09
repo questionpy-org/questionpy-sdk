@@ -13,8 +13,8 @@ from questionpy import Attempt, Manifest, NeedsManualScoringError, Package, Ques
 from questionpy.form import FormModel, text_input
 from questionpy_common.api.qtype import QuestionTypeInterface
 from questionpy_common.environment import PackageInitFunction
+from questionpy_common.package_location import FunctionPackageLocation
 from questionpy_sdk.webserver.server import WebServer
-from questionpy_server.worker.runtime.package_location import FunctionPackageLocation
 
 
 @pytest.fixture
