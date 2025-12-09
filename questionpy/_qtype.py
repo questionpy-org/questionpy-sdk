@@ -145,7 +145,7 @@ class Question(ABC):
 
                 error_dict[".".join(map(str, error_details["loc"]))] = message
 
-            raise OptionsFormValidationError(error_dict) from e
+            raise OptionsFormValidationError(errors=error_dict) from e
 
     def get_options_form(self) -> tuple[OptionsFormDefinition, dict[str, JsonValue]]:
         """Return the options form and field values for viewing or editing this question."""

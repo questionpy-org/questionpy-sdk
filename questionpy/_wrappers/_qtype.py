@@ -120,7 +120,7 @@ class QuestionTypeWrapper(QuestionTypeInterface):
                 migration_state.state_version += 1
             except Exception as e:
                 raise SpecificMigrationFailedError(
-                    migration_state.state_version, migration_state.state_version + 1, step
+                    e, migration_state.state_version, migration_state.state_version + 1, step
                 ) from e
 
         migration_state.package_version = self._package.manifest.version
@@ -144,7 +144,7 @@ class QuestionTypeWrapper(QuestionTypeInterface):
                 migration_state.state_version -= 1
             except Exception as e:
                 raise SpecificMigrationFailedError(
-                    migration_state.state_version, migration_state.state_version - 1, step
+                    e, migration_state.state_version, migration_state.state_version - 1, step
                 ) from e
 
         migration_state.package_version = self._package.manifest.version
