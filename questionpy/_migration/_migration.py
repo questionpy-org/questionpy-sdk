@@ -5,6 +5,7 @@ from abc import ABC, abstractmethod
 from bisect import insort
 
 from ._base import BaseMigration
+from .errors import MigrationNotPossibleError
 
 type MigrationsRegistry = list[type[Migration]]
 
@@ -31,3 +32,11 @@ class Migration(BaseMigration, ABC):
         It is generally assumed, that upgrading is always possible, but if that is not the case the
         `MigrationNotPossibleError` should be raised.
         """
+
+    def downgrade(self) -> None:
+        """Downgrade this state to the previous version.
+
+        The `MigrationNotPossibleError` should be raised if downgrading is not possible. This is also the default
+        behaviour.
+        """
+        raise MigrationNotPossibleError

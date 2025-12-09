@@ -15,6 +15,7 @@ from questionpy._migration.errors import (
     MigrationNotImplementedError,
     MigrationNotPossibleError,
     MigrationPackageMissmatchError,
+    MigrationPackageVersionMissmatchError,
     MigrationQuestionStateInvalidError,
     SpecificMigrationFailedError,
 )
@@ -120,6 +121,30 @@ class QuestionTypeWrapper(QuestionTypeInterface):
             except Exception as e:
                 raise SpecificMigrationFailedError(
                     migration_state.state_version, migration_state.state_version + 1, step
+                ) from e
+
+        migration_state.package_version = self._package.manifest.version
+        return migration_state.model_dump_json()
+
+    def downgrade(self, state: str, to: int) -> str:
+        migration_state = _get_migration_question_state(state)
+        self._migration_assert_same_package(migration_state)
+        if self._package.manifest.version != migration_state.package_version:
+            raise MigrationPackageVersionMissmatchError(
+                self._package.manifest.state_version, migration_state.state_version
+            )
+
+        steps = self._package.manifest.state_version - to
+        if steps < 0:
+            raise MigrationNotPossibleError
+
+        for step, migration in enumerate(reversed(self.migrations.package[-steps:]), start=1):
+            try:
+                migration(migration_state).downgrade()
+                migration_state.state_version -= 1
+            except Exception as e:
+                raise SpecificMigrationFailedError(
+                    migration_state.state_version, migration_state.state_version - 1, step
                 ) from e
 
         migration_state.package_version = self._package.manifest.version

@@ -45,6 +45,17 @@ class MigrationPackageMissmatchError(MigrationError):
         super().__init__(reason=msg)
 
 
+class MigrationPackageVersionMissmatchError(MigrationError):
+    kind = MigrationErrorKind.PACKAGE_MISSMATCH
+
+    def __init__(self, expected_state_version: int, actual_state_version: int):
+        msg = (
+            f"The provided question state must have the same state version used by this package. Expected "
+            f"'{expected_state_version}', got '{actual_state_version}."
+        )
+        super().__init__(reason=msg)
+
+
 class MigrationQuestionStateInvalidError(MigrationError):
     kind = MigrationErrorKind.QUESTION_STATE_INVALID
 
