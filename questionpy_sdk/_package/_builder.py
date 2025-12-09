@@ -3,6 +3,7 @@ import logging
 import os
 import shutil
 import subprocess
+import sys
 import tempfile
 import zipfile
 from collections.abc import Iterator
@@ -15,7 +16,8 @@ import babel.messages.frontend
 from pathspec import GitIgnoreSpec, PathSpec
 
 import questionpy
-from questionpy import i18n
+from questionpy import get_migrations, i18n
+from questionpy_common.api.qtype import MigrationError
 from questionpy_common.constants import DIST_DIR, MANIFEST_FILENAME
 from questionpy_common.manifest import DistStaticQPyDependency, Manifest, PackageFile
 from questionpy_sdk._i18n_utils import bcp47_to_posix
@@ -86,11 +88,41 @@ class PackageBuilder:
             self._copy_source_files()
         self._run_build_hooks("post")
         self._handle_generated_static_files()
+        self._handle_migrations()
         self._write_manifest()
 
         validate_dist_structure(self._manifest, self._target.dist)
         validate_requested_lms_attributes(self._manifest)
         validate_package_name_and_description(self._manifest)
+
+    def _handle_migrations(self) -> None:
+        """Calculates the current state version of the package by counting the migrations.
+
+        This should be called after `questionpy` and other dependencies were installed.
+        """
+        sys.path.extend([str(self._target.dist / "dependencies" / "site-packages"), str(self._target.dist / "python")])
+
+        dont_write_bytecode = sys.dont_write_bytecode
+        sys.dont_write_bytecode = True
+
+        try:
+            migrations = get_migrations(self._manifest.namespace, self._manifest.short_name)
+        except MigrationError as e:
+            msg = "There was an error discovering the package migrations."
+            # TODO: Log (?) the full exception for further investigations.
+            raise PackageBuildError(msg) from e
+
+        self._manifest.state_version = len(migrations.package)
+
+        self._manifest.possible_side_migrations = {
+            namespace: {
+                short_name: set(migrations_map.keys())
+                for short_name, migrations_map in short_name_migrations_map.items()
+            }
+            for namespace, short_name_migrations_map in migrations.side.items()
+        }
+
+        sys.dont_write_bytecode = dont_write_bytecode
 
     def _run_build_hooks(self, hook_name: BuildHookName) -> None:
         commands = self._source.config.build_hooks.get(hook_name, [])

@@ -46,6 +46,7 @@ from ._attempt import (
     NeedsManualScoringError,
     ResponseNotScorableError,
 )
+from ._migration import Migration, MigrationNotPossibleError, SideMigration, get_migrations
 from ._qtype import BaseQuestionState, Question
 from ._ui import create_jinja2_environment
 from ._wrappers import QuestionTypeWrapper, QuestionWrapper
@@ -67,6 +68,8 @@ __all__ = [
     "FeedbackType",
     "InvalidResponseError",
     "Manifest",
+    "Migration",
+    "MigrationNotPossibleError",
     "NeedsManualScoringError",
     "NoEnvironmentError",
     "OnRequestCallback",
@@ -87,9 +90,11 @@ __all__ = [
     "ScoreModel",
     "ScoringCode",
     "ScoringMethod",
+    "SideMigration",
     "SourceManifest",
     "SubquestionModel",
     "create_jinja2_environment",
+    "get_migrations",
     "get_qpy_environment",
     "i18n",
     "make_question_type_init",

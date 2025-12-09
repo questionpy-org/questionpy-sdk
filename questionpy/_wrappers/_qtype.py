@@ -3,11 +3,21 @@
 #  (c) Technische Universität Berlin, innoCampus <info@isis.tu-berlin.de>
 import json
 from collections.abc import Callable, Mapping
+from functools import cached_property
 from json import JSONDecodeError
 
 from pydantic import JsonValue
 
 from questionpy import Question
+from questionpy._migration import MigrationQuestionStateWithVersion, Migrations, get_migrations
+from questionpy._migration.errors import (
+    MigrationFailedError,
+    MigrationNotImplementedError,
+    MigrationNotPossibleError,
+    MigrationPackageMissmatchError,
+    MigrationQuestionStateInvalidError,
+    SpecificMigrationFailedError,
+)
 from questionpy._wrappers._question import QuestionWrapper
 from questionpy.form.validation import validate_form
 from questionpy_common.api.qtype import InvalidQuestionStateError, QuestionTypeInterface
@@ -15,6 +25,13 @@ from questionpy_common.api.question import QuestionInterface
 from questionpy_common.elements import OptionsFormDefinition
 from questionpy_common.environment import Package
 from questionpy_common.manifest import PackageFile
+
+
+def _get_migration_question_state(state: str) -> MigrationQuestionStateWithVersion:
+    try:
+        return MigrationQuestionStateWithVersion.model_validate_json(state)
+    except Exception as e:
+        raise MigrationQuestionStateInvalidError from e
 
 
 class QuestionTypeWrapper(QuestionTypeInterface):
@@ -75,3 +92,59 @@ class QuestionTypeWrapper(QuestionTypeInterface):
 
     def get_static_files(self) -> Mapping[str, PackageFile]:
         return self._package.manifest.static_files
+
+    @cached_property
+    def migrations(self) -> Migrations:
+        """Returns the possible migrations of this question type."""
+        return get_migrations(self._package.manifest.namespace, self._package.manifest.short_name)
+
+    def _migration_assert_same_package(self, state: MigrationQuestionStateWithVersion) -> None:
+        if (
+            state.package_namespace != self._package.manifest.namespace
+            or state.package_short_name != self._package.manifest.short_name
+        ):
+            raise MigrationPackageMissmatchError(self._package, state)
+
+    def upgrade(self, state: str) -> str:
+        migration_state = _get_migration_question_state(state)
+        self._migration_assert_same_package(migration_state)
+
+        steps = self._package.manifest.state_version - migration_state.state_version
+        if steps < 0:
+            raise MigrationNotPossibleError
+
+        for step, migration in enumerate(self.migrations.package[-steps:], start=1):
+            try:
+                migration(migration_state).upgrade()
+                migration_state.state_version += 1
+            except Exception as e:
+                raise SpecificMigrationFailedError(
+                    migration_state.state_version, migration_state.state_version + 1, step
+                ) from e
+
+        migration_state.package_version = self._package.manifest.version
+        return migration_state.model_dump_json()
+
+    def sidegrade(self, state: str) -> str:
+        migration_state = _get_migration_question_state(state)
+
+        if (
+            (packages := self.migrations.side.get(migration_state.package_namespace))
+            and (migrations := packages.get(migration_state.package_short_name))
+            and (migration := migrations.get(migration_state.state_version))
+        ):
+            try:
+                migration(migration_state).sidegrade()
+            except MigrationNotPossibleError:
+                raise
+            except Exception as e:
+                raise MigrationFailedError from e
+
+            migration_state.package_namespace = self._package.manifest.namespace
+            migration_state.package_short_name = self._package.manifest.short_name
+            migration_state.package_version = self._package.manifest.version
+            migration_state.state_version = self._package.manifest.state_version
+
+            return migration_state.model_dump_json()
+
+        raise MigrationNotImplementedError

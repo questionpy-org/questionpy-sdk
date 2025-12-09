@@ -19,10 +19,12 @@ if TYPE_CHECKING:
 
 
 class QuestionStateWithVersion[F: FormModel, S: "BaseQuestionState"](BaseModel):
-    package_name: str
+    package_namespace: str
+    package_short_name: str
     package_version: str
     options: F
     state: S
+    state_version: int
 
 
 class BaseQuestionState(BaseModel):
@@ -70,10 +72,12 @@ class Question(ABC):
 
         env = get_qpy_environment()
         new_qswv: QuestionStateWithVersion = QuestionStateWithVersion(
-            package_name=f"{env.main_package.manifest.namespace}.{env.main_package.manifest.short_name}",
+            package_namespace=env.main_package.manifest.namespace,
+            package_short_name=env.main_package.manifest.short_name,
             package_version=env.main_package.manifest.version,
             options=options,
             state=question_state,
+            state_version=env.main_package.manifest.state_version,
         )
 
         return cls(new_qswv)

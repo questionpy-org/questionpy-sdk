@@ -94,12 +94,14 @@ class QuestionUsingMyQuestionState(Question):
 
 
 QUESTION_STATE_DICT = {
-    "package_name": "test_ns.test_package",
+    "package_namespace": "test_ns",
+    "package_short_name": "test_package",
     "package_version": "1.2.3",
     "options": {"input": "something"},
     "state": {
         "my_question_field": 42,
     },
+    "state_version": 0,
 }
 
 ATTEMPT_STATE_DICT = {
