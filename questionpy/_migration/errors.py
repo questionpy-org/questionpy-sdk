@@ -17,19 +17,20 @@ class MigrationNotPossibleError(MigrationError):
         super().__init__(*args, kind=MigrationErrorKind.NOT_POSSIBLE, reason=reason, temporary=temporary)
 
 
-class SpecificMigrationFailedError(MigrationError):
+class SpecificMigrationError(MigrationError):
     def __init__(self, cause: Exception, from_version: int, to_version: int, step: int):
-        temporary = False
         msg = f"The migration at step {step} from state version {from_version} to state version {to_version} "
 
         if isinstance(cause, MigrationNotPossibleError):
             kind = MigrationErrorKind.NOT_POSSIBLE
-
             temporary = cause.temporary
+
             reason = f": {cause}" if cause.reason else "."
             msg += f"is not possible{reason}"
         else:
             kind = MigrationErrorKind.FAILED
+            temporary = False
+
             msg += "failed."
 
         super().__init__(kind=kind, reason=msg, temporary=temporary)

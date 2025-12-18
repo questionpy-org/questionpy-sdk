@@ -17,7 +17,7 @@ from questionpy._migration.errors import (
     MigrationPackageMissmatchError,
     MigrationPackageVersionMissmatchError,
     MigrationQuestionStateInvalidError,
-    SpecificMigrationFailedError,
+    SpecificMigrationError,
 )
 from questionpy._wrappers._question import QuestionWrapper
 from questionpy.form.validation import validate_form
@@ -119,7 +119,7 @@ class QuestionTypeWrapper(QuestionTypeInterface):
                 migration(migration_state).upgrade()
                 migration_state.state_version += 1
             except Exception as e:
-                raise SpecificMigrationFailedError(
+                raise SpecificMigrationError(
                     e, migration_state.state_version, migration_state.state_version + 1, step
                 ) from e
 
@@ -143,7 +143,7 @@ class QuestionTypeWrapper(QuestionTypeInterface):
                 migration(migration_state).downgrade()
                 migration_state.state_version -= 1
             except Exception as e:
-                raise SpecificMigrationFailedError(
+                raise SpecificMigrationError(
                     e, migration_state.state_version, migration_state.state_version - 1, step
                 ) from e
 
