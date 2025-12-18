@@ -108,8 +108,8 @@ class PackageBuilder:
         try:
             migrations = get_migrations(self._manifest.namespace, self._manifest.short_name)
         except MigrationError as e:
+            _log.exception("The following exception was raised while discovering the package migrations:")
             msg = "There was an error discovering the package migrations."
-            # TODO: Log (?) the full exception for further investigations.
             raise PackageBuildError(msg) from e
 
         self._manifest.state_version = len(migrations.package)
