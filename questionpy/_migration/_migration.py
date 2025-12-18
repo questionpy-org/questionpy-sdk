@@ -10,7 +10,7 @@ from .errors import MigrationNotPossibleError
 type MigrationsRegistry = list[type[Migration]]
 
 
-MIGRATIONS_REGISTRY: MigrationsRegistry = []
+migrations_registry: MigrationsRegistry = []
 
 
 def _migration_strategy(migration_cls: type["Migration"]) -> str:
@@ -23,7 +23,7 @@ class Migration(BaseMigration, ABC):
 
     def __init_subclass__(cls, **kwargs: object) -> None:
         super().__init_subclass__(**kwargs)
-        insort(MIGRATIONS_REGISTRY, cls, key=_migration_strategy)
+        insort(migrations_registry, cls, key=_migration_strategy)
 
     @abstractmethod
     def upgrade(self) -> None:

@@ -9,7 +9,7 @@ from ._base import BaseMigration
 type SideMigrationsRegistry = defaultdict[str, defaultdict[str, dict[int, type[SideMigration]]]]
 
 
-SIDE_MIGRATIONS_REGISTRY: SideMigrationsRegistry = defaultdict(lambda: defaultdict(dict))
+side_migrations_registry: SideMigrationsRegistry = defaultdict(lambda: defaultdict(dict))
 
 
 class SideMigration(BaseMigration, ABC):
@@ -19,7 +19,7 @@ class SideMigration(BaseMigration, ABC):
         cls, /, for_namespace: str, for_short_name: str, for_state_version: int, **kwargs: object
     ) -> None:
         super().__init_subclass__(**kwargs)
-        SIDE_MIGRATIONS_REGISTRY[for_namespace][for_short_name][for_state_version] = cls
+        side_migrations_registry[for_namespace][for_short_name][for_state_version] = cls
 
     @abstractmethod
     def sidegrade(self) -> None:

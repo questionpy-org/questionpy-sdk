@@ -7,8 +7,8 @@ from collections import defaultdict
 from typing import NamedTuple
 
 from ._base import MigrationQuestionStateWithVersion
-from ._migration import MIGRATIONS_REGISTRY, Migration, MigrationsRegistry
-from ._side_migration import SIDE_MIGRATIONS_REGISTRY, SideMigration, SideMigrationsRegistry
+from ._migration import Migration, MigrationsRegistry, migrations_registry
+from ._side_migration import SideMigration, SideMigrationsRegistry, side_migrations_registry
 from .errors import MigrationDiscoveryError, MigrationNotPossibleError
 
 __all__ = [
@@ -43,4 +43,4 @@ def get_migrations(namespace: str, short_name: str) -> Migrations:
     except Exception as e:
         raise MigrationDiscoveryError from e
 
-    return Migrations(MIGRATIONS_REGISTRY, SIDE_MIGRATIONS_REGISTRY)
+    return Migrations(migrations_registry, side_migrations_registry)
