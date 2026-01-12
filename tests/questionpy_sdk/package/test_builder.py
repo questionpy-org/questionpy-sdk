@@ -87,7 +87,13 @@ def test_installs_static_dep(tmp_path: Path, source_path: Path, qpy_pkg_path: Pa
     config_path = source_path / PACKAGE_CONFIG_FILENAME
     with config_path.open("r") as f:
         config = yaml.safe_load(f)
+
+    # This is pretty ugly, but we need to change the short name of one of the packages, otherwise we just have a package
+    # requiring itself.
+    old_python_dir = source_path / "python" / config["namespace"] / config["short_name"]
+    config["short_name"] = "consumer_package"
     config["dependencies"] = {"qpy": [str(qpy_pkg_path)]}
+    old_python_dir.rename(old_python_dir.parent / "consumer_package")
 
     with config_path.open("w") as f:
         yaml.dump(config, f)
