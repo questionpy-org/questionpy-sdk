@@ -3,11 +3,14 @@
 #  (c) Technische Universität Berlin, innoCampus <info@isis.tu-berlin.de>
 
 import asyncio
+from collections.abc import Sequence
 from pathlib import Path
 from typing import TYPE_CHECKING, Literal
 
 import click
 
+from questionpy_common.package_location import DirPackageLocation
+from questionpy_sdk._dependency_resolver import SdkDynamicDependencyResolver
 from questionpy_sdk.commands._helper import get_package_location
 from questionpy_sdk.constants import DEFAULT_STATE_STORAGE_PATH
 from questionpy_sdk.watcher import Watcher
@@ -16,7 +19,6 @@ from questionpy_sdk.webserver.errors import EnvironmentVariablesMissingError
 from questionpy_sdk.webserver.server import WebServerArgs
 from questionpy_server.worker.impl.subprocess import SubprocessWorker
 from questionpy_server.worker.impl.thread import ThreadWorker
-from questionpy_server.worker.runtime.package_location import DirPackageLocation
 
 if TYPE_CHECKING:
     from collections.abc import Coroutine
@@ -58,11 +60,19 @@ async def async_run(webserver_args: WebServerArgs) -> None:
     show_default=True,
     help="The worker implementation to use. Thread workers offer no isolation but may improve debugging experience.",
 )
+@click.option(
+    "--local-deps-from",
+    "-L",
+    type=click.Path(exists=True, file_okay=False, path_type=Path),
+    help="Path to a local directory to search for dependencies in.",
+    multiple=True,
+)
 def run(
     package: str,
     state_storage_path: Path,
     host: str,
     port: int,
+    local_deps_from: Sequence[Path],
     *,
     watch: bool,
     worker: Literal["subprocess", "thread"],
@@ -75,8 +85,10 @@ def run(
     - a dist directory, or
     - a source directory (built on-the-fly).
     """  # noqa: D301
+    dependency_resolver = SdkDynamicDependencyResolver(local_deps_from)
+
     pkg_path = Path(package).resolve()
-    pkg_location = get_package_location(package, pkg_path)
+    pkg_location = get_package_location(package, pkg_path, dependency_resolver=dependency_resolver)
     coro: Coroutine
 
     webserver_args = WebServerArgs(
@@ -85,6 +97,7 @@ def run(
         host=host,
         port=port,
         worker_class=ThreadWorker if worker == "thread" else SubprocessWorker,
+        dependency_resolver=dependency_resolver,
     )
 
     if watch:
