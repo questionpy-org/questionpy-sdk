@@ -197,6 +197,9 @@ class PackageBuilder:
         return installed_deps
 
     def _lock_dynamic_dependencies(self, static_dependencies: dict[Path, DistStaticQPyDependency]) -> None:
+        if not self._source.config.dependencies.qpy:
+            return
+
         # Even when no dynamic dependencies use locking, resolve_dependency_tree checks the tree for consistency.
         root_deps = _convert_source_deps(self._source, static_dependencies)
         resolution = resolve_dependency_tree(self._source.config, root_deps, self._dynamic_dep_resolver)
