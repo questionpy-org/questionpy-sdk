@@ -6,7 +6,7 @@ import shutil
 import subprocess
 import tempfile
 import zipfile
-from collections.abc import Mapping
+from collections.abc import Mapping, Sequence
 from mimetypes import guess_type
 from pathlib import Path
 from typing import ClassVar
@@ -19,9 +19,9 @@ import questionpy
 from questionpy import i18n
 from questionpy_common import PackageNamespaceAndShortName
 from questionpy_common.constants import MANIFEST_FILENAME
-from questionpy_common.dependencies import DependencySolution
 from questionpy_common.manifest import (
     DistDynamicQPyDependency,
+    DistQPyDependency,
     DistStaticQPyDependency,
     LockedDependencyInfo,
     Manifest,
@@ -40,7 +40,6 @@ from questionpy_sdk._package.source import PackageSource
 from questionpy_sdk.models import (
     AbstractDynamicQPyDependency,
     BuildHookName,
-    PackageConfig,
     SourceDynamicQPyDependency,
     SourceStaticQPyDependency,
 )
@@ -163,22 +162,22 @@ class PackageBuilder:
             if not isinstance(dep, SourceStaticQPyDependency):
                 continue
 
-            dep_path = dep.path if dep.path.is_absolute() else (self._source.path / dep.path)
-            if not dep_path.exists():
-                msg = f"The specified dependency '{dep.path}' does not exist."
+            dep_path_abs = (self._source.path / dep.path).absolute()
+            if not dep_path_abs.exists():
+                msg = f"The specified dependency '{dep_path_abs}' does not exist."
                 raise PackageBuildError(msg)
 
-            dependency_paths.add(dep_path)
+            dependency_paths.add(dep_path_abs)
 
         installed_deps: dict[Path, DistStaticQPyDependency] = {}
 
         # Then, we copy all of their contents into a directory in dist/dependencies/qpy.
-        for dep_path in dependency_paths:
-            _log.info("Copying static QPy dependency '%s'", dep_path)
+        for dep_path_abs in dependency_paths:
+            _log.info("Copying static QPy dependency '%s'", dep_path_abs)
 
-            with dep_path.open("rb+") as dep_package_file, zipfile.ZipFile(dep_package_file) as dep_package_zf:
+            with dep_path_abs.open("rb+") as dep_package_file, zipfile.ZipFile(dep_package_file) as dep_package_zf:
                 dep_hash = calculate_hash(dep_package_file)
-                dep_manifest = asyncio.run(read_manifest_from_zip(dep_path))
+                dep_manifest = asyncio.run(read_manifest_from_zip(dep_package_zf))
 
                 dep_dir_name = f"{dep_manifest.namespace}-{dep_manifest.short_name}-{dep_manifest.version}"
                 dest_path = self._target.dist / "dependencies" / "qpy" / dep_dir_name
@@ -192,16 +191,15 @@ class PackageBuilder:
                 hash=dep_hash,
             )
 
-            installed_deps[dep_path] = dist_dep
+            installed_deps[dep_path_abs] = dist_dep
             self._manifest.dependencies.qpy.append(dist_dep)
 
         return installed_deps
 
     def _lock_dynamic_dependencies(self, static_dependencies: dict[Path, DistStaticQPyDependency]) -> None:
         # Even when no dynamic dependencies use locking, resolve_dependency_tree checks the tree for consistency.
-        resolution = _resolve_dependencies_for_packaging(
-            self._source.config, self._dynamic_dep_resolver, static_dependencies
-        )
+        root_deps = _convert_source_deps(self._source, static_dependencies)
+        resolution = resolve_dependency_tree(self._source.config, root_deps, self._dynamic_dep_resolver)
 
         for source_dep in self._source.config.dependencies.qpy:
             if not isinstance(source_dep, SourceDynamicQPyDependency):
@@ -378,23 +376,17 @@ def build_qpy_package(
         builder.write_package()
 
 
-def _resolve_dependencies_for_packaging(
-    config: PackageConfig,
-    dynamic_resolver: DynamicDependencyResolver,
-    source_static_deps: Mapping[Path, DistStaticQPyDependency],
-) -> dict[PackageNamespaceAndShortName, DependencySolution]:
+def _convert_source_deps(
+    source: PackageSource, source_static_deps: Mapping[Path, DistStaticQPyDependency]
+) -> Sequence[DistQPyDependency]:
     """Converts `SourceQPyDependency` models from the `PackageConfig` into `DistQPyDependency` models.
 
     `DistStaticQPyDependency` models were already built when the static dependencies were installed, and we can build
     `DistDynamicQPyDependency` by just copying the `SourceDynamicQPyDependency`.
     """
-    root_deps = [
-        dep
-        if isinstance(dep, (DistStaticQPyDependency, DistDynamicQPyDependency))
-        else source_static_deps[dep.path]
+    return [
+        source_static_deps[(source.path / dep.path).absolute()]
         if isinstance(dep, SourceStaticQPyDependency)
         else DistDynamicQPyDependency(**dep.model_dump())
-        for dep in config.dependencies.qpy
+        for dep in source.config.dependencies.qpy
     ]
-
-    return resolve_dependency_tree(config, root_deps, dynamic_resolver)
