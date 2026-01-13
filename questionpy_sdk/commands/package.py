@@ -1,15 +1,18 @@
 #  This file is part of the QuestionPy SDK. (https://questionpy.org)
 #  The QuestionPy SDK is free software released under terms of the MIT license. See LICENSE.md.
 #  (c) Technische Universität Berlin, innoCampus <info@isis.tu-berlin.de>
+from collections.abc import Sequence
 from pathlib import Path
 
 import click
 
 from questionpy_common.constants import DIST_DIR
+from questionpy_sdk._dependency_resolver import SdkDynamicDependencyResolver
 from questionpy_sdk._package import ZipBuildTarget, build_qpy_package
 from questionpy_sdk._package.errors import PackageBuildError, PackageSourceValidationError
 from questionpy_sdk._package.source import PackageSource
 from questionpy_sdk.commands._helper import confirm_overwrite
+from questionpy_server.dependencies import DynamicDependencyResolver
 
 
 def validate_out_path(context: click.Context, _parameter: click.Parameter, value: Path | None) -> Path | None:
@@ -44,11 +47,19 @@ def validate_out_path(context: click.Context, _parameter: click.Parameter, value
     help="Don't copy package sources into the .qpy file.",
 )
 @click.option("--force", "-f", "allow_overwrite", is_flag=True, help="Force overwriting of output file.")
+@click.option(
+    "--local-deps-from",
+    "-L",
+    type=click.Path(exists=True, file_okay=False, path_type=Path),
+    help="Path to a local directory to search for dependencies in.",
+    multiple=True,
+)
 @click.pass_context
 def package(
     ctx: click.Context,
     source: Path,
     out_path: Path | None,
+    local_deps_from: Sequence[Path],
     *,
     allow_overwrite: bool,
     development: bool,
@@ -69,8 +80,10 @@ def package(
             msg = f"The options {param_name} and --dev are mutually exclusive."
             raise click.UsageError(msg, ctx=ctx)
 
+    dependency_resolver = SdkDynamicDependencyResolver(local_deps_from)
+
     if development:
-        create_dist(package_source)
+        create_dist(package_source, dependency_resolver=dependency_resolver)
 
     else:
         if not out_path:
@@ -81,13 +94,18 @@ def package(
             out_path /= package_source.normalized_filename
 
         create_qpy_package(
-            ctx, package_source, out_path, allow_overwrite=allow_overwrite, without_sources=without_sources
+            ctx,
+            package_source,
+            out_path,
+            allow_overwrite=allow_overwrite,
+            without_sources=without_sources,
+            dependency_resolver=dependency_resolver,
         )
 
 
-def create_dist(package_source: PackageSource) -> None:
+def create_dist(package_source: PackageSource, *, dependency_resolver: DynamicDependencyResolver) -> None:
     try:
-        build_qpy_package(package_source)
+        build_qpy_package(package_source, dependency_resolver=dependency_resolver)
     except PackageBuildError as exc:
         msg = f"Failed to build package: {exc}"
         raise click.ClickException(msg) from exc
@@ -96,7 +114,13 @@ def create_dist(package_source: PackageSource) -> None:
 
 
 def create_qpy_package(
-    ctx: click.Context, package_source: PackageSource, out_path: Path, *, allow_overwrite: bool, without_sources: bool
+    ctx: click.Context,
+    package_source: PackageSource,
+    out_path: Path,
+    *,
+    allow_overwrite: bool,
+    without_sources: bool,
+    dependency_resolver: DynamicDependencyResolver,
 ) -> None:
     if out_path.exists() and not allow_overwrite:
         if not ctx.obj["no_interaction"]:
@@ -107,7 +131,10 @@ def create_qpy_package(
 
     try:
         build_qpy_package(
-            package_source, ZipBuildTarget(out_path, allow_overwrite=allow_overwrite), copy_sources=not without_sources
+            package_source,
+            ZipBuildTarget(out_path, allow_overwrite=allow_overwrite),
+            copy_sources=not without_sources,
+            dependency_resolver=dependency_resolver,
         )
     except PackageBuildError as exc:
         msg = f"Failed to build package: {exc}"

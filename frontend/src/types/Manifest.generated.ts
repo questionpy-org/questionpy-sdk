@@ -9,6 +9,10 @@
 
 export type PackageType = 'LIBRARY' | 'QUESTIONTYPE' | 'QUESTION'
 export type EnvironmentVariableName = string
+export type DistQPyDependency = DistStaticQPyDependency | DistDynamicQPyDependency
+export type Version = string | null
+export type DependencyLockStrategy = 'required' | 'preferred-no-downgrade' | 'preferred-allow-downgrade'
+export type Qpy = DistQPyDependency[]
 
 /**
  * Represents a package manifest.
@@ -64,9 +68,27 @@ export interface PackageFile {
     size: number
 }
 export interface DistDependencies {
-    qpy: DistStaticQPyDependency[]
+    qpy: Qpy
 }
 export interface DistStaticQPyDependency {
-    dir_name: string
+    namespace: string
+    short_name: string
+    version: string
+    dependencies: DistDependencies1
     hash: string
+}
+export interface DistDependencies1 {
+    qpy: Qpy
+}
+export interface DistDynamicQPyDependency {
+    namespace: string
+    short_name: string
+    version: Version
+    include_prereleases: boolean
+    locked: LockedDependencyInfo | null
+}
+export interface LockedDependencyInfo {
+    strategy: DependencyLockStrategy
+    locked_version: string
+    locked_hash: string
 }

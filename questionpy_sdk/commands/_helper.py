@@ -9,15 +9,16 @@ import click
 from pydantic import ValidationError
 
 from questionpy_common.constants import DIST_DIR, MANIFEST_FILENAME
-from questionpy_sdk._package import build_qpy_package
-from questionpy_sdk._package.errors import PackageBuildError, PackageSourceValidationError
-from questionpy_sdk._package.source import PackageSource
-from questionpy_server.hash import calculate_hash
-from questionpy_server.worker.runtime.package_location import (
+from questionpy_common.package_location import (
     DirPackageLocation,
     PackageLocation,
     ZipPackageLocation,
 )
+from questionpy_sdk._package import build_qpy_package
+from questionpy_sdk._package.errors import PackageBuildError, PackageSourceValidationError
+from questionpy_sdk._package.source import PackageSource
+from questionpy_server.dependencies import DynamicDependencyResolver
+from questionpy_server.hash import calculate_hash
 
 
 def _get_dir_package_location(source_path: Path) -> DirPackageLocation:
@@ -28,14 +29,16 @@ def _get_dir_package_location(source_path: Path) -> DirPackageLocation:
         raise click.ClickException(msg) from exc
 
 
-def _get_dir_package_location_from_source(pkg_string: str, source_path: Path) -> DirPackageLocation:
+def _get_dir_package_location_from_source(
+    pkg_string: str, source_path: Path, dependency_resolver: DynamicDependencyResolver
+) -> DirPackageLocation:
     # Always rebuild package.
     try:
         package_source = PackageSource(source_path)
     except PackageSourceValidationError as exc:
         raise click.ClickException(str(exc)) from exc
     try:
-        build_qpy_package(package_source)
+        build_qpy_package(package_source, dependency_resolver=dependency_resolver)
         click.echo(f"Successfully built package '{pkg_string}'.")
     except PackageBuildError as exc:
         msg = f"Failed to build package: {exc}"
@@ -44,13 +47,15 @@ def _get_dir_package_location_from_source(pkg_string: str, source_path: Path) ->
     return _get_dir_package_location(source_path / DIST_DIR)
 
 
-def get_package_location(pkg_string: str, pkg_path: Path) -> PackageLocation:
+def get_package_location(
+    pkg_string: str, pkg_path: Path, dependency_resolver: DynamicDependencyResolver
+) -> PackageLocation:
     if pkg_path.is_dir():
         # dist dir
         if (pkg_path / MANIFEST_FILENAME).is_file():
             return _get_dir_package_location(pkg_path)
         # source dir
-        return _get_dir_package_location_from_source(pkg_string, pkg_path)
+        return _get_dir_package_location_from_source(pkg_string, pkg_path, dependency_resolver=dependency_resolver)
 
     if zipfile.is_zipfile(pkg_path):
         return ZipPackageLocation(pkg_path, calculate_hash(pkg_path))

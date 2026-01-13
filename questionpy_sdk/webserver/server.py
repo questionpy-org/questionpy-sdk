@@ -12,16 +12,17 @@ from aiohttp import web
 
 from questionpy_common.environment import PackagePermissions
 from questionpy_common.manifest import Manifest
+from questionpy_common.package_location import PackageLocation
 from questionpy_sdk.webserver.middlewares.controller import inject_controller_middleware
 from questionpy_sdk.webserver.middlewares.error import api_error_middleware, error_middleware
 from questionpy_sdk.webserver.routes import api_routes
 from questionpy_sdk.webserver.routes.frontend import routes as frontend_routes
 from questionpy_sdk.webserver.state import FilesystemStateManager, StateManager
 from questionpy_server import WorkerPool
+from questionpy_server.dependencies import DynamicDependencyResolver, NoopDependencyResolver
 from questionpy_server.settings import CompletePackagePermissions
 from questionpy_server.worker import Worker
 from questionpy_server.worker.impl.subprocess import SubprocessWorker
-from questionpy_server.worker.runtime.package_location import PackageLocation
 
 from .constants import API_PATH_PREFIX, USE_VITE_DEV_SERVER, WEBSERVER_KEY
 from .errors import EnvironmentVariablesMissingError
@@ -36,6 +37,7 @@ class WebServerArgs(TypedDict):
     host: NotRequired[str]
     port: NotRequired[int]
     worker_class: NotRequired[type[Worker]]
+    dependency_resolver: NotRequired[DynamicDependencyResolver]
 
 
 class WebServer:
@@ -47,6 +49,7 @@ class WebServer:
         self._host = kwargs.get("host", "localhost")
         self._port = kwargs.get("port", 8080)
         self._worker_class = kwargs.get("worker_class", self.DEFAULT_WORKER_CLASS)
+        self._dependency_resolver = kwargs.get("dependency_resolver") or NoopDependencyResolver()
 
         self._app: web.Application
         self._api_app: web.Application
@@ -74,7 +77,10 @@ class WebServer:
 
         # Add worker pool
         self._worker_pool = await WorkerPool(
-            max_workers=1, max_memory=self._package_permissions.memory, worker_type=self._worker_class
+            max_workers=1,
+            max_memory=self._package_permissions.memory,
+            worker_type=self._worker_class,
+            dependency_resolver=self._dependency_resolver,
         ).__aenter__()
 
         # Initialize state manager

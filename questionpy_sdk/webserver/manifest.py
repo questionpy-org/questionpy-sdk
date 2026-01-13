@@ -10,7 +10,7 @@ from pydantic import ByteSize
 
 from questionpy_common.constants import DIST_DIR, MANIFEST_FILENAME, MAX_MANIFEST_SIZE
 from questionpy_common.manifest import Manifest
-from questionpy_server.worker.runtime.package_location import (
+from questionpy_common.package_location import (
     DirPackageLocation,
     FunctionPackageLocation,
     PackageLocation,

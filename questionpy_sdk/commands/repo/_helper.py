@@ -8,13 +8,15 @@ from gzip import open as gzip_open
 from pathlib import Path
 from zipfile import ZipFile
 
+import semver
+
 from questionpy_common.constants import DIST_DIR, MANIFEST_FILENAME
+from questionpy_common.manifest import Manifest
 from questionpy_server.hash import calculate_hash
 from questionpy_server.repository.models import RepoMeta, RepoPackageIndex, RepoPackageVersion, RepoPackageVersions
-from questionpy_server.utils.manifest import ComparableManifest
 
 
-def get_manifest(path: Path) -> ComparableManifest:
+def get_manifest(path: Path) -> Manifest:
     """Reads the manifest of a package.
 
     Args:
@@ -25,7 +27,7 @@ def get_manifest(path: Path) -> ComparableManifest:
     """
     with ZipFile(path) as zip_file:
         raw_manifest = zip_file.read(f"{DIST_DIR}/{MANIFEST_FILENAME}")
-    return ComparableManifest.model_validate_json(raw_manifest)
+    return Manifest.model_validate_json(raw_manifest)
 
 
 class IndexCreator:
@@ -36,7 +38,7 @@ class IndexCreator:
         self._root.mkdir(parents=True, exist_ok=True)
         self._packages: dict[str, RepoPackageVersions] = {}
 
-    def add(self, path: Path, manifest: ComparableManifest) -> None:
+    def add(self, path: Path, manifest: Manifest) -> None:
         """Adds a package to the repository index.
 
         Args:
@@ -45,7 +47,7 @@ class IndexCreator:
         """
         # Create RepoPackageVersion.
         version = RepoPackageVersion(
-            version=str(manifest.version),
+            version=semver.Version.parse(manifest.version),
             api_version=manifest.api_version,
             path=str(path.relative_to(self._root)),
             size=path.stat().st_size,
