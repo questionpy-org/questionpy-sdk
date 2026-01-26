@@ -8,6 +8,7 @@ import { computed, inject, provide, ref, toRaw, watch } from 'vue'
 import type { ComputedRef, InjectionKey, Ref, ShallowRef } from 'vue'
 
 import { useOptionsFormDataQuery, useOptionsFormDefinitionQuery, usePostOptionsFormDataMutation } from '@/queries'
+import { FormValidationError } from '@/queries/fetch'
 import usePendingOperationsStore from '@/stores/usePendingOperationsStore'
 import { isObject } from '@/types'
 import type {
@@ -80,7 +81,20 @@ function provideFormDataState(questionId: string): UseFormDataStateReturn {
         },
     )
 
-    const error = computed(() => formDefinitionError.value ?? formDataError.value ?? postDataError.value)
+    const error = computed(() => {
+        if (formDefinitionError.value) {
+            return formDefinitionError.value
+        } else if (formDataError.value) {
+            return formDataError.value
+        } else if (
+            postDataError.value &&
+            // We handle FormValidationError in submit()
+            !(postDataError.value instanceof FormValidationError)
+        ) {
+            return postDataError.value
+        }
+        return null
+    })
     const isPending = computed(() => formDefinitionIsPending.value || formDataIsPending.value)
 
     // Form logic
@@ -113,11 +127,16 @@ function provideFormDataState(questionId: string): UseFormDataStateReturn {
         const operation = addOperation('submit', { modelType: 'question' })
         try {
             formErrors.value = await postData(rawFormData)
+            formErrors.value = {} // no errors
         } catch (err) {
-            if (err instanceof Error) {
+            if (err instanceof FormValidationError) {
+                formErrors.value = err.validationErrors
+            } else if (err instanceof Error) {
                 mutationState.value.error = err
+                throw err
+            } else {
+                throw err // unknown
             }
-            throw err
         } finally {
             removeOperation(operation)
         }
@@ -185,6 +204,8 @@ function provideFormDataState(questionId: string): UseFormDataStateReturn {
     }
 
     const formDataState = {
+        questionId: ref(questionId),
+
         formDefinition,
         formData: formDataCurrent,
         formErrors,
@@ -230,6 +251,9 @@ function useFormDataState(): UseFormDataStateReturn {
 
 /** Encapsulates reactive form state and mutation methods for an options form. */
 interface UseFormDataStateReturn {
+    /** Question ID. */
+    questionId: Ref<string>
+
     /** Reactive reference to the form definition. */
     formDefinition: ShallowRef<OptionsFormDefinition | undefined>
 

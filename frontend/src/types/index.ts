@@ -9,6 +9,7 @@ import type { ValidationState } from 'bootstrap-vue-next'
 import type {
     CheckboxElement,
     Condition,
+    FileUploadElement,
     FormElement,
     GeneratedIdElement,
     GroupElement,
@@ -20,6 +21,7 @@ import type {
     StaticTextElement,
     TextAreaElement,
     TextInputElement,
+    WysiwygEditorElement,
 } from './OptionsFormDefinition.generated'
 import type {
     OptionsFile,
@@ -27,6 +29,7 @@ import type {
     OptionsFormModelValue,
     OptionsFormValue,
     OptionsStateResponse,
+    RichTextEditor,
 } from './OptionsStateResponse.generated'
 
 /** Mapping of form element `kind` types to their corresponding value types. */
@@ -39,6 +42,8 @@ interface ElementValueMap {
     select: string | string[]
     hidden: string
     id: string
+    file_upload: OptionsFile[]
+    wysiwyg_editor: RichTextEditor
 }
 
 /** Utility to look up value type by form element. */
@@ -57,6 +62,8 @@ type EditableElement =
     | SelectElement
     | TextInputElement
     | TextAreaElement
+    | FileUploadElement
+    | WysiwygEditorElement
 
 /** Form element that has `elements` property. */
 type HasElements = Extract<FormElement, { elements: FormElement[] }>
@@ -99,7 +106,14 @@ export type { ClientQuestionDisplayOptions, DisplayRole } from './ClientQuestion
 export type { DetailedServerError, ErrorDetails } from './DetailedServerError.generated'
 export type { ErrorSectionKey } from './ErrorSectionKey.generated'
 export type { Manifest } from './Manifest.generated'
-export { assertNever, hasElements, isDetailedServerError, isEditableElement, isObject } from './typeUtils'
+export {
+    assertNever,
+    hasElements,
+    isDetailedServerError,
+    isEditableElement,
+    isObject,
+    isRichTextEditor,
+} from './typeUtils'
 export type {
     CanHaveConditions,
     CanHaveHelp,
@@ -108,6 +122,7 @@ export type {
     EditableElement,
     ElementPath,
     ElementToValue,
+    FileUploadElement,
     FormElement,
     GeneratedIdElement,
     GroupElement,
@@ -121,10 +136,12 @@ export type {
     OptionsStateResponse,
     RadioGroupElement,
     RepetitionElement,
+    RichTextEditor,
     SelectElement,
     ServerValidationErrors,
     StaticTextElement,
     TextAreaElement,
     TextInputElement,
     ValidationInfo,
+    WysiwygEditorElement,
 }

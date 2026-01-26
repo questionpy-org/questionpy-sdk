@@ -2,6 +2,8 @@
 #  The QuestionPy SDK is free software released under terms of the MIT license. See LICENSE.md.
 #  (c) Technische Universität Berlin, innoCampus <info@isis.tu-berlin.de>
 
+from collections.abc import AsyncIterable
+from datetime import datetime
 from unittest.mock import AsyncMock, Mock
 
 import pytest
@@ -101,3 +103,30 @@ async def test_clone_question(
 async def test_clone_question_duplicate(controller: QuestionController, mock_state_manager: AsyncMock) -> None:
     with pytest.raises(DuplicateQuestionError):
         await controller.clone_question("QaKxpanc", "tKVJTdsv")
+
+
+async def test_add_file(controller: QuestionController, mock_state_manager: AsyncMock) -> None:
+    async def mock_reader() -> AsyncIterable[bytes]:  # noqa: RUF029
+        yield b"some test content"
+
+    options_file = await controller.add_file("test_file.txt", "text/plain", mock_reader())
+
+    mock_state_manager.add_options_file.assert_called_once()
+    assert options_file.filename == "test_file.txt"
+    assert options_file.mime_type == "text/plain"
+    assert options_file.file_ref == "dbabd43828eccd27e3a109b58454e4ff43c8673e"
+    assert options_file.size == 17
+    assert options_file.path == "/"
+    assert isinstance(options_file.uploaded_at, datetime)
+
+
+async def test_get_file(controller: QuestionController, mock_state_manager: AsyncMock) -> None:
+    expected_options_file = Mock()
+    expected_file_manager = Mock()
+    mock_state_manager.get_options_file.return_value = (expected_options_file, expected_file_manager)
+
+    options_file, file_manager = await controller.get_file("QaKxpanc", "my_file_upload", "abcdef0123456")
+
+    mock_state_manager.get_options_file.assert_called_once_with("QaKxpanc", "my_file_upload", "abcdef0123456")
+    assert options_file == expected_options_file
+    assert file_manager == expected_file_manager

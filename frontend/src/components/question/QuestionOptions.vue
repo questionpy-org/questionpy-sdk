@@ -7,7 +7,7 @@
 <template>
     <LoadingIndicator :loading="isPending">
         <ErrorCard v-if="error" :error="error" />
-        <BForm v-else-if="formDefinition" class="vstack gap-4">
+        <BForm v-else-if="formDefinition">
             <OptionsSection header="General" name="general" :elements="formDefinition.general" />
             <OptionsSection
                 v-for="section in formDefinition.sections"
@@ -17,7 +17,7 @@
                 :name="section.name"
             />
         </BForm>
-        <ButtonGroup class="my-4">
+        <ButtonGroup class="mb-4">
             <template v-if="hasEditableFields">
                 <IconButton :disabled="isSaveDisabled" :icon-component="SubmitIcon" @click="submit" variant="primary">{{
                     submitLabel

@@ -4,7 +4,8 @@
  * (c) Technische Universität Berlin, innoCampus <info@isis.tu-berlin.de>
  */
 
-import { computed, type ComputedRef, toRaw } from 'vue'
+import { computed, toRaw } from 'vue'
+import type { ComputedRef } from 'vue'
 
 import type { ElementPath, RepetitionElement } from '@/types'
 

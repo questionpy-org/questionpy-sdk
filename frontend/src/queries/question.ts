@@ -8,6 +8,7 @@ import { useMutation, useQuery, useQueryCache } from '@pinia/colada'
 
 import type {
     DetailedServerError,
+    OptionsFile,
     OptionsFormData,
     OptionsFormDefinition,
     OptionsStateResponse,
@@ -143,6 +144,24 @@ function usePostQuestionCloneMutation(questionId: string, newQuestionId: string)
     })
 }
 
+/**
+ * Upload one or more options files.
+ *
+ * @param files An array of `File` objects to upload.
+
+ * @returns An mutation return object.
+ */
+function usePostQuestionFileUploadMutation(files: File[]) {
+    const formData = new FormData()
+    for (const file of files) {
+        formData.append('file', file)
+    }
+
+    return useMutation({
+        mutation: () => post<OptionsFile[]>(`question/file-upload`, formData),
+    })
+}
+
 export {
     useDeleteAllOptionsFormDataMutation,
     useDeleteOptionsFormDataMutation,
@@ -150,5 +169,6 @@ export {
     useOptionsFormDefinitionQuery,
     usePostOptionsFormDataMutation,
     usePostQuestionCloneMutation,
+    usePostQuestionFileUploadMutation,
     useQuestionStatesQuery,
 }

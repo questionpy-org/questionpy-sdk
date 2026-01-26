@@ -5,14 +5,7 @@
 -->
 
 <template>
-    <BModal
-        body-bg-variant="danger-subtle"
-        body-class="pb-0"
-        header-variant="danger"
-        no-footer
-        v-model="show"
-        @hide="clearError"
-    >
+    <BModal body-bg-variant="danger-subtle" header-variant="danger" no-footer v-model="show" @hide="clearError">
         <template #title>{{ error?.name }}</template>
         <ErrorDisplay v-if="error" :error="error" />
     </BModal>

@@ -2,8 +2,13 @@
 #  The QuestionPy SDK is free software released under terms of the MIT license. See LICENSE.md.
 #  (c) Technische Universität Berlin, innoCampus <info@isis.tu-berlin.de>
 
-from collections.abc import Mapping
-from typing import cast
+import hashlib
+import tempfile
+from collections.abc import AsyncIterable, Mapping
+from contextlib import AbstractContextManager
+from datetime import UTC, datetime
+from pathlib import Path
+from typing import IO, BinaryIO, cast
 
 from pydantic import ConfigDict
 from pydantic.dataclasses import dataclass
@@ -110,3 +115,34 @@ class QuestionController(BaseController):
 
         state = await self._state_manager.read_question_state(question_id)
         await self._state_manager.write_question_state(new_question_id, state)
+
+    async def add_file(self, filename: str, mime_type: str, reader: AsyncIterable[bytes]) -> OptionsFile:
+        # Temp file needed to hash content before saving; reader is single-use.
+        # Likely fails on Windows (moving open files)
+        with tempfile.NamedTemporaryFile() as tmp_file:
+            file_ref, size = await self._process_file(reader, tmp_file)
+            await self._state_manager.add_options_file(file_ref, Path(tmp_file.name))
+
+            return OptionsFile(
+                path="/",
+                filename=filename,
+                file_ref=file_ref,
+                uploaded_at=datetime.now(UTC),
+                mime_type=mime_type,
+                size=size,
+            )
+
+    async def get_file(
+        self, question_id: str, name: str, file_ref: str
+    ) -> tuple[OptionsFile, AbstractContextManager[BinaryIO]]:
+        return await self._state_manager.get_options_file(question_id, name, file_ref)
+
+    async def _process_file(self, reader: AsyncIterable[bytes], file: IO[bytes]) -> tuple[str, int]:
+        sha1_hash = hashlib.sha1()  # noqa: S324
+        total_size = 0
+        async for chunk in reader:
+            sha1_hash.update(chunk)
+            total_size += len(chunk)
+            file.write(chunk)
+        file.flush()
+        return sha1_hash.hexdigest(), total_size

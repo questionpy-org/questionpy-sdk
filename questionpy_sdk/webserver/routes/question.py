@@ -2,15 +2,20 @@
 #  The QuestionPy SDK is free software released under terms of the MIT license. See LICENSE.md.
 #  (c) Technische Universität Berlin, innoCampus <info@isis.tu-berlin.de>
 
-from aiohttp import web
+from typing import TYPE_CHECKING
+
+from aiohttp import BodyPartReader, web
 from aiohttp.web_exceptions import HTTPNotFound, HTTPUnprocessableEntity
 from pydantic import RootModel
 
 from questionpy import OptionsFormValidationError
-from questionpy_sdk.webserver.constants import ID_RE
+from questionpy_sdk.webserver.constants import FILE_REF_RE, ID_RE
 from questionpy_sdk.webserver.controllers.question import QuestionController
 from questionpy_sdk.webserver.errors import DuplicateQuestionError, MissingQuestionStateError
 from questionpy_sdk.webserver.routes.base import BaseView
+
+if TYPE_CHECKING:
+    from questionpy.form import OptionsFile
 
 routes = web.RouteTableDef()
 
@@ -87,3 +92,64 @@ class QuestionCloneView(QuestionBaseView):
             raise web.HTTPConflict(text=str(err)) from err
 
         return self.json_success_response()
+
+
+@routes.view(f"/question/{{question_id:{ID_RE}}}/file/{{name}}/{{file_ref:{FILE_REF_RE}}}", name="question.file")
+class QuestionFileView(QuestionBaseView):
+    async def get(self) -> web.StreamResponse:
+        """Retrieves an option file."""
+        question_id = self.request.match_info["question_id"]
+        name = self.request.match_info["name"]
+        file_ref = self.request.match_info["file_ref"]
+
+        options_file, file_reader = await self.controller.get_file(question_id, name, file_ref)
+
+        headers = {
+            # Content-addressable -> never changes
+            "Cache-Control": "public, max-age=31536000, immutable",
+            "Content-Disposition": f'inline; filename="{options_file.filename}"',
+            "Content-Length": str(options_file.size),
+            "Content-Type": options_file.mime_type,
+            "Last-Modified": options_file.uploaded_at.strftime("%a, %d %b %Y %H:%M:%S GMT"),
+        }
+
+        resp = web.StreamResponse(headers=headers)
+        await resp.prepare(self.request)
+
+        # stream in chunks
+        chunk_size = 64 * 1024  # 64 KiB
+        with file_reader as f:
+            while chunk := f.read(chunk_size):
+                await resp.write(chunk)
+        await resp.write_eof()
+
+        return resp
+
+
+@routes.view("/question/file-upload", name="question.file-upload")
+class QuestionFileUploadView(QuestionBaseView):
+    async def post(self) -> web.Response:
+        """Processes and stores option files."""
+        files: list[OptionsFile] = []
+
+        async for part in await self.request.multipart():
+            if isinstance(part, BodyPartReader):
+                if part.name != "file":
+                    return web.json_response(
+                        {"error": "Expected part name to be 'file'"}, status=HTTPUnprocessableEntity.status_code
+                    )
+
+                if not part.filename:
+                    return web.json_response({"error": "Missing filename"}, status=HTTPUnprocessableEntity.status_code)
+
+                file = await self.controller.add_file(
+                    part.filename,
+                    part.headers.get("Content-Type", "application/octet-stream"),
+                    part,
+                )
+                files.append(file)
+
+        if len(files) == 0:
+            return web.json_response({"error": "No files in form data"}, status=HTTPUnprocessableEntity.status_code)
+
+        return self.json_model_response(RootModel(files))

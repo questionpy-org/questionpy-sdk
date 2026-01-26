@@ -22,6 +22,7 @@ import usePendingOperationsStore from '@/stores/usePendingOperationsStore'
 function useIsDisabled(disabled: MaybeRefOrGetter<boolean> = false): ComputedRef<boolean> {
     const { isSaving } = useFormDataState()
     const { hasPendingOperations } = storeToRefs(usePendingOperationsStore())
+
     return computed(() => hasPendingOperations.value || isSaving.value || toValue(disabled))
 }
 
